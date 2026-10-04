@@ -1,0 +1,15 @@
+# npm
+node_modules/
+
+# Build output (distribute via GitHub releases instead)
+main.js
+*.map
+
+# Obsidian plugin dev data
+data.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
