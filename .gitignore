@@ -13,3 +13,7 @@ data.json
 .idea/
 .DS_Store
 Thumbs.db
+
+### CUSTOM ###
+.zcodeignore
+.zcode
