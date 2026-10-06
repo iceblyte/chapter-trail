@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 · 开始管理 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a class="on" href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>04 · 开始管理流程（两步弹窗）</h1>
+    <p>入口：面板底部「＋ Start managing a folder」，或命令面板 <code>chapter-trail: Start managing current folder</code>。第一步选文件夹（模糊搜索、已受管的禁选），第二步选模式并明示后果。全流程可点击：选文件夹 → 选模式 → 创建成功后卡片出现在面板中。</p>
+  </div>
+
+  <div class="ct-section">
+    <div class="ct-board" style="max-width:520px; margin:0 auto;">
+      <div class="ct-panel" style="height:460px; border:1px solid var(--background-modifier-border); border-radius:10px;">
+        <div class="ct-panel-head">
+          <span class="ct-panel-title">Chapter Trail</span>
+          <span class="ct-icon-btn">⟳</span>
+        </div>
+        <div class="ct-summary"><span id="summary-text">1 domain · 0 need attention</span></div>
+        <div class="ct-panel-body" id="panel-body">
+          <div class="ct-card" id="card-existing">
+            <div class="ct-card-head">
+              <span class="ct-card-path">读书笔记/卡片盒笔记法</span>
+              <span class="ct-mode-badge">Independent</span>
+            </div>
+            <div class="ct-rows">
+              <div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>引言：卢曼的盒子</span><span class="ct-row-date">2025-09-14</span><span class="ct-row-order">10000</span></div>
+              <div class="ct-row is-managedfolder" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title is-folder"><span class="ct-seq">02</span>第一部分 · 原理</span><span class="ct-row-date">—</span><span class="ct-row-order">20000</span></div>
+              <div class="ct-row" data-order="30000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span>卡片的三种类型</span><span class="ct-row-date">2025-09-28</span><span class="ct-row-order">30000</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ct-panel-foot">
+          <button class="ct-btn is-accent" id="btn-start">＋ Start managing a folder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 1：选择文件夹 -->
+<div class="ct-modal-overlay" id="ct-modal-folder">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Start managing a folder <span class="ct-note">· Step 1 of 2</span></div>
+    <div class="ct-modal-body"><input class="ct-input" style="width:100%;" placeholder="Filter folders…" aria-label="Filter folders"></div>
+    <div class="ct-options" data-ct-options id="folder-options">
+      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">随笔</div><div class="ct-option-d">12 notes · 1 subfolder · no index page yet</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">日记</div><div class="ct-option-d">4 notes this month</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">项目/旧周刊</div><div class="ct-option-d">8 notes · carries legacy order fields</div></div></div>
+      <div class="ct-option is-disabled"><span class="ct-radio"></span><div><div class="ct-option-tt">Blogs/Quartz 建站教程</div><div class="ct-option-d">already managed</div></div></div>
+      <div class="ct-option is-disabled"><span class="ct-radio"></span><div><div class="ct-option-tt">读书笔记/卡片盒笔记法</div><div class="ct-option-d">already managed</div></div></div>
+    </div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-accent" id="btn-next">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2：选择模式 -->
+<div class="ct-modal-overlay" id="ct-modal-mode">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Choose a mode <span class="ct-note">· Step 2 of 2</span></div>
+    <div class="ct-modal-body">Mode for <b id="mode-folder">随笔</b> — one managed domain, one chain style:</div>
+    <div class="ct-options" data-ct-options id="mode-options">
+      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">Independent <span class="ct-note">默认</span></div><div class="ct-option-d">Direct notes and managed subfolders mix in one ordering. Each managed subfolder keeps its own chain. Best for loosely related notes.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Series</div><div class="ct-option-d">One chain across the whole subtree; subfolders become path labels only. Best for tutorials and serials.</div></div></div>
+    </div>
+    <div class="ct-modal-warn">Creates <b>目录.md</b> with <code>is-index: true</code> and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.</div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" id="btn-back">Back</button>
+      <button class="ct-btn is-accent" id="btn-create">Start managing</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  "use strict";
+  var chosenFolder = "随笔";
+  var chosenMode = "Independent";
+
+  document.getElementById("btn-start").addEventListener("click", function () {
+    ctOpenModal("ct-modal-folder");
+  });
+  document.getElementById("folder-options").addEventListener("ct:change", function (e) {
+    var tt = e.detail.querySelector(".ct-option-tt");
+    if (tt) chosenFolder = tt.textContent.trim();
+  });
+  document.getElementById("btn-next").addEventListener("click", function () {
+    document.getElementById("mode-folder").textContent = chosenFolder;
+    ctCloseModal("ct-modal-folder");
+    ctOpenModal("ct-modal-mode");
+  });
+  document.getElementById("btn-back").addEventListener("click", function () {
+    ctCloseModal("ct-modal-mode");
+    ctOpenModal("ct-modal-folder");
+  });
+  document.getElementById("mode-options").addEventListener("ct:change", function (e) {
+    var tt = e.detail.querySelector(".ct-option-tt");
+    if (tt) chosenMode = tt.textContent.trim().split(" ")[0];
+  });
+  document.getElementById("btn-create").addEventListener("click", function () {
+    ctCloseModal("ct-modal-mode");
+    ctProgressToast("Creating domain — {n}/{total}", "writing 随笔/目录.md · is-index: true · marked block", 1, 1, function () {
+      var badgeClass = chosenMode === "Series" ? "is-series" : "";
+      var card = document.createElement("div");
+      card.className = "ct-card";
+      card.innerHTML =
+        '<div class="ct-card-head"><span class="ct-card-path">' + chosenFolder + '</span>' +
+        '<span class="ct-mode-badge ' + badgeClass + '">' + chosenMode + '</span></div>' +
+        '<div class="ct-chips"><span class="ct-chip is-blue"><span class="ct-dot is-blue"></span>First run: review suggested order</span></div>' +
+        '<div class="ct-rows">' +
+        '<div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>如何写一篇短文</span><span class="ct-row-date">2026-08-12</span><span class="ct-row-order">10000</span></div>' +
+        '<div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>数字花园的缓慢生长</span><span class="ct-row-date">2026-08-30</span><span class="ct-row-order">20000</span></div>' +
+        '<div class="ct-row" data-order="30000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span>周更的节奏</span><span class="ct-row-date">2026-09-07</span><span class="ct-row-order">30000</span></div>' +
+        '</div>' +
+        '<div class="ct-card-actions"><button class="ct-btn">Rebuild index</button><button class="ct-btn">Reorder order</button></div>';
+      document.getElementById("panel-body").appendChild(card);
+      document.getElementById("summary-text").textContent = "2 domains · 1 needs attention";
+      ctToast("✓ Domain created — " + chosenFolder,
+        "目录.md written (1 file) · existing notes got 10000-step order by filename order · review the suggested order in the panel", { ms: 6000 });
+    });
+  });
+})();
+</script>
+</body>
+</html>

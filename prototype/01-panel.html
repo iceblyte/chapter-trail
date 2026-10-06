@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 · 管理面板 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a class="on" href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>01 · 管理面板（MVP 核心 UI）</h1>
+    <p>右侧边栏 ItemView，基准宽 400px。可交互：<b>条目行右键 → Move up / Move down</b>（演示中点插入与过密自动重排）；<b>⋮ 菜单 → Stop managing</b>；<b>Rebuild index</b> 会清除黄色「Index outdated」芯片；底部按钮跳转 04 页开始管理流程。编辑区为源码模式，展示注入标记的真实位置。</p>
+  </div>
+
+  <div class="ct-section">
+    <div class="ct-shell">
+      <div class="ct-ribbon">
+        <span class="on">▣</span><span>⌕</span><span>◈</span><span>⚙</span>
+      </div>
+      <div class="ct-sbar">
+        <div class="ct-sbar-hd">文件管理器</div>
+        <div class="ct-tnode is-managed"><span class="ct-tcaret">▾</span><span class="ct-tname">Blogs</span><span class="ct-tdot"></span></div>
+        <div class="ct-tnode lvl2 is-managed is-open"><span class="ct-tcaret">▾</span><span class="ct-tname">Quartz 建站教程</span><span class="ct-tdot"></span></div>
+        <div class="ct-tnode lvl3"><span class="ct-tname">目录</span></div>
+        <div class="ct-tnode lvl3"><span class="ct-tname">01 为什么选择 Quartz</span></div>
+        <div class="ct-tnode lvl3"><span class="ct-tname">02 环境搭建与部署</span></div>
+        <div class="ct-tnode lvl3 is-managed"><span class="ct-tcaret">▸</span><span class="ct-tname">进阶篇</span><span class="ct-tdot"></span></div>
+        <div class="ct-tnode is-managed"><span class="ct-tcaret">▸</span><span class="ct-tname">读书笔记</span><span class="ct-tdot"></span></div>
+        <div class="ct-tnode lvl2 is-managed"><span class="ct-tcaret">▸</span><span class="ct-tname">卡片盒笔记法</span><span class="ct-tdot"></span></div>
+        <div class="ct-tnode"><span class="ct-tcaret">▸</span><span class="ct-tname">随笔</span></div>
+        <div class="ct-tnode"><span class="ct-tcaret">▸</span><span class="ct-tname">日记</span></div>
+        <div class="ct-tnode"><span class="ct-tcaret">▸</span><span class="ct-tname">模板</span></div>
+      </div>
+
+      <div class="ct-ed">
+        <span class="edtag">源码模式 · Source mode</span>
+        <span class="fm-key">---</span><br>
+        <span class="fm-key">title:</span> <span class="fm-val">02 环境搭建与部署</span><br>
+        <span class="fm-key">created:</span> <span class="fm-val">2025-11-09</span><br>
+        <span class="fm-key">updated:</span> <span class="fm-val">2026-01-12</span><br>
+        <span class="fm-key">order:</span> <span class="fm-val">20000</span><br>
+        <span class="fm-key">---</span><br>
+        <span class="mk">&lt;!-- chapter-trail:nav-begin --&gt;</span><br>
+        &gt; [!chapter-trail]- 上一篇：<span class="lk">[01 为什么选择 Quartz](./01%20为什么选择%20Quartz.md)</span><br>
+        &gt; 总览：<span class="lk">[目录](./目录.md)</span> | 下一篇：<span class="lk">[03 配置详解](./进阶篇/03%20配置详解.md)</span><br>
+        <span class="mk">&lt;!-- chapter-trail:nav-end --&gt;</span><br>
+        <br>
+        ## 环境搭建<br>
+        <br>
+        首先 clone 官方仓库并安装依赖……（正文内容，插件绝不触碰）<br>
+        <br>
+        <br>
+        <span class="mk">&lt;!-- chapter-trail:nav-begin --&gt;</span><br>
+        &gt; [!chapter-trail]- 上一篇：… | 总览：… | 下一篇：…<br>
+        <span class="mk">&lt;!-- chapter-trail:nav-end --&gt;</span>
+      </div>
+
+      <div class="ct-panel">
+        <div class="ct-panel-head">
+          <span class="ct-panel-title">Chapter Trail</span>
+          <button class="ct-icon-btn" id="btn-rescan" title="Re-scan vault">⟳</button>
+          <a class="ct-icon-btn" href="06-settings.html" title="Settings">⚙</a>
+        </div>
+        <div class="ct-summary">
+          <span id="summary-text">3 domains · 1 needs attention</span>
+          <span class="ct-legend">
+            <i><span class="ct-dot is-red"></span>red</i>
+            <i><span class="ct-dot is-yellow"></span>yellow</i>
+            <i><span class="ct-dot is-blue"></span>blue</i>
+          </span>
+        </div>
+        <div class="ct-banner" id="legacy-banner">
+          <span class="ct-dot is-yellow"></span>
+          <span>12 legacy <code>order</code> fields — “旧项目/周刊” was dissolved</span>
+          <button class="ct-btn" id="btn-review">Review</button>
+        </div>
+
+        <div class="ct-panel-body">
+
+          <!-- 卡片 A：Series（健康，注入已开启） -->
+          <div class="ct-card" id="card-a">
+            <div class="ct-card-head">
+              <span class="ct-card-path">Blogs/Quartz 建站教程</span>
+              <span class="ct-mode-badge is-series">Series</span>
+              <button class="ct-icon-btn" data-ct-menu="#menu-a" title="More">⋮</button>
+            </div>
+            <div class="ct-chips" id="chips-a"></div>
+            <div class="ct-rows" data-ct-list>
+              <div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>为什么选择 Quartz</span><span class="ct-row-date">2025-11-02</span><span class="ct-row-order">10000</span></div>
+              <div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>环境搭建与部署</span><span class="ct-row-date">2025-11-09</span><span class="ct-row-order">20000</span></div>
+              <div class="ct-row" data-order="30000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span><span class="ct-prefix">进阶篇/</span>配置详解</span><span class="ct-row-date">2025-11-16</span><span class="ct-row-order">30000</span></div>
+              <div class="ct-row" data-order="40000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">04</span><span class="ct-prefix">进阶篇/</span>插件机制</span><span class="ct-row-date">2025-11-23</span><span class="ct-row-order">40000</span></div>
+              <div class="ct-row" data-order="50000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">05</span><span class="ct-prefix">进阶篇/</span>主题定制</span><span class="ct-row-date">2025-11-30</span><span class="ct-row-order">50000</span></div>
+            </div>
+            <div class="ct-rows-foot">5 entries · virtualized list (32px rows) · right-click a row to move</div>
+            <div class="ct-card-actions">
+              <button class="ct-btn" data-ct-rebuild data-ct-card="card-a">Rebuild index</button>
+              <button class="ct-btn" data-ct-reorder data-ct-card="card-a">Reorder order</button>
+              <button class="ct-btn" data-ct-reinj data-ct-card="card-a">Rebuild injection</button>
+            </div>
+            <div class="ct-menu" id="menu-a" style="top:32px;right:8px;">
+              <div class="ct-menu-item" data-ct-noop>Open index page</div>
+              <div class="ct-menu-item" data-ct-noop>Copy domain path</div>
+              <div class="ct-menu-sep"></div>
+              <div class="ct-menu-item is-danger" data-ct-stop data-ct-card="card-a" data-ct-domain="Blogs/Quartz 建站教程">Stop managing…</div>
+            </div>
+          </div>
+
+          <!-- 卡片 B：Independent（黄：索引过期；注入关闭 → 无第三个按钮） -->
+          <div class="ct-card" id="card-b">
+            <div class="ct-card-head">
+              <span class="ct-card-path">读书笔记/卡片盒笔记法</span>
+              <span class="ct-mode-badge">Independent</span>
+              <button class="ct-icon-btn" data-ct-menu="#menu-b" title="More">⋮</button>
+            </div>
+            <div class="ct-chips" id="chips-b">
+              <span class="ct-chip is-yellow"><span class="ct-dot is-yellow"></span>Index outdated</span>
+            </div>
+            <div class="ct-rows" data-ct-list>
+              <div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>引言：卢曼的盒子</span><span class="ct-row-date">2025-09-14</span><span class="ct-row-order">10000</span></div>
+              <div class="ct-row is-managedfolder" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title is-folder"><span class="ct-seq">02</span>第一部分 · 原理</span><span class="ct-row-date">—</span><span class="ct-row-order">20000</span></div>
+              <div class="ct-row" data-order="30000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span>卡片的三种类型</span><span class="ct-row-date">2025-09-28</span><span class="ct-row-order">30000</span></div>
+              <div class="ct-row" data-order="40000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">04</span>文献笔记与永久笔记</span><span class="ct-row-date">2025-10-05</span><span class="ct-row-order">40000</span></div>
+            </div>
+            <div class="ct-rows-foot">4 entries · managed subfolder shares the ordering (no date)</div>
+            <div class="ct-card-actions">
+              <button class="ct-btn" data-ct-rebuild data-ct-card="card-b">Rebuild index</button>
+              <button class="ct-btn" data-ct-reorder data-ct-card="card-b">Reorder order</button>
+            </div>
+            <div class="ct-menu" id="menu-b" style="top:32px;right:8px;">
+              <div class="ct-menu-item" data-ct-noop>Open index page</div>
+              <div class="ct-menu-item" data-ct-noop>Copy domain path</div>
+              <div class="ct-menu-sep"></div>
+              <div class="ct-menu-item is-danger" data-ct-stop data-ct-card="card-b" data-ct-domain="读书笔记/卡片盒笔记法">Stop managing…</div>
+            </div>
+          </div>
+
+          <!-- 卡片 C：Series（健康） -->
+          <div class="ct-card" id="card-c">
+            <div class="ct-card-head">
+              <span class="ct-card-path">随笔/数字花园周记</span>
+              <span class="ct-mode-badge is-series">Series</span>
+              <button class="ct-icon-btn" data-ct-menu="#menu-c" title="More">⋮</button>
+            </div>
+            <div class="ct-chips" id="chips-c"></div>
+            <div class="ct-rows" data-ct-list>
+              <div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>周记 #38</span><span class="ct-row-date">2026-09-21</span><span class="ct-row-order">10000</span></div>
+              <div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>周记 #39</span><span class="ct-row-date">2026-09-28</span><span class="ct-row-order">20000</span></div>
+            </div>
+            <div class="ct-card-actions">
+              <button class="ct-btn" data-ct-rebuild data-ct-card="card-c">Rebuild index</button>
+              <button class="ct-btn" data-ct-reorder data-ct-card="card-c">Reorder order</button>
+            </div>
+            <div class="ct-menu" id="menu-c" style="top:32px;right:8px;">
+              <div class="ct-menu-item" data-ct-noop>Open index page</div>
+              <div class="ct-menu-item" data-ct-noop>Copy domain path</div>
+              <div class="ct-menu-sep"></div>
+              <div class="ct-menu-item is-danger" data-ct-stop data-ct-card="card-c" data-ct-domain="随笔/数字花园周记">Stop managing…</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="ct-panel-foot">
+          <a class="ct-btn is-accent" href="04-start-managing.html" style="display:inline-block;">＋ Start managing a folder</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="ct-anno">① 行高 32px 等高（虚拟化前提）；series 域条目显示紫色路径前缀，independent 域中受管子文件夹为 ☰ 文件夹行（无日期，order 取其索引页 frontmatter）。② 日期受「Date display」设置约束，此处为 created。③ 注入开启时卡片才有 Rebuild injection 按钮。④ 右键条目行可上移/下移——多次移动后间隙被中点侵蚀（&lt;10）会触发整域自动重排提示，可实际演示。⑤ ⋮ 菜单与 PRD 命令一一对应（Open index page = goto-index，Stop managing = stop-managing）。</p>
+  </div>
+</div>
+
+<!-- 重建索引确认框 -->
+<div class="ct-modal-overlay" id="ct-modal-rebuild">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Rebuild index</div>
+    <div class="ct-modal-body">Rebuild the index page for <b id="rebuild-domain">…</b>?<br>Rewrites the marked block in <code>目录.md</code>. Content outside the block — including your own preamble — is untouched.</div>
+    <div class="ct-modal-count">1 file will be written</div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-accent" id="rebuild-confirm">Rebuild</button>
+    </div>
+  </div>
+</div>
+
+<!-- 停止管理确认框 -->
+<div class="ct-modal-overlay" id="ct-modal-stop">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Stop managing this folder?</div>
+    <div class="ct-modal-body">Deleting <b>目录.md</b> dissolves the domain <b id="stop-domain">…</b>. The ordering data lives in each note’s frontmatter and will remain unless you clear it below.</div>
+    <div class="ct-options">
+      <div class="ct-option" data-ct-options data-ct-toggle><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also clear <code>order</code> fields</div><div class="ct-option-d">removes the field from all notes in the domain</div></div></div>
+      <div class="ct-option" data-ct-options data-ct-toggle><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also remove injected navigation</div><div class="ct-option-d">strips chapter-trail markers only — your own callouts are kept</div></div></div>
+    </div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-danger" id="stop-confirm">Delete index &amp; stop</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- 汇总条 ---------- */
+  function refreshSummary() {
+    var cards = document.querySelectorAll(".ct-panel-body .ct-card");
+    var attention = 0;
+    cards.forEach(function (c) {
+      var chips = c.querySelector(".ct-chips");
+      if (chips && chips.children.length) attention++;
+    });
+    var el = document.getElementById("summary-text");
+    if (el) el.textContent = cards.length + " domains · " + attention + " need" + (attention === 1 ? "s" : "") + " attention";
+  }
+
+  /* ---------- 重扫 / 遗留 order ---------- */
+  document.getElementById("btn-rescan").addEventListener("click", function () {
+    ctToast("Vault rescanned", "3 managed domains · 0 orphan index pages · 210 markdown files · 0.4s");
+  });
+  document.getElementById("btn-review").addEventListener("click", function () {
+    ctToast("Legacy orders — 旧项目/周刊 (dissolved)", "12 files still carry order fields · <b>Clear all</b> after confirmation", { ms: 5200 });
+  });
+
+  /* ---------- 重建索引 ---------- */
+  var pendingCard = null;
+  document.querySelectorAll("[data-ct-rebuild]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      pendingCard = document.getElementById(btn.dataset.ctCard);
+      var path = pendingCard.querySelector(".ct-card-path").textContent;
+      document.getElementById("rebuild-domain").textContent = path;
+      ctOpenModal("ct-modal-rebuild");
+    });
+  });
+  document.getElementById("rebuild-confirm").addEventListener("click", function () {
+    ctCloseModal("ct-modal-rebuild");
+    var card = pendingCard;
+    ctProgressToast("Rebuilding index — {n}/{total}", "writing the marked block of 目录.md …", 1, 1, function () {
+      var chips = card.querySelector(".ct-chips");
+      if (chips) chips.innerHTML = "";
+      refreshSummary();
+      ctToast("✓ Index rebuilt", card.querySelector(".ct-card-path").textContent + " · 1 file written · entries sorted by order");
+    });
+  });
+
+  /* ---------- 重排 / 重建注入 ---------- */
+  document.querySelectorAll("[data-ct-reorder]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      ctToast("Order normalized — 12 notes", "10000-step integers · chain sequence unchanged · Git diff limited to changed values");
+    });
+  });
+  document.querySelectorAll("[data-ct-reinj]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      ctProgressToast("Rebuilding injection — {n}/{total}", "nav-begin / nav-end blocks · chunk 1/1", 5, 5, function () {
+        ctToast("✓ Injection rebuilt", "5 notes · top + bottom callouts · prev/next links follow the current chain");
+      });
+    });
+  });
+
+  /* ---------- 停止管理 ---------- */
+  var stopCard = null;
+  document.querySelectorAll("[data-ct-stop]").forEach(function (item) {
+    item.addEventListener("click", function () {
+      stopCard = document.getElementById(item.dataset.ctCard);
+      document.getElementById("stop-domain").textContent = item.dataset.ctDomain;
+      ctOpenModal("ct-modal-stop");
+    });
+  });
+  document.getElementById("stop-confirm").addEventListener("click", function () {
+    ctCloseModal("ct-modal-stop");
+    if (!stopCard) return;
+    var card = stopCard; stopCard = null;
+    card.classList.add("is-removing");
+    setTimeout(function () { card.remove(); refreshSummary(); }, 360);
+    ctToast("Domain dissolved", "目录.md deleted · remaining order fields (if any) will surface in the vault banner");
+  });
+
+  /* ---------- 行右键菜单：Move up / Move down（中点插入 + 过密自动重排） ---------- */
+  var ctxMenu = document.createElement("div");
+  ctxMenu.className = "ct-menu";
+  ctxMenu.style.position = "fixed";
+  ctxMenu.innerHTML = '<div class="ct-menu-item" data-dir="-1">Move up</div><div class="ct-menu-item" data-dir="1">Move down</div>';
+  document.body.appendChild(ctxMenu);
+  var ctxRow = null;
+
+  function renumber(list) {
+    list.querySelectorAll(".ct-row").forEach(function (row, i) {
+      var seq = row.querySelector(".ct-seq");
+      if (seq) seq.textContent = String(i + 1).padStart(2, "0");
+      var ord = row.querySelector(".ct-row-order");
+      if (ord) ord.textContent = row.dataset.order;
+    });
+  }
+  function maybeNormalize(card, list) {
+    var rows = Array.from(list.querySelectorAll(".ct-row"));
+    var tight = false;
+    for (var i = 1; i < rows.length; i++) {
+      if (+rows[i].dataset.order - +rows[i - 1].dataset.order < 10) { tight = true; break; }
+    }
+    if (!tight) return false;
+    rows.forEach(function (row, i) { row.dataset.order = String((i + 1) * 10000); });
+    rows.forEach(function (row) { row.classList.add("is-flash"); });
+    setTimeout(function () { rows.forEach(function (row) { row.classList.remove("is-flash"); }); }, 1300);
+    renumber(list);
+    ctToast("Gap too tight — reordered the whole domain, then placed the entry", "orders normalized to 10000-step · chain sequence unchanged");
+    return true;
+  }
+  function moveRow(dir) {
+    if (!ctxRow) return;
+    var row = ctxRow, list = row.parentElement, card = row.closest(".ct-card");
+    var rows = Array.from(list.querySelectorAll(".ct-row"));
+    var idx = rows.indexOf(row);
+    if ((dir < 0 && idx === 0) || (dir > 0 && idx === rows.length - 1)) return;
+    var target = rows[idx + dir];
+    var outer = rows[idx + 2 * dir];
+    var newOrder = Math.floor((+outer.dataset.order + +target.dataset.order) / 2);
+    /* 先移出，再插入目标位置 */
+    list.removeChild(row);
+    var ref = dir < 0 ? target : target.nextElementSibling;
+    list.insertBefore(row, ref);
+    row.dataset.order = String(newOrder);
+    var badge = row.querySelector(".ct-row-order");
+    badge.classList.add("is-updated");
+    setTimeout(function () { badge.classList.remove("is-updated"); }, 1600);
+    if (!maybeNormalize(card, list)) renumber(list);
+    ctToast("Entry moved", "order = " + newOrder + " · 1 file written (midpoint insert, Git diff minimal)");
+  }
+  ctxMenu.addEventListener("click", function (e) {
+    var item = e.target.closest(".ct-menu-item");
+    if (!item) return;
+    moveRow(+item.dataset.dir);
+    ctxMenu.classList.remove("is-open");
+  });
+  document.querySelectorAll(".ct-rows").forEach(function (list) {
+    list.addEventListener("contextmenu", function (e) {
+      var row = e.target.closest(".ct-row");
+      if (!row) return;
+      e.preventDefault();
+      ctxRow = row;
+      ctxMenu.classList.add("is-open");
+      var x = Math.min(e.clientX, window.innerWidth - 170);
+      var y = Math.min(e.clientY, window.innerHeight - 90);
+      ctxMenu.style.left = x + "px";
+      ctxMenu.style.top = y + "px";
+    });
+  });
+
+  refreshSummary();
+})();
+</script>
+</body>
+</html>

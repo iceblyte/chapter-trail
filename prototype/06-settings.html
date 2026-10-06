@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>06 · 插件设置页 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a class="on" href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>06 · 插件设置页（Obsidian 原生 Setting API）</h1>
+    <p>共三项设置；字段名 <code>created / updated / order</code> 固定不可配。可交互：<b>写入上下篇导航</b>开关——打开会弹出写入确认框（注入默认关，开关是写入路径的唯一闸门），关闭会出现清除询问；切换日期显示会提示相关域标黄。</p>
+  </div>
+
+  <div class="ct-section">
+    <div class="ct-settings">
+      <div class="ct-settings-head">
+        <h2>Chapter Trail</h2>
+        <div class="ct-settings-sub">Folder ordering, index pages and series navigation · v1.0.0 · MIT · no telemetry</div>
+      </div>
+
+      <div class="ct-set-row">
+        <div class="ct-set-info">
+          <div class="ct-set-name">Index file name</div>
+          <div class="ct-set-desc">Used when creating new index pages. Recognition is by the <code>is-index</code> marker, not the file name — existing pages are never renamed. Preset suggestion: <code>index</code>. Changing this marks affected domains “Index outdated”.</div>
+        </div>
+        <div class="ct-set-ctl"><input class="ct-input" id="inp-filename" value="目录" style="width:110px;"></div>
+      </div>
+
+      <div class="ct-set-row">
+        <div class="ct-set-info">
+          <div class="ct-set-name">Date display on index entries</div>
+          <div class="ct-set-desc">Reads each note’s <code>created</code> / <code>updated</code> property (ISO date/datetime or Obsidian date format). Entries without a parsable date simply show no date; subfolder entries never show one.</div>
+        </div>
+        <div class="ct-set-ctl">
+          <select class="ct-select" id="sel-date">
+            <option value="created" selected>created</option>
+            <option value="updated">updated</option>
+            <option value="both">both</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ct-set-row">
+        <div class="ct-set-info">
+          <div class="ct-set-name">Write prev / next navigation</div>
+          <div class="ct-set-desc"><b>Off: nothing is ever written into your notes</b> — the jump commands (previous / next / open index) still work. Turning on asks for confirmation, then writes collapsible callouts wrapped in removable markers.</div>
+          <div class="ct-set-extra" id="inject-extra">
+            <span>Remove all injected markers from 47 notes?</span>
+            <button class="ct-btn is-danger" id="btn-strip">Clear markers</button>
+            <button class="ct-btn" id="btn-keep">Keep them</button>
+          </div>
+        </div>
+        <div class="ct-set-ctl"><button class="ct-toggle" id="tgl-inject" aria-label="Write prev/next navigation"><i></i></button></div>
+      </div>
+
+      <div class="ct-set-row" style="border-top:1px solid var(--background-modifier-border);">
+        <div class="ct-set-info">
+          <div class="ct-set-name">Remove all Chapter Trail data</div>
+          <div class="ct-set-desc">Full exit path: strip injected navigation → delete index pages (per-domain confirm) → clear order fields (per-domain confirm). Everything outside the confirmed scope is untouched.</div>
+        </div>
+        <div class="ct-set-ctl"><a class="ct-btn is-danger" href="05-dialogs.html">Open wizard…</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 开启注入确认 -->
+<div class="ct-modal-overlay" id="dlg-enable">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Turn on navigation injection</div>
+    <div class="ct-modal-body">Chapter Trail will write a collapsible prev / next / index callout into <b>47 notes</b> across 3 domains. Each block is wrapped in <code>&lt;!-- chapter-trail:nav-* --&gt;</code> markers and can be removed anytime.</div>
+    <div class="ct-modal-warn">Batch writes run in chunks of 25 with a progress bar — you can cancel mid-run. Written files keep their content on cancel.</div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" id="enable-cancel">Not now</button>
+      <button class="ct-btn is-accent" id="enable-ok">Enable · write 47 notes</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  "use strict";
+  var toggle = document.getElementById("tgl-inject");
+  var extra = document.getElementById("inject-extra");
+
+  document.getElementById("inp-filename").addEventListener("change", function (e) {
+    ctToast("Index file name updated", "new pages will use “" + e.target.value + "” · affected domains marked “Index outdated” · nothing renamed");
+  });
+  document.getElementById("sel-date").addEventListener("change", function (e) {
+    ctToast("Date display: " + e.target.value, "3 domains marked “Index outdated” — rebuild their index pages to apply");
+  });
+
+  toggle.addEventListener("click", function () {
+    if (!toggle.classList.contains("is-on")) {
+      ctOpenModal("dlg-enable");
+    } else {
+      toggle.classList.remove("is-on");
+      extra.classList.add("is-open");
+    }
+  });
+  document.getElementById("enable-cancel").addEventListener("click", function () {
+    ctCloseModal("dlg-enable");
+  });
+  document.getElementById("enable-ok").addEventListener("click", function () {
+    ctCloseModal("dlg-enable");
+    toggle.classList.add("is-on");
+    extra.classList.remove("is-open");
+    ctProgressToast("Writing navigation — {n}/{total} notes", "chunk of 25 · top + bottom blocks · 3 domains", 47, 25, function () {
+      ctToast("✓ Injection enabled", "47 notes written · wrapped in nav-begin/nav-end markers · See 07 for the progress demo");
+    });
+  });
+  document.getElementById("btn-strip").addEventListener("click", function () {
+    extra.classList.remove("is-open");
+    ctProgressToast("Stripping markers — {n}/{total} notes", "nav-begin / nav-end blocks only · your own callouts untouched", 47, 47, function () {
+      ctToast("✓ All injected markers removed", "zero residue in notes · user-written callouts preserved");
+    });
+  });
+  document.getElementById("btn-keep").addEventListener("click", function () {
+    extra.classList.remove("is-open");
+    ctToast("Kept existing markers", "they remain removable later via the Remove-all wizard");
+  });
+})();
+</script>
+</body>
+</html>

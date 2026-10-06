@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter Trail · HTML UI 原型集</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a class="on" href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap" style="max-width:1020px;">
+  <div class="ct-pagehead">
+    <h1>Chapter Trail · HTML UI 原型集</h1>
+    <p>Obsidian 插件 <code>chapter-trail</code> 的三件一体能力 —— <b>文件夹级自定义排序、自动维护的索引页（MOC）、静态可发布的系列导航</b> —— 的全套高保真界面原型。依据 PRD v1.3 与方案设计文档 v1.1；管理面板为 MVP 核心 UI（React 19 实现的对应物）。界面文案为英文（v1 仅英文 UI），示例笔记内容为中文。所有页面支持浅色 / 深色主题切换（右上角）。</p>
+  </div>
+
+  <div class="ct-section ct-grid3">
+
+    <a class="ct-board" href="01-panel.html" style="display:block; color:inherit;">
+      <div class="ct-note">01</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">管理面板总览</div>
+      <p class="ct-note">Obsidian 壳 + 右侧边栏面板：VaultSummary、遗留 order 黄条、Series / Independent 域卡片。可右键移动条目、重建索引、停止管理。</p>
+    </a>
+
+    <a class="ct-board" href="02-states.html" style="display:block; color:inherit;">
+      <div class="ct-note">02</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">域卡片状态大全</div>
+      <p class="ct-note">红（断链 / 结构冲突）、黄（索引过期 / 间隙过密 / 平手）、蓝（待排序）六种卡片形态与图例。</p>
+    </a>
+
+    <a class="ct-board" href="03-drag.html" style="display:block; color:inherit;">
+      <div class="ct-note">03</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">拖拽重排交互</div>
+      <p class="ct-note">脚本化演示两阶段：普通拖拽单文件落位（中点插入）；过密间隙自动重排后落位。含边缘自动滚动与键盘降级。</p>
+    </a>
+
+    <a class="ct-board" href="04-start-managing.html" style="display:block; color:inherit;">
+      <div class="ct-note">04</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">开始管理流程</div>
+      <p class="ct-note">选文件夹 → 选模式（Independent / Series）两步弹窗，明示「将创建目录.md」后果；成功后卡片入列。</p>
+    </a>
+
+    <a class="ct-board" href="05-dialogs.html" style="display:block; color:inherit;">
+      <div class="ct-note">05</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">确认弹窗合集</div>
+      <p class="ct-note">重建确认、开启注入确认、同名采纳三选一、嵌套冲突三选一、停止管理、全部清除三步向导（逐域确认）。</p>
+    </a>
+
+    <a class="ct-board" href="06-settings.html" style="display:block; color:inherit;">
+      <div class="ct-note">06</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">插件设置页</div>
+      <p class="ct-note">索引文件名、日期显示方式、「写入上下篇导航」开关（默认关，开关即注入唯一闸门，开关联动确认框）。</p>
+    </a>
+
+    <a class="ct-board" href="07-progress.html" style="display:block; color:inherit;">
+      <div class="ct-note">07</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">批量写入进度</div>
+      <p class="ct-note">25 篇/块、块间让出主线程、可取消、失败跳过汇总；右下角 Notice 即真实呈现位置，附事件日志。</p>
+    </a>
+
+    <a class="ct-board" href="08-preview.html" style="display:block; color:inherit;">
+      <div class="ct-note">08</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">成品效果预览</div>
+      <p class="ct-note">索引页阅读视图、注入 callout 阅读态（可折叠）、Quartz 发布效果，以及与动态代码块方案的对照。</p>
+    </a>
+
+    <div class="ct-board">
+      <div class="ct-note">附</div>
+      <div class="ct-section-h" style="margin:4px 0 6px;">草图与文档</div>
+      <p class="ct-note" style="margin-bottom:8px;">
+        <a href="00-sketch.html">00 · 线框草图（已确认基线）</a><br>
+        <a href="../docs/PRD.md">PRD v1.3</a> · <a href="../docs/DESIGN.md">方案设计文档 v1.1</a>
+      </p>
+    </div>
+
+  </div>
+
+  <div class="ct-section ct-grid2">
+    <div class="ct-board">
+      <div class="ct-section-h">演示数据设定（全套页面共用）</div>
+      <p class="ct-anno" style="margin-top:10px;">
+        用户画像：教程 / 连载作者，约 1000 篇笔记、git 同步、发布到 Quartz。<br>
+        · <b>Blogs/Quartz 建站教程</b> — Series 域，5 篇 + 「进阶篇」子树，注入已开启；<br>
+        · <b>读书笔记/卡片盒笔记法</b> — Independent 域，直系文件与受管子文件夹混排，注入关闭；<br>
+        · <b>随笔/数字花园周记</b> — Series 域，小型域；<br>
+        · Vault 级黄条：已解散域「旧项目/周刊」遗留 12 个 order 字段。
+      </p>
+    </div>
+    <div class="ct-board">
+      <div class="ct-section-h">设计基线</div>
+      <p class="ct-anno" style="margin-top:10px;">
+        · <b>融入 Obsidian</b>：仅用主题 CSS 变量（<code>--background-primary</code>、<code>--interactive-accent</code> 等）+ <code>ct-</code> 前缀类名，跟随用户主题与强调色；<br>
+        · <b>状态三色</b>：红 = 必须处理（断链 / 冲突），黄 = 建议处理（过期 / 重排 / 平手 / 遗留），蓝 = 待排序提示；<br>
+        · <b>显式且可逆</b>：批量写入前确认并显示数量，进度可取消，全部清除走逐域确认；<br>
+        · <b>条目行 32px 等高</b>（虚拟化前提），order 等宽字体右对齐，日期受设置约束。
+      </p>
+    </div>
+  </div>
+
+  <p class="ct-note" style="margin-top:36px;">本原型为静态 HTML / CSS / JS，不依赖外部资源；样式仅作布局与状态演示，实现阶段以 Obsidian 宿主主题变量为准。</p>
+</div>
+
+</body>
+</html>

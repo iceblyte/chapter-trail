@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05 · 确认弹窗合集 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a class="on" href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>05 · 确认弹窗合集（显式且可逆）</h1>
+    <p>所有批量写入前都有确认框并显示写入数量；破坏性操作逐步确认、逐域执行。全部走 Obsidian 原生 Modal。弹窗内的选项均可交互。</p>
+  </div>
+
+  <div class="ct-section">
+    <div class="ct-grid2">
+
+      <div class="ct-board">
+        <div class="ct-section-h">M1 · 重建索引确认</div>
+        <p class="ct-anno" style="margin-top:6px;">确认框显示写入文件数；区块外内容不动。触发：面板按钮 / 命令。</p>
+        <div style="margin-top:12px;"><button class="ct-btn is-accent" data-ct-open="dlg-m1">打开弹窗</button></div>
+      </div>
+
+      <div class="ct-board">
+        <div class="ct-section-h">M2 · 开启导航注入确认</div>
+        <p class="ct-anno" style="margin-top:6px;">注入默认关；开启 = 向 N 篇笔记写入包裹标记，分块执行可取消。</p>
+        <div style="margin-top:12px;"><button class="ct-btn is-accent" data-ct-open="dlg-m2">打开弹窗</button></div>
+      </div>
+
+      <div class="ct-board">
+        <div class="ct-section-h">M3 · 同名索引页冲突（三选一）</div>
+        <p class="ct-anno" style="margin-top:6px;">目标文件夹已有同名文件：采纳（保留用户键）/ 重命名保留 / 取消（A11）。</p>
+        <div style="margin-top:12px;"><button class="ct-btn is-accent" data-ct-open="dlg-m3">打开弹窗</button></div>
+      </div>
+
+      <div class="ct-board">
+        <div class="ct-section-h">M4 · series 嵌套冲突（三选一）</div>
+        <p class="ct-anno" style="margin-top:6px;">降级为普通笔记 / 删除 / 加入 excluded-folders（A7）。</p>
+        <div style="margin-top:12px;"><button class="ct-btn is-accent" data-ct-open="dlg-m4">打开弹窗</button></div>
+      </div>
+
+      <div class="ct-board">
+        <div class="ct-section-h">M5 · 停止管理（域解散）</div>
+        <p class="ct-anno" style="margin-top:6px;">删除索引页 = 域解散；可选同时清除 order / 注入标记。</p>
+        <div style="margin-top:12px;"><button class="ct-btn is-accent" data-ct-open="dlg-m5">打开弹窗</button></div>
+      </div>
+
+      <div class="ct-board">
+        <div class="ct-section-h">M6 · 全部清除（三步向导）</div>
+        <p class="ct-anno" style="margin-top:6px;">可逆性契约：① 剥注入包裹 → ② 删索引页（逐域确认）→ ③ 清 order（逐域确认，明示连带范围）（A8）。</p>
+        <div style="margin-top:12px;"><button class="ct-btn is-danger" data-ct-open="dlg-m6">打开向导</button></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- M1 -->
+<div class="ct-modal-overlay" id="dlg-m1">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Rebuild index</div>
+    <div class="ct-modal-body">Rebuild the index page for <b>Blogs/Quartz 建站教程</b>?<br>Rewrites the marked block in <code>目录.md</code>. Content outside the block — including your own preamble — is untouched.</div>
+    <div class="ct-modal-count">1 file will be written</div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-accent" id="m1-ok">Rebuild · 1 file</button>
+    </div>
+  </div>
+</div>
+
+<!-- M2 -->
+<div class="ct-modal-overlay" id="dlg-m2">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Turn on navigation injection</div>
+    <div class="ct-modal-body">Chapter Trail will write a collapsible prev / next / index callout into <b>47 notes</b> across 3 domains. Each block is wrapped in <code>&lt;!-- chapter-trail:nav-* --&gt;</code> markers and can be removed anytime.</div>
+    <div class="ct-modal-warn">Batch writes run in chunks of 25 with a progress bar — you can cancel mid-run. Written files keep their content on cancel.</div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Not now</button>
+      <button class="ct-btn is-accent" id="m2-ok">Enable · write 47 notes</button>
+    </div>
+  </div>
+</div>
+
+<!-- M3 -->
+<div class="ct-modal-overlay" id="dlg-m3">
+  <div class="ct-modal">
+    <div class="ct-modal-title">目录.md already exists</div>
+    <div class="ct-modal-body">The target folder already has a file named <b>目录.md</b> without a chapter-trail marker. What should happen?</div>
+    <div class="ct-options" data-ct-options>
+      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">Adopt it</div><div class="ct-option-d">Keep all existing frontmatter keys and body; the plugin block wraps the existing list. Your content stays byte-identical.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Rename and keep</div><div class="ct-option-d">Keep the existing file under a new name, create a fresh index page.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Cancel</div><div class="ct-option-d">Do nothing.</div></div></div>
+    </div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Close</button>
+      <button class="ct-btn is-accent" id="m3-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- M4 -->
+<div class="ct-modal-overlay" id="dlg-m4">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Nested index page detected</div>
+    <div class="ct-modal-body"><b>进阶篇/目录.md</b> has <code>is-index: true</code>, but its folder is inside the series domain <b>Blogs/Quartz 建站教程</b>. Choose how to resolve:</div>
+    <div class="ct-options" data-ct-options>
+      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">Demote to a normal note</div><div class="ct-option-d">Remove <code>is-index</code> and the marked block; the file itself is kept.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Delete the file</div><div class="ct-option-d">Move to system trash.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Exclude the folder</div><div class="ct-option-d">Add <code>进阶篇/</code> to excluded-folders; the domain ignores it.</div></div></div>
+    </div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-accent" id="m4-ok">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- M5 -->
+<div class="ct-modal-overlay" id="dlg-m5">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Stop managing this folder?</div>
+    <div class="ct-modal-body">Deleting <b>目录.md</b> dissolves the domain <b>读书笔记/卡片盒笔记法</b>. The ordering data lives in each note’s frontmatter and will remain unless you clear it below.</div>
+    <div class="ct-options" id="m5-checks">
+      <div class="ct-option" data-ct-options data-ct-toggle><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also clear <code>order</code> fields <span class="ct-note">(12 notes)</span></div></div></div>
+      <div class="ct-option" data-ct-options data-ct-toggle><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also remove injected navigation <span class="ct-note">(12 notes, markers only)</span></div></div></div>
+    </div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-danger" id="m5-ok">Delete index &amp; stop</button>
+    </div>
+  </div>
+</div>
+
+<!-- M6 -->
+<div class="ct-modal-overlay" id="dlg-m6">
+  <div class="ct-modal" style="width:520px;">
+    <div class="ct-modal-title">Remove all Chapter Trail data <span class="ct-note" id="m6-step-label">· Step 1 of 3</span></div>
+
+    <div id="m6-s1">
+      <div class="ct-modal-body">① Strip injected navigation — removes everything inside <code>chapter-trail:nav-begin/end</code> markers across 3 domains. Your own callouts are never touched.</div>
+      <div class="ct-modal-count">47 notes · wrapped markers only</div>
+    </div>
+
+    <div id="m6-s2" style="display:none;">
+      <div class="ct-modal-body">② Delete index pages — confirm per domain. Dissolved domains lose their auto-maintained index; the pages are plain Markdown and stay readable otherwise.</div>
+      <div class="ct-options" id="m6-domains"></div>
+    </div>
+
+    <div id="m6-s3" style="display:none;">
+      <div class="ct-modal-body">③ Clear <code>order</code> fields — confirm per domain.</div>
+      <div class="ct-modal-danger">This removes <b>all</b> <code>order</code> fields in each confirmed domain — including any not created by Chapter Trail. This cannot be undone except by reordering.</div>
+      <div class="ct-options" id="m6-orders" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="m6-done" style="display:none;">
+      <div class="ct-modal-body">✓ All steps completed. Files outside the confirmed scope are byte-identical to before (A8).</div>
+    </div>
+
+    <div class="ct-modal-actions">
+      <button class="ct-btn" id="m6-back">Back</button>
+      <button class="ct-btn is-danger" id="m6-next">Next</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* M1 */
+  document.getElementById("m1-ok").addEventListener("click", function () {
+    ctCloseModal("dlg-m1");
+    ctProgressToast("Rebuilding index — {n}/{total}", "writing the marked block of 目录.md …", 1, 1, function () {
+      ctToast("✓ Index rebuilt", "1 file written · entries sorted by order · dead links removed");
+    });
+  });
+
+  /* M2 */
+  document.getElementById("m2-ok").addEventListener("click", function () {
+    ctCloseModal("dlg-m2");
+    ctProgressToast("Writing navigation — {n}/{total} notes", "chunk of 25 · top + bottom blocks · 3 domains", 47, 25, function () {
+      ctToast("✓ Injection enabled", "47 notes written · wrapped in nav-begin/nav-end markers · removable anytime");
+    });
+  });
+
+  /* M3 */
+  document.getElementById("m3-ok").addEventListener("click", function () {
+    var sel = document.querySelector("#dlg-m3 .ct-option.is-selected .ct-option-tt").textContent.trim();
+    ctCloseModal("dlg-m3");
+    ctToast(sel === "Adopt it" ? "✓ Existing 目录.md adopted" : sel === "Rename and keep" ? "✓ Renamed to 目录-旧.md, fresh index created" : "Cancelled",
+      sel === "Adopt it" ? "frontmatter keys & body byte-identical · plugin keys + marked block added" : "");
+  });
+
+  /* M4 */
+  document.getElementById("m4-ok").addEventListener("click", function () {
+    var sel = document.querySelector("#dlg-m4 .ct-option.is-selected .ct-option-tt").textContent.trim();
+    ctCloseModal("dlg-m4");
+    var map = {
+      "Demote to a normal note": "is-index and marked block removed · file kept as a normal note",
+      "Delete the file": "进阶篇/目录.md moved to system trash",
+      "Exclude the folder": "进阶篇/ added to excluded-folders · domain ignores it"
+    };
+    ctToast("✓ Conflict resolved — " + sel, map[sel] || "");
+  });
+
+  /* M5 */
+  document.getElementById("m5-ok").addEventListener("click", function () {
+    var clearOrder = document.querySelector("#m5-checks .ct-option:nth-child(1)").classList.contains("is-selected");
+    var stripNav = document.querySelector("#m5-checks .ct-option:nth-child(2)").classList.contains("is-selected");
+    ctCloseModal("dlg-m5");
+    var extra = [];
+    if (clearOrder) extra.push("order cleared (12)");
+    if (stripNav) extra.push("nav markers stripped (12)");
+    ctToast("✓ Domain dissolved", "目录.md deleted" + (extra.length ? " · " + extra.join(" · ") : " · order & injections kept"));
+  });
+
+  /* M6 三步向导 */
+  var domains = ["Blogs/Quartz 建站教程", "读书笔记/卡片盒笔记法", "随笔/数字花园周记"];
+  var counts = [12, 12, 2];
+  var step = 1;
+  var stepLabel = document.getElementById("m6-step-label");
+  var s1 = document.getElementById("m6-s1"), s2 = document.getElementById("m6-s2"), s3 = document.getElementById("m6-s3"), sDone = document.getElementById("m6-done");
+  var backBtn = document.getElementById("m6-back"), nextBtn = document.getElementById("m6-next");
+
+  function confirmList(container, labels, doneText) {
+    container.innerHTML = "";
+    labels.forEach(function (d, i) {
+      var row = document.createElement("div");
+      row.className = "ct-option" + (i === 0 ? " is-selected" : "");
+      row.innerHTML = '<span class="ct-radio is-square"></span><div><div class="ct-option-tt">' + d + ' <span class="ct-note">(' + counts[i] + ' notes)</span></div></div>';
+      row.addEventListener("click", function () { row.classList.toggle("is-selected"); syncButtons(); });
+      container.appendChild(row);
+    });
+  }
+  function syncButtons() {
+    backBtn.style.visibility = step > 1 && step < 4 ? "visible" : "hidden";
+    nextBtn.textContent = step === 3 ? "Finish" : "Next";
+    nextBtn.classList.toggle("is-danger", step < 3);
+  }
+  function showStep(n) {
+    step = n;
+    s1.style.display = n === 1 ? "" : "none";
+    s2.style.display = n === 2 ? "" : "none";
+    s3.style.display = n === 3 ? "" : "none";
+    sDone.style.display = n === 4 ? "" : "none";
+    stepLabel.textContent = "· Step " + Math.min(n, 3) + " of 3";
+    syncButtons();
+  }
+  confirmList(document.getElementById("m6-domains"), domains, "deleted");
+  confirmList(document.getElementById("m6-orders"), domains, "cleared");
+  backBtn.addEventListener("click", function () { if (step > 1 && step < 4) showStep(step - 1); });
+  nextBtn.addEventListener("click", function () {
+    if (step < 3) { showStep(step + 1); return; }
+    showStep(4);
+    nextBtn.style.display = "none"; backBtn.style.display = "none";
+    ctToast("✓ Chapter Trail data removed", "stripped injections · deleted confirmed index pages · cleared confirmed order fields · everything else untouched");
+  });
+  /* 打开时重置 */
+  document.querySelectorAll('[data-ct-open="dlg-m6"]').forEach(function (b) {
+    b.addEventListener("click", function () {
+      showStep(1);
+      nextBtn.style.display = ""; backBtn.style.display = "";
+      confirmList(document.getElementById("m6-domains"), domains, "deleted");
+      confirmList(document.getElementById("m6-orders"), domains, "cleared");
+    });
+  });
+})();
+</script>
+</body>
+</html>

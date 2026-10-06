@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 · 拖拽重排 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+<style>
+.ct-edge { position: relative; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m, 8px); background: var(--background-primary); padding: 12px; text-align: center; color: var(--text-faint); font-size: 11.5px; overflow: hidden; }
+.ct-edge .ct-fade { position: absolute; left: 0; right: 0; height: 30px; background: linear-gradient(color-mix(in srgb, var(--interactive-accent) 22%, transparent), transparent); }
+.ct-edge .ct-fade.is-bottom { transform: rotate(180deg); }
+</style>
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a class="on" href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>03 · 拖拽重排交互</h1>
+    <p>拖放产生「目标插入位置」→ 取前后 order 的整数中点（日常只写 1 个文件，Git diff 最小化）；落入过密间隙（&lt;10）时<b>先整域规范化、再按中点落位</b>并提示。实现基于 pragmatic-drag-and-drop（逐元素绑定，兼容虚拟列表），v1 仅鼠标，键盘经右键菜单降级。下方为脚本化演示，点按钮播放。</p>
+  </div>
+
+  <div class="ct-section">
+    <div class="ct-grid2" style="grid-template-columns: 1.35fr 1fr; align-items:start;">
+
+      <div class="ct-stack">
+        <!-- 场景一 -->
+        <div class="ct-board">
+          <div class="ct-section-h">场景一 · 普通拖拽 — 单文件落位</div>
+          <div class="ct-card" style="margin-top:10px;">
+            <div class="ct-card-head"><span class="ct-card-path">Blogs/Quartz 建站教程</span><span class="ct-mode-badge is-series">Series</span></div>
+            <div class="ct-rows" id="list-a"></div>
+          </div>
+          <div style="margin-top:14px;"><button class="ct-btn is-accent" id="play-a">▶ 播放：把「02 环境搭建与部署」拖到 03 与 04 之间</button></div>
+          <p class="ct-anno">落位后 order = ⌊(30000+40000)/2⌋ = 35000，仅该文件的 frontmatter 被写入。</p>
+        </div>
+
+        <!-- 场景二 -->
+        <div class="ct-board">
+          <div class="ct-section-h">场景二 · 过密间隙 — 自动重排后落位</div>
+          <div class="ct-card" style="margin-top:10px;">
+            <div class="ct-card-head"><span class="ct-card-path">读书笔记/卡片盒笔记法</span><span class="ct-mode-badge">Independent</span>
+              <span class="ct-chip is-yellow" style="margin-left:auto"><span class="ct-dot is-yellow"></span>Gaps too tight</span>
+            </div>
+            <div class="ct-rows" id="list-b"></div>
+          </div>
+          <div style="margin-top:14px;"><button class="ct-btn is-accent" id="play-b">▶ 播放：把「文献笔记与永久笔记」拖进 18755/18760 的间隙</button></div>
+          <p class="ct-anno">目标间隙 18755→18760 仅 5（&lt;10）→ 先整域规范化为 10000 步长（次序不变），再取中点落位；对应 PRD §2.3 与设计文档 §4.3 的「normalize 先于中点」时序。</p>
+        </div>
+      </div>
+
+      <!-- 右侧要点 -->
+      <div class="ct-stack">
+        <div class="ct-board">
+          <div class="ct-section-h">列表边缘自动滚动</div>
+          <div class="ct-edge" style="height:150px; margin-top:10px;">
+            <div class="ct-fade" style="top:0"></div>
+            <div style="margin-top:8px;">↑ auto-scroll</div>
+            <div style="margin-top:44px;">… rows …</div>
+            <div class="ct-fade is-bottom" style="bottom:0"></div>
+            <div style="margin-top:8px;">↓ 拖到边缘持续滚动，500 行域也能一拖到底</div>
+          </div>
+        </div>
+        <div class="ct-board">
+          <div class="ct-section-h">无障碍降级（行右键 / 键盘）</div>
+          <div class="ct-menu is-open" style="position:static; display:block; box-shadow:none; margin-top:10px;">
+            <div class="ct-menu-item">Move up</div>
+            <div class="ct-menu-item">Move down</div>
+          </div>
+          <p class="ct-anno" style="margin-top:10px;">绕开纯拖拽的键盘不可达问题；01 页的条目行支持真实右键操作。</p>
+        </div>
+        <div class="ct-board">
+          <div class="ct-section-h">实现要点（对应设计文档 §3.4–3.5）</div>
+          <p class="ct-anno" style="margin-top:10px;">
+            · pragmatic-drag-and-drop：只有渲染出来的虚拟行才绑定监听，天然兼容虚拟化；<br>
+            · @tanstack/react-virtual：等高 32px 行、overscan 8；拖拽期间列表照常滚动；<br>
+            · 落点换算为目标索引，经 midpointOrder 写单文件；过密时整域 normalize；<br>
+            · 拖拽数据载荷 <code>{ type: 'ct-entry', domainId, entryId }</code>，卡片级 monitor 统一监听。
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="ct-ghost" id="ct-ghost"><span class="ct-grip">⠿</span><span id="ct-ghost-label"></span></div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ghost = document.getElementById("ct-ghost");
+  var ghostLabel = document.getElementById("ct-ghost-label");
+
+  function rowHTML(seq, prefix, title, order, date) {
+    return '<div class="ct-row" data-order="' + order + '"><span class="ct-grip">⠿</span>' +
+      '<span class="ct-row-title"><span class="ct-seq">' + seq + '</span>' + (prefix ? '<span class="ct-prefix">' + prefix + '</span>' : '') + title + '</span>' +
+      '<span class="ct-row-date">' + date + '</span><span class="ct-row-order">' + order + '</span></div>';
+  }
+
+  /* 场景一初始数据 */
+  var initA =
+    rowHTML("01", "", "为什么选择 Quartz", 10000, "2025-11-02") +
+    rowHTML("02", "", "环境搭建与部署", 20000, "2025-11-09") +
+    rowHTML("03", "进阶篇/", "配置详解", 30000, "2025-11-16") +
+    rowHTML("04", "进阶篇/", "插件机制", 40000, "2025-11-23") +
+    rowHTML("05", "进阶篇/", "主题定制", 50000, "2025-11-30");
+
+  /* 场景二初始数据（中点侵蚀后的过密域） */
+  var initB =
+    rowHTML("01", "", "引言：卢曼的盒子", 10000, "2025-09-14") +
+    rowHTML("02", "", "卡片的三种类型", 15000, "2025-09-28") +
+    rowHTML("03", "", "文献笔记与永久笔记", 17500, "2025-10-05") +
+    rowHTML("04", "", "项目的三条兴奋线", 18755, "2025-10-18") +
+    rowHTML("05", "", "从卡片盒到 Zettelkasten", 18760, "2025-10-25");
+
+  var listA = document.getElementById("list-a");
+  var listB = document.getElementById("list-b");
+  listA.innerHTML = initA;
+  listB.innerHTML = initB;
+
+  function renumber(list) {
+    Array.from(list.querySelectorAll(".ct-row")).forEach(function (row, i) {
+      row.querySelector(".ct-seq").textContent = String(i + 1).padStart(2, "0");
+      row.querySelector(".ct-row-order").textContent = row.dataset.order;
+    });
+  }
+  function dropLine() {
+    var el = document.createElement("div");
+    el.className = "ct-drop-line";
+    return el;
+  }
+  function moveGhost(x, y, ms) {
+    return new Promise(function (res) {
+      ghost.style.transition = "left " + ms + "ms ease, top " + ms + "ms ease";
+      ghost.style.left = x + "px";
+      ghost.style.top = y + "px";
+      setTimeout(res, ms + 40);
+    });
+  }
+  function wait(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+
+  /* ---------- 场景一 ---------- */
+  var playingA = false;
+  document.getElementById("play-a").addEventListener("click", async function () {
+    if (playingA) return;
+    playingA = true;
+    listA.innerHTML = initA;
+    var rows = Array.from(listA.querySelectorAll(".ct-row"));
+    var src = rows[1];
+    var sr = src.getBoundingClientRect();
+    var target = rows[3];
+    var dropY = target.getBoundingClientRect().top - 2;
+
+    src.classList.add("is-lifted");
+    ghostLabel.textContent = "02 环境搭建与部署";
+    ghost.style.transition = "none";
+    ghost.style.left = sr.left + "px";
+    ghost.style.top = sr.top + "px";
+    ghost.classList.add("is-on", "is-tilt");
+    await wait(420);
+
+    var line = dropLine();
+    await moveGhost(sr.left + 70, sr.top + 40, 360);
+    await moveGhost(sr.left + 90, (sr.top + dropY) / 2, 360);
+    listA.insertBefore(line, target);
+    line.classList.add("is-on");
+    await moveGhost(sr.left + 55, dropY - 6, 360);
+    await wait(260);
+
+    /* 落位 */
+    ghost.classList.remove("is-on");
+    line.remove();
+    listA.removeChild(src);
+    listA.insertBefore(src, target);
+    src.dataset.order = "35000";
+    src.classList.remove("is-lifted");
+    var badge = src.querySelector(".ct-row-order");
+    badge.classList.add("is-updated");
+    src.classList.add("is-flash");
+    renumber(listA);
+    ctToast("Entry moved", "order = 35000 (midpoint of 30000 / 40000) · 1 file written · Git diff minimal");
+    setTimeout(function () { src.classList.remove("is-flash"); badge.classList.remove("is-updated"); playingA = false; }, 1400);
+  });
+
+  /* ---------- 场景二 ---------- */
+  var playingB = false;
+  document.getElementById("play-b").addEventListener("click", async function () {
+    if (playingB) return;
+    playingB = true;
+    listB.innerHTML = initB;
+    var rows = Array.from(listB.querySelectorAll(".ct-row"));
+    var src = rows[2];
+    var sr = src.getBoundingClientRect();
+    var target = rows[4];
+    var dropY = target.getBoundingClientRect().top - 2;
+
+    src.classList.add("is-lifted");
+    ghostLabel.textContent = "文献笔记与永久笔记";
+    ghost.style.transition = "none";
+    ghost.style.left = sr.left + "px";
+    ghost.style.top = sr.top + "px";
+    ghost.classList.add("is-on", "is-tilt");
+    await wait(420);
+
+    await moveGhost(sr.left + 60, sr.top + 46, 340);
+    var line = dropLine();
+    listB.insertBefore(line, target);
+    line.classList.add("is-on");
+    await moveGhost(sr.left + 45, dropY - 6, 380);
+    await wait(300);
+
+    /* 落位：间隙 18755→18760 < 10 → 整域规范化后落位 */
+    ghost.classList.remove("is-on");
+    line.remove();
+    listB.removeChild(src);
+    listB.insertBefore(src, target);
+    var finalRows = Array.from(listB.querySelectorAll(".ct-row"));
+    finalRows.forEach(function (row, i) {
+      row.dataset.order = String((i + 1) * 10000);
+      row.classList.add("is-flash");
+    });
+    src.classList.remove("is-lifted");
+    renumber(listB);
+    ctToast("Gap too tight — reordered the whole domain, then placed the entry",
+      "「读书笔记/卡片盒笔记法」 orders normalized to 10000-step · chain sequence unchanged", { ms: 5600 });
+    setTimeout(function () {
+      finalRows.forEach(function (row) { row.classList.remove("is-flash"); });
+      playingB = false;
+    }, 1400);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 · 域卡片状态大全 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a class="on" href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>02 · 域卡片状态大全</h1>
+    <p>红 / 黄 / 蓝三色状态（PRD §2.7，红色合并语义）。状态芯片可叠加；蓝色仅为提示不阻塞。可交互：冲突卡片上的 <b>Resolve…</b> 会打开三选一弹窗（与 05 页 M4 相同），确认后芯片消失。</p>
+  </div>
+
+  <div class="ct-section">
+    <div class="ct-board" style="max-width:960px;">
+      <div class="ct-summary" style="padding:0 0 16px;">
+        <b style="color:var(--text-normal);font-size:13px;">图例 Legend</b>
+        <span class="ct-legend" style="margin:0 0 0 18px;">
+          <i><span class="ct-dot is-red"></span>red — broken link / structural conflict, needs action</i>
+          <i><span class="ct-dot is-yellow"></span>yellow — rebuild / reorder suggested</i>
+          <i><span class="ct-dot is-blue"></span>blue — pending sort, informational</i>
+        </span>
+      </div>
+
+      <div class="ct-grid2">
+
+        <!-- 1 健康 -->
+        <div>
+          <div class="ct-card">
+            <div class="ct-card-head">
+              <span class="ct-card-path">Blogs/Quartz 建站教程</span>
+              <span class="ct-mode-badge is-series">Series</span>
+              <button class="ct-icon-btn" title="More">⋮</button>
+            </div>
+            <div class="ct-chips"></div>
+            <div class="ct-rows">
+              <div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>为什么选择 Quartz</span><span class="ct-row-date">2025-11-02</span><span class="ct-row-order">10000</span></div>
+              <div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>环境搭建与部署</span><span class="ct-row-date">2025-11-09</span><span class="ct-row-order">20000</span></div>
+            </div>
+            <div class="ct-card-actions">
+              <button class="ct-btn">Rebuild index</button>
+              <button class="ct-btn">Reorder order</button>
+            </div>
+          </div>
+          <p class="ct-anno">健康：无芯片、无干扰元素。⋮ 菜单提供打开索引页 / 复制路径 / 停止管理。</p>
+        </div>
+
+        <!-- 2 红：断链 -->
+        <div>
+          <div class="ct-card">
+            <div class="ct-card-head">
+              <span class="ct-card-path">Blogs/Quartz 建站教程</span>
+              <span class="ct-mode-badge is-series">Series</span>
+              <button class="ct-icon-btn" title="More">⋮</button>
+            </div>
+            <div class="ct-chips"><span class="ct-chip is-red"><span class="ct-dot is-red"></span>2 broken links</span></div>
+            <div class="ct-rows">
+              <div class="ct-row is-missing" data-order="40000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span>进阶篇/插件机制</span><span class="ct-row-date">—</span><span class="ct-row-order">40000</span></div>
+              <div class="ct-row is-dim"><span class="ct-grip" style="visibility:hidden"></span><span class="ct-row-title">file not found — deleted or moved out of the vault</span></div>
+              <div class="ct-row" data-order="50000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">04</span>进阶篇/主题定制</span><span class="ct-row-date">2025-11-30</span><span class="ct-row-order">50000</span></div>
+            </div>
+            <div class="ct-card-actions"><button class="ct-btn">Rebuild index</button></div>
+          </div>
+          <p class="ct-anno">红-断链：删除链条成员后 watcher 标红（A4）；重建索引后死链消失，邻居 prev/next 由「Rebuild injection」重连。</p>
+        </div>
+
+        <!-- 3 红：结构冲突 -->
+        <div>
+          <div class="ct-card">
+            <div class="ct-card-head">
+              <span class="ct-card-path">Blogs/Quartz 建站教程</span>
+              <span class="ct-mode-badge is-series">Series</span>
+              <button class="ct-icon-btn" title="More">⋮</button>
+            </div>
+            <div class="ct-chips"><span class="ct-chip is-red"><span class="ct-dot is-red"></span>Nested index conflict</span></div>
+            <div class="ct-rows">
+              <div class="ct-row is-dim"><span class="ct-grip" style="visibility:hidden"></span><span class="ct-row-title"><code>进阶篇/目录.md</code> has <code>is-index: true</code> inside a series domain</span></div>
+              <div class="ct-row is-dim"><span class="ct-grip" style="visibility:hidden"></span><span class="ct-row-title">resolve: demote to note / delete / exclude folder</span></div>
+            </div>
+            <div class="ct-card-actions"><button class="ct-btn is-accent" data-ct-open="ct-modal-nested">Resolve…</button></div>
+          </div>
+          <p class="ct-anno">红-结构冲突：「吃掉子树」与嵌套受管不相容（A7）；Resolve 打开三选一弹窗。</p>
+        </div>
+
+        <!-- 4 蓝：待排序 -->
+        <div>
+          <div class="ct-card">
+            <div class="ct-card-head">
+              <span class="ct-card-path">读书笔记/卡片盒笔记法</span>
+              <span class="ct-mode-badge">Independent</span>
+              <button class="ct-icon-btn" title="More">⋮</button>
+            </div>
+            <div class="ct-chips"><span class="ct-chip is-blue"><span class="ct-dot is-blue"></span>20 need ordering</span></div>
+            <div class="ct-rows">
+              <div class="ct-row is-pending"><span class="ct-dot is-blue" style="margin-right:1px"></span><span class="ct-row-title" style="color:var(--text-faint)">从卡片盒到 Zettelkasten.md</span><span class="ct-row-date">—</span><span class="ct-row-order">—</span></div>
+              <div class="ct-row is-pending"><span class="ct-dot is-blue" style="margin-right:1px"></span><span class="ct-row-title" style="color:var(--text-faint)">项目的三条兴奋线.md</span><span class="ct-row-date">—</span><span class="ct-row-order">—</span></div>
+              <div class="ct-row is-dim"><span class="ct-grip" style="visibility:hidden"></span><span class="ct-row-title">…18 more · git sync batch — no auto-write, drag or use first-run assignment</span></div>
+            </div>
+          </div>
+          <p class="ct-anno">蓝-待排序：批量新增（≥5，防抖窗口）整批蓝标、不逐个写入（A10）；蓝点列保证不依赖颜色也能识别。</p>
+        </div>
+
+        <!-- 5 黄：索引过期 -->
+        <div>
+          <div class="ct-card">
+            <div class="ct-card-head">
+              <span class="ct-card-path">读书笔记/卡片盒笔记法</span>
+              <span class="ct-mode-badge">Independent</span>
+              <button class="ct-icon-btn" title="More">⋮</button>
+            </div>
+            <div class="ct-chips"><span class="ct-chip is-yellow"><span class="ct-dot is-yellow"></span>Index outdated</span></div>
+            <div class="ct-rows">
+              <div class="ct-row is-dim"><span class="ct-grip" style="visibility:hidden"></span><span class="ct-row-title">3 changes since last rebuild — entries or prev/next links may be stale</span></div>
+            </div>
+            <div class="ct-card-actions">
+              <button class="ct-btn">Rebuild index</button>
+              <button class="ct-btn">Reorder order</button>
+            </div>
+          </div>
+          <p class="ct-anno">黄-索引过期：删除/新增/移动/改名只标黄不重写，重建全部手动触发；设置变更也会标黄。</p>
+        </div>
+
+        <!-- 6 黄：过密 + 平手 -->
+        <div>
+          <div class="ct-card">
+            <div class="ct-card-head">
+              <span class="ct-card-path">随笔/数字花园周记</span>
+              <span class="ct-mode-badge is-series">Series</span>
+              <button class="ct-icon-btn" title="More">⋮</button>
+            </div>
+            <div class="ct-chips">
+              <span class="ct-chip is-yellow"><span class="ct-dot is-yellow"></span>Gaps too tight</span>
+              <span class="ct-chip is-yellow"><span class="ct-dot is-yellow"></span>2 tied orders</span>
+            </div>
+            <div class="ct-rows">
+              <div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>周记 #37</span><span class="ct-row-date">2026-09-14</span><span class="ct-row-order">10000</span></div>
+              <div class="ct-row" data-order="10003"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>周记 #38</span><span class="ct-row-date">2026-09-21</span><span class="ct-row-order">10003</span></div>
+              <div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span>周记 #39 ⚑</span><span class="ct-row-date">2026-09-28</span><span class="ct-row-order">20000</span></div>
+              <div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">04</span>周记 #40 ⚑</span><span class="ct-row-date">2026-10-05</span><span class="ct-row-order">20000</span></div>
+            </div>
+            <div class="ct-card-actions"><button class="ct-btn is-accent">Reorder order</button></div>
+          </div>
+          <p class="ct-anno">黄-间隙过密（相邻差 &lt;10）叠加黄-平手（同值 ⚑，文件名自然序兜底）：主按钮高亮 Reorder 引导规范化（A6）。芯片可叠加。</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 嵌套冲突三选一 -->
+<div class="ct-modal-overlay" id="ct-modal-nested">
+  <div class="ct-modal">
+    <div class="ct-modal-title">Nested index page detected</div>
+    <div class="ct-modal-body"><b>进阶篇/目录.md</b> has <code>is-index: true</code>, but its folder is inside the series domain <b>Blogs/Quartz 建站教程</b>. Choose how to resolve:</div>
+    <div class="ct-options" data-ct-options>
+      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">Demote to a normal note</div><div class="ct-option-d">Remove <code>is-index</code> and the marked block; the file itself is kept.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Delete the file</div><div class="ct-option-d">Move to system trash.</div></div></div>
+      <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Exclude the folder</div><div class="ct-option-d">Add <code>进阶篇/</code> to excluded-folders; the domain ignores it.</div></div></div>
+    </div>
+    <div class="ct-modal-actions">
+      <button class="ct-btn" data-ct-close>Cancel</button>
+      <button class="ct-btn is-accent" id="nested-confirm">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  document.getElementById("nested-confirm").addEventListener("click", function () {
+    ctCloseModal("ct-modal-nested");
+    var cards = document.querySelectorAll(".ct-card");
+    cards.forEach(function (c) {
+      var p = c.querySelector(".ct-card-path");
+      if (p && p.textContent.indexOf("Quartz") === 0) {
+        c.querySelector(".ct-chips").innerHTML = "";
+        c.querySelector(".ct-rows").innerHTML =
+          '<div class="ct-row" data-order="10000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">01</span>为什么选择 Quartz</span><span class="ct-row-date">2025-11-02</span><span class="ct-row-order">10000</span></div>' +
+          '<div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>环境搭建与部署</span><span class="ct-row-date">2025-11-09</span><span class="ct-row-order">20000</span></div>';
+        c.querySelector(".ct-card-actions").innerHTML = '<button class="ct-btn">Rebuild index</button><button class="ct-btn">Reorder order</button>';
+      }
+    });
+    ctToast("✓ Conflict resolved", "demoted to a normal note — is-index and the marked block removed, file kept");
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter Trail · UI 原型草图 v0.1（待确认）</title>
+<style>
+/* ============ 页面骨架（非插件样式，仅草图稿纸） ============ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --pg: #e9ebef; --board: #ffffff; --ink: #1e2430; --mut: #5b6472; --faint: #8a93a3;
+  --line: #d4d9e0; --wf: #f4f6f8; --wf2: #e9edf1; --mark: #d9480f;
+  --red: #e93147; --yel: #e0ac00; --blu: #086ddd; --grn: #08b94e; --acc: #8b6cef;
+}
+body { background: var(--pg); color: var(--ink); font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; font-size: 14px; line-height: 1.6; padding: 32px 24px 80px; }
+.page { max-width: 1240px; margin: 0 auto; }
+h1 { font-size: 24px; letter-spacing: .2px; }
+.meta { color: var(--mut); font-size: 13px; margin: 6px 0 20px; }
+.toc { position: sticky; top: 0; z-index: 50; background: rgba(233,235,239,.92); backdrop-filter: blur(6px); padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.toc a { color: var(--mut); text-decoration: none; font-size: 13px; margin-right: 14px; }
+.toc a:hover { color: var(--ink); }
+section { margin-top: 52px; }
+.sec-head h2 { font-size: 19px; }
+.sec-head p { color: var(--mut); font-size: 13px; max-width: 860px; margin-top: 4px; }
+.board { background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin-top: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 980px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+.note { color: var(--mut); font-size: 12.5px; }
+.alist { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.alist li { list-style: none; color: var(--mut); font-size: 12.5px; margin: 3px 0; }
+.am { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; background: var(--mark); color: #fff; font-size: 11px; margin-right: 6px; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px; background: var(--wf2); color: var(--mut); vertical-align: 1px; }
+.tag.warn { background: #fdeceb; color: #b3261e; }
+
+/* ============ 模拟主题变量 ============ */
+.dk { --bg1:#1e1e1e; --bg2:#161616; --bg3:#262626; --tx:#dadada; --mut:#9aa0a8; --fnt:#63676d; --bd:rgba(255,255,255,.12); --hov:rgba(255,255,255,.06); --btn:#2a2a2a; --btnh:#333; --acc2:#8b6cef; --chipbg:rgba(255,255,255,.06); }
+.lt { --bg1:#ffffff; --bg2:#f6f6f6; --bg3:#ececec; --tx:#232323; --mut:#5c5c5c; --fnt:#999999; --bd:rgba(0,0,0,.14); --hov:rgba(0,0,0,.045); --btn:#ffffff; --btnh:#f2f2f2; --acc2:#7d5be3; --chipbg:rgba(0,0,0,.04); }
+
+/* ============ 模拟 Obsidian 窗口 ============ */
+.shell { display: grid; grid-template-columns: 44px 216px 1fr 392px; height: 620px; border: 1px solid #3a3a3a; border-radius: 10px; overflow: hidden; background: var(--bg2); color: var(--tx); font-size: 13px; }
+.ribbon { background: var(--bg2); border-right: 1px solid var(--bd); display: flex; flex-direction: column; align-items: center; padding-top: 10px; gap: 14px; color: var(--fnt); font-size: 15px; }
+.ribbon .on { color: var(--acc2); }
+.sbar { background: var(--bg2); border-right: 1px solid var(--bd); padding: 10px 8px; overflow: hidden; }
+.sbar .hd { color: var(--fnt); font-size: 11px; letter-spacing: .4px; padding: 2px 8px 6px; }
+.tnode { display: flex; align-items: center; gap: 6px; padding: 2.5px 8px; border-radius: 5px; color: var(--mut); white-space: nowrap; }
+.tnode .ic { width: 14px; text-align: center; font-size: 11px; flex: none; }
+.tnode.file { color: var(--tx); padding-left: 22px; }
+.tnode.mg { color: var(--tx); }
+.tnode.mg .ic::after { content: ""; }
+.tnode .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--acc2); flex: none; margin-left: 2px; }
+.ed { background: var(--bg1); border-right: 1px solid var(--bd); padding: 16px 20px; overflow: hidden; font-family: Consolas, "Courier New", monospace; font-size: 11.5px; line-height: 1.7; color: var(--mut); position: relative; }
+.ed .fm { color: var(--tx); }
+.ed .mk { background: rgba(139,108,239,.16); color: #c7b6ff; display: block; border-radius: 3px; padding: 0 4px; }
+.ed .lk { color: var(--acc2); }
+
+/* ============ 面板（Chapter Trail ItemView） ============ */
+.panel { background: var(--bg1); display: flex; flex-direction: column; overflow: hidden; }
+.p-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; }
+.p-head .t { font-weight: 600; font-size: 13px; flex: 1; }
+.icbtn { width: 22px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: var(--fnt); font-size: 12px; }
+.icbtn:hover { background: var(--hov); color: var(--tx); }
+.p-sum { display: flex; align-items: center; gap: 8px; padding: 0 12px 10px; color: var(--mut); font-size: 12px; flex-wrap: wrap; }
+.legend { display: inline-flex; gap: 10px; margin-left: auto; font-size: 11px; }
+.legend b { font-weight: 400; display: inline-flex; align-items: center; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.r { background: var(--red); } .dot.y { background: var(--yel); } .dot.b { background: var(--blu); } .dot.g { background: var(--grn); }
+.banner { margin: 0 12px 10px; border: 1px solid rgba(224,172,0,.4); background: rgba(224,172,0,.08); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--tx); display: flex; gap: 8px; align-items: center; }
+.banner .btn { margin-left: auto; }
+.p-body { flex: 1; overflow: hidden; padding: 0 12px; display: flex; flex-direction: column; gap: 12px; }
+.card { border: 1px solid var(--bd); border-radius: 10px; background: var(--bg1); overflow: visible; }
+.card-h { display: flex; align-items: center; gap: 7px; padding: 8px 10px 6px; }
+.card-h .pth { font-weight: 600; font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mode { font-size: 10px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--bd); color: var(--mut); flex: none; }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; padding: 0 10px 6px; }
+.chip { font-size: 10.5px; padding: 1.5px 8px; border-radius: 99px; display: inline-flex; align-items: center; gap: 5px; background: var(--chipbg); }
+.chip .dot { width: 6px; height: 6px; }
+.chip.r { color: #ff8291; } .chip.r .dot { background: var(--red); }
+.chip.y { color: #ecc94b; } .chip.y .dot { background: var(--yel); }
+.chip.b { color: #6db2f5; } .chip.b .dot { background: var(--blu); }
+.lt .chip.r { color: #b3261e; } .lt .chip.y { color: #8a6d00; } .lt .chip.b { color: #0862b3; }
+.card-btns { display: flex; gap: 6px; padding: 2px 10px 10px; }
+.btn { font-size: 11.5px; padding: 3.5px 10px; border-radius: 6px; border: 1px solid var(--bd); background: var(--btn); color: var(--tx); white-space: nowrap; }
+.btn:hover { background: var(--btnh); }
+.btn.acc { background: var(--acc2); border-color: transparent; color: #fff; }
+.btn.danger { color: var(--red); }
+.btn.sm { font-size: 11px; padding: 2px 8px; }
+.rows { border-top: 1px solid var(--bd); }
+.row { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-bottom: 1px solid var(--bd); font-size: 12.5px; }
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--hov); }
+.grip { color: var(--fnt); font-size: 12px; width: 12px; flex: none; visibility: hidden; }
+.row:hover .grip { visibility: visible; }
+.row .ttl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .ttl .idx { color: var(--fnt); margin-right: 5px; font-size: 11px; }
+.row .ttl .fld { color: var(--acc2); font-size: 11px; }
+.row .ttl.folder::before { content: "☰ "; color: var(--fnt); font-size: 11px; }
+.row .dt { color: var(--fnt); font-size: 11px; flex: none; }
+.row .ord { color: var(--fnt); font-size: 11px; font-family: Consolas, monospace; width: 46px; text-align: right; flex: none; }
+.row .pend { width: 6px; height: 6px; border-radius: 50%; background: var(--blu); flex: none; }
+.row.miss .ttl { color: var(--red); text-decoration: line-through; text-decoration-thickness: 1px; }
+.row.dim { color: var(--fnt); }
+.rows-foot { color: var(--fnt); font-size: 10.5px; padding: 5px 10px; background: var(--wf2); }
+.p-foot { padding: 10px 12px; border-top: 1px solid var(--bd); }
+.menu { position: absolute; z-index: 5; background: var(--bg3); border: 1px solid var(--bd); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 4px; font-size: 12px; min-width: 150px; }
+.menu .mi { padding: 4px 10px; border-radius: 5px; color: var(--tx); }
+.menu .mi:hover { background: var(--hov); }
+.menu .mi.danger { color: var(--red); }
+.menu .msep { height: 1px; background: var(--bd); margin: 4px 6px; }
+
+/* ============ 线框杂项 ============ */
+.modal-m { background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.14); padding: 16px 18px; font-size: 13px; color: #232323; position: relative; }
+.modal-m .m-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.modal-m .m-body { color: #444; }
+.modal-m .m-body .hl { font-weight: 600; }
+.modal-m .warn { margin-top: 8px; font-size: 12px; color: #8a6d00; background: rgba(224,172,0,.1); border: 1px solid rgba(224,172,0,.35); border-radius: 6px; padding: 6px 9px; }
+.opts { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.opt { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; gap: 8px; align-items: flex-start; }
+.opt.sel { border-color: var(--acc2); background: rgba(125,91,227,.05); }
+.opt .radio { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--faint); margin-top: 3px; flex: none; }
+.opt.sel .radio { border-color: var(--acc2); box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 8px var(--acc2); }
+.opt b { font-size: 12.5px; }
+.opt .d { color: var(--mut); font-size: 12px; }
+.m-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.dimmer { background: rgba(0,0,0,.35); border-radius: 10px; padding: 26px 20px; }
+.toast { background: #262626; color: #dadada; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; box-shadow: 0 10px 30px rgba(0,0,0,.3); max-width: 340px; }
+.toast .sub { color: #9aa0a8; font-size: 11.5px; margin-top: 3px; }
+.pbar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); margin-top: 8px; overflow: hidden; }
+.pbar i { display: block; height: 100%; width: 63%; background: var(--acc); border-radius: 99px; }
+
+/* 风格板 */
+.swrow { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 4px 0; }
+.sw { width: 64px; height: 26px; border-radius: 6px; border: 1px solid var(--line); flex: none; }
+.swrow code { color: var(--mut); font-size: 11.5px; }
+.theme-card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.theme-card .tc-h { padding: 8px 12px; font-size: 12.5px; font-weight: 600; }
+.tyerow { display: flex; align-items: baseline; gap: 12px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+.tyerow .lab { width: 150px; color: var(--mut); font-size: 12px; flex: none; }
+.comp { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 12px; }
+
+/* 拖拽示意 */
+.drop-line { height: 0; border-top: 2px solid var(--acc); position: relative; margin: 0 6px; }
+.drop-line::before, .drop-line::after { content: ""; position: absolute; top: -4px; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); }
+.drop-line::before { left: -4px; } .drop-line::after { right: -4px; }
+.ghost { display: inline-block; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 14px 34px rgba(0,0,0,.22); padding: 7px 14px; font-size: 12.5px; transform: rotate(-1.2deg); color: #232323; }
+.edge { position: relative; border-radius: 8px; overflow: hidden; background: var(--wf); padding: 10px; text-align: center; color: var(--mut); font-size: 11.5px; }
+.edge .fade { position: absolute; left: 0; right: 0; height: 26px; background: linear-gradient(rgba(125,91,227,.18), transparent); }
+.kbd { display: inline-block; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; font-size: 11px; color: var(--mut); background: #fff; }
+
+/* 渲染预览 */
+.doc { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px 26px; font-size: 13.5px; color: #2b2b2b; }
+.doc h1 { font-size: 21px; margin-bottom: 10px; letter-spacing: 0; }
+.doc ul { padding-left: 20px; }
+.doc li { margin: 4px 0; }
+.doc a { color: #5023e7; text-decoration: none; }
+.doc .dt { color: #999; font-size: 12px; margin-left: 6px; }
+.doc .preamble { color: #777; font-style: italic; font-size: 12.5px; border-left: 2px solid var(--line); padding-left: 10px; margin-bottom: 10px; }
+.props { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--mut); border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
+.props b { font-weight: 400; color: #444; }
+.callout { border: 1px solid rgba(125,91,227,.4); background: rgba(125,91,227,.06); border-radius: 8px; padding: 7px 12px; font-size: 12.5px; margin: 10px 0; color: #4a3f78; }
+.callout .co-t { font-weight: 600; }
+.quartz { background: #faf8f1; border: 1px solid #e5e2d9; border-radius: 10px; color: #4e4e4e; font-family: Georgia, "Source Han Serif SC", serif; overflow: hidden; }
+.quartz .q-top { display: flex; align-items: center; gap: 10px; padding: 12px 20px; font-family: "Segoe UI", sans-serif; }
+.quartz .q-top .site { font-weight: 700; color: #282b2d; }
+.quartz .q-body { padding: 6px 30px 24px; }
+.quartz h1 { font-family: "Segoe UI", sans-serif; font-size: 20px; color: #282b2d; margin-bottom: 4px; }
+.quartz .q-meta { color: #b8b8b8; font-size: 12px; font-family: "Segoe UI", sans-serif; margin-bottom: 14px; }
+.quartz p { margin: 8px 0; line-height: 1.75; }
+.quartz a { color: #284b63; text-decoration: none; border-bottom: 1px solid rgba(40,75,99,.3); }
+.quartz .q-callout { border: 1px solid #e5e2d9; background: #f3f1e9; border-radius: 8px; padding: 9px 14px; font-family: "Segoe UI", sans-serif; font-size: 12.5px; margin: 16px 0; color: #4e4e4e; }
+.urlbar { display: flex; gap: 8px; align-items: center; background: #f1f2f4; border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; font-size: 12px; color: var(--mut); margin-bottom: 12px; }
+
+/* 设置页 */
+.settings { border: 1px solid var(--line); border-radius: 10px; background: #fff; color: #232323; padding: 18px 22px; max-width: 640px; font-size: 13px; }
+.settings .s-head h3 { font-size: 16px; }
+.settings .s-head .s-sub { color: var(--mut); font-size: 12px; margin: 2px 0 14px; }
+.set-row { display: flex; gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); }
+.set-row .s-info { flex: 1; }
+.set-row .s-name { font-weight: 600; font-size: 13px; }
+.set-row .s-desc { color: var(--mut); font-size: 12px; margin-top: 2px; }
+.inp { border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; font-size: 12.5px; background: #fff; color: #232323; width: 120px; }
+.sel { border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; font-size: 12.5px; background: #fff; color: #232323; display: inline-flex; gap: 16px; align-items: center; }
+.tgl { width: 34px; height: 19px; border-radius: 99px; background: #c9ccd2; position: relative; flex: none; display: inline-block; }
+.tgl i { position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.tgl.on { background: var(--acc2); } .tgl.on i { left: 17px; }
+
+/* 问题清单 */
+.qa { counter-reset: q; }
+.qa li { list-style: none; margin: 10px 0; padding-left: 34px; position: relative; }
+.qa li::before { counter-increment: q; content: counter(q); position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 12px; text-align: center; line-height: 22px; }
+.qa b { display: block; font-size: 13.5px; }
+.qa .d { color: var(--mut); font-size: 12.5px; }
+footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>Chapter Trail · UI 原型草图 <span class="tag">v0.1 · 待确认</span></h1>
+  <p class="meta">依据：PRD v1.3（2026-10-04 基线）+ 方案设计文档 v1.1 · 生成日期 2026-10-06 · 插件 ID <code>chapter-trail</code><br>
+  阅读方式：<b>灰阶线框 = 确认布局与信息架构</b>；<b>风格板 = 确认视觉方向</b>。线框中界面文案用英文（PRD 约束 v1 仅英文 UI），示例笔记内容用中文（贴近真实 vault）。颜色为近似占位值，高保真阶段将直接引用 Obsidian 主题变量。</p>
+  <nav class="toc">
+    <a href="#s-style">风格板</a><a href="#w1">W1 面板总览</a><a href="#w2">W2 状态大全</a><a href="#w3">W3 拖拽交互</a><a href="#w4">W4 开始管理</a><a href="#w5">W5 弹窗合集</a><a href="#w6">W6 设置页</a><a href="#w7">W7 写入进度</a><a href="#w8">W8 成品预览</a><a href="#qa">待确认清单</a>
+  </nav>
+</header>
+
+<!-- ================= 风格板 ================= -->
+<section id="s-style">
+  <div class="sec-head">
+    <h2>设计风格板 Style Tile</h2>
+    <p>设计方向：<b>融入 Obsidian 原生</b>——面板视觉完全跟随用户当前主题（含第三方主题与自定义强调色），信息密度对齐 Obsidian 侧栏习惯（紧凑行、小字号、弱边框）。高保真阶段所有颜色将使用 <code>var(--background-primary)</code> 等主题变量 + <code>ct-</code> 前缀类名；下表数值仅为独立浏览器预览时的近似回退值。图标使用 Obsidian 内置 lucide 图标（线框中以字符占位）。</p>
+  </div>
+  <div class="board grid2">
+    <div class="theme-card">
+      <div class="tc-h" style="background:#f6f6f6;">Light 主题（近似默认值）</div>
+      <div style="padding:12px 14px; background:#fff;">
+        <div class="swrow"><span class="sw" style="background:#ffffff"></span><b>--background-primary</b><code>#ffffff · 编辑区/卡片底</code></div>
+        <div class="swrow"><span class="sw" style="background:#f6f6f6"></span><b>--background-secondary</b><code>#f6f6f6 · 侧栏底</code></div>
+        <div class="swrow"><span class="sw" style="background:rgba(0,0,0,.12)"></span><b>--background-modifier-border</b><code>边框/分隔线</code></div>
+        <div class="swrow"><span class="sw" style="background:#232323"></span><b>--text-normal</b><code>#232323</code></div>
+        <div class="swrow"><span class="sw" style="background:#5c5c5c"></span><b>--text-muted</b><code>#5c5c5c · 次要文字</code></div>
+        <div class="swrow"><span class="sw" style="background:#999999"></span><b>--text-faint</b><code>#999999 · 弱化（order 值等）</code></div>
+        <div class="swrow"><span class="sw" style="background:#7d5be3"></span><b>--interactive-accent</b><code>强调紫（跟随用户主题色）</code></div>
+      </div>
+    </div>
+    <div class="theme-card">
+      <div class="tc-h" style="background:#161616;color:#dadada;">Dark 主题（近似默认值）</div>
+      <div style="padding:12px 14px; background:#1e1e1e;">
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:#1e1e1e;border-color:rgba(255,255,255,.2)"></span><b>--background-primary</b><code style="color:#9aa0a8">#1e1e1e</code></div>
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:#161616;border-color:rgba(255,255,255,.2)"></span><b>--background-secondary</b><code style="color:#9aa0a8">#161616</code></div>
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:rgba(255,255,255,.12)"></span><b>--background-modifier-border</b><code style="color:#9aa0a8">边框/分隔线</code></div>
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:#dadada"></span><b>--text-normal</b><code style="color:#9aa0a8">#dadada</code></div>
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:#9aa0a8"></span><b>--text-muted</b><code style="color:#9aa0a8">#9aa0a8</code></div>
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:#63676d"></span><b>--text-faint</b><code style="color:#9aa0a8">#63676d</code></div>
+        <div class="swrow" style="color:#dadada"><span class="sw" style="background:#8b6cef"></span><b>--interactive-accent</b><code style="color:#9aa0a8">强调紫（跟随用户主题色）</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="grid2" style="align-items:start;">
+      <div>
+        <div class="tyerow"><span class="lab">面板/卡片标题</span><span style="font-size:13px;font-weight:600;">Chapter Trail · Blogs/Quartz 建站教程</span></div>
+        <div class="tyerow"><span class="lab">条目行文本（13px）</span><span style="font-size:13px;">02 环境搭建与部署</span></div>
+        <div class="tyerow"><span class="lab">辅助信息（11–12px）</span><span style="font-size:12px;color:#5b6472;">2025-11-09 · 进阶篇/ 前缀 · 虚拟化提示</span></div>
+        <div class="tyerow"><span class="lab">order 数值（等宽）</span><span style="font-family:Consolas,monospace;font-size:12px;color:#5b6472;">10000&nbsp;&nbsp;15000&nbsp;&nbsp;20000</span></div>
+        <div class="tyerow" style="border:none;"><span class="lab">行高与间距</span><span style="font-size:12px;color:#5b6472;">条目行固定 32px（虚拟化前提）· 组件间距 4/8/12 · 圆角 6/8/12</span></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#5b6472;margin-bottom:6px;">组件（Dark 底示例）</div>
+        <div class="comp dk" style="background:#1e1e1e;border:1px solid rgba(255,255,255,.12);border-radius:10px;">
+          <span class="btn">Rebuild index</span>
+          <span class="btn acc">Start managing</span>
+          <span class="btn danger">Stop managing</span>
+          <span class="chip r"><span class="dot"></span>2 broken links</span>
+          <span class="chip y"><span class="dot"></span>Index outdated</span>
+          <span class="chip b"><span class="dot"></span>20 need ordering</span>
+          <span class="inp dk" style="background:#262626;border-color:rgba(255,255,255,.14);color:#dadada;">目录</span>
+          <span class="tgl on"><i></i></span><span class="tgl"><i></i></span>
+          <span class="icbtn" title="kebab">⋮</span><span class="grip" style="visibility:visible">⠿</span>
+        </div>
+        <p class="note" style="margin-top:10px;">状态色语义（PRD §2.7 已确认，红色合并语义）：红 = 断链 / 结构冲突（必须处理）；黄 = 索引过期 / order 平手 / 间隙过密 / 遗留 order（建议处理）；蓝 = 待排序（仅提示）。取 Obsidian 内置调色板 red <code>#e93147</code> · yellow <code>#e0ac00</code> · blue <code>#086ddd</code>。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= W1 面板总览 ================= -->
+<section id="w1">
+  <div class="sec-head">
+    <h2>W1 · 管理面板总览（MVP 核心 UI）</h2>
+    <p>面板为右侧边栏 ItemView（基准宽 380px，可拖宽），深色主题示例。左侧为 Obsidian 壳（文件树受管文件夹带紫点），中间编辑区以<b>源码模式</b>展示一篇已注入导航的笔记（与 W8 的阅读视图渲染对照）。</p>
+  </div>
+  <div class="board">
+    <div class="shell dk">
+      <div class="ribbon"><span class="on">☰</span><span>⌕</span><span>⟳</span><span>⚙</span></div>
+      <div class="sbar">
+        <div class="hd">文件管理器（示意）</div>
+        <div class="tnode mg"><span class="ic">▸</span> Blogs<span class="dot"></span></div>
+        <div class="tnode file"><span class="ic"></span> 01 为什么选择 Quartz.md</div>
+        <div class="tnode file"><span class="ic"></span> 02 环境搭建与部署.md</div>
+        <div class="tnode mg"><span class="ic">▸</span> 读书笔记<span class="dot"></span></div>
+        <div class="tnode file" style="padding-left:36px"><span class="ic"></span> 目录.md</div>
+        <div class="tnode"><span class="ic">▸</span> 日记</div>
+        <div class="tnode"><span class="ic">▸</span> 模板</div>
+      </div>
+      <div class="ed">
+        <div class="fm">---<br>
+        title: 02 环境搭建与部署<br>
+        created: 2025-11-09<br>
+        updated: 2026-01-12<br>
+        <b style="color:#c7b6ff">order: 20000</b><br>
+        ---</div>
+        <span class="mk">&lt;!-- chapter-trail:nav-begin --&gt;</span>
+        &gt; [!chapter-trail]- 上一篇：<span class="lk">[01 为什么选择 Quartz](./01%20为什么选择%20Quartz.md)</span><br>
+        &gt; 总览：<span class="lk">[目录](./目录.md)</span> | 下一篇：<span class="lk">[03 配置详解](./进阶篇/03%20配置详解.md)</span><br>
+        <span class="mk">&lt;!-- chapter-trail:nav-end --&gt;</span><br>
+        <br>
+        ## 环境搭建<br>
+        <br>
+        首先 clone 官方仓库并安装依赖……（正文内容，插件绝不触碰）<br>
+        <br>
+        <br>
+        <span class="mk">&lt;!-- chapter-trail:nav-begin --&gt;</span><br>
+        &gt; [!chapter-trail]- 上一篇：… | 总览：… | 下一篇：…（底部块，与顶部相同）<br>
+        <span class="mk">&lt;!-- chapter-trail:nav-end --&gt;</span>
+      </div>
+      <div class="panel">
+        <div class="p-head"><span class="t">Chapter Trail</span><span class="icbtn" title="Re-scan vault">⟳</span><span class="icbtn" title="Settings">⚙</span></div>
+        <div class="p-sum">3 domains · 1 needs attention
+          <span class="legend"><b><span class="dot r"></span>red</b><b><span class="dot y"></span>yellow</b><b><span class="dot b"></span>blue</b></span>
+        </div>
+        <div class="banner"><span class="dot y"></span> 12 legacy <code>order</code> fields — “旧项目/周刊” was dissolved<span class="btn sm">Review</span></div>
+        <div class="p-body">
+
+          <div class="card">
+            <div class="card-h"><span class="pth">Blogs/Quartz 建站教程</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
+            <div class="rows">
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">01</span>为什么选择 Quartz</span><span class="dt">2025-11-02</span><span class="ord">10000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">02</span>环境搭建与部署</span><span class="dt">2025-11-09</span><span class="ord">20000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">03</span><span class="fld">进阶篇/</span>配置详解</span><span class="dt">2025-11-16</span><span class="ord">30000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span><span class="fld">进阶篇/</span>插件机制</span><span class="dt">2025-11-23</span><span class="ord">40000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">05</span><span class="fld">进阶篇/</span>主题定制</span><span class="dt">2025-11-30</span><span class="ord">50000</span></div>
+            </div>
+            <div class="rows-foot">5 entries · virtualized list (32px rows)</div>
+            <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span><span class="btn">Rebuild injection</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-h"><span class="pth">读书笔记/卡片盒笔记法</span><span class="mode">Independent</span><span class="icbtn">⋮</span></div>
+            <div class="chips"><span class="chip y"><span class="dot"></span>Index outdated</span></div>
+            <div class="rows">
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">01</span>引言：卢曼的盒子</span><span class="dt">2025-09-14</span><span class="ord">10000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl folder"><span class="idx">02</span>第一部分 · 原理</span><span class="dt">—</span><span class="ord">20000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">03</span>卡片的三种类型</span><span class="dt">2025-09-28</span><span class="ord">30000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span>文献笔记与永久笔记</span><span class="dt">2025-10-05</span><span class="ord">40000</span></div>
+            </div>
+            <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-h"><span class="pth">随笔/数字花园周记</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
+            <div class="rows">
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">01</span>周记 #38</span><span class="dt">2026-09-21</span><span class="ord">10000</span></div>
+              <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">02</span>周记 #39</span><span class="dt">2026-09-28</span><span class="ord">20000</span></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="p-foot"><span class="btn acc" style="display:inline-block;">＋ Start managing a folder</span></div>
+      </div>
+    </div>
+    <ul class="alist">
+      <li><span class="am">1</span>面板挂在右侧边栏（ItemView）；⟳ 为全量重扫（启动扫描的补扫入口），⚙ 跳转插件设置。<b>此为提案，PRD 未明确要求。</b></li>
+      <li><span class="am">2</span>VaultSummary：受管域数量 + 异常计数 + 红黄蓝图例（PRD §2.7「面板顶部汇总」）。</li>
+      <li><span class="am">3</span>Vault 级黄条：遗留 order 提示（删除索引页 = 域解散后），一键 Review 进入清理（PRD §2.5）。</li>
+      <li><span class="am">4</span>卡片头：域路径 + 模式徽标（Series/Independent）+ ⋮ 菜单（Open index page / Stop managing…）。</li>
+      <li><span class="am">5</span>操作按钮：重建索引 / 重排 order /（注入开启时才出现）重建注入——卡片 B 注入关闭所以没有第三个按钮。</li>
+      <li><span class="am">6</span>条目行 32px 等高：悬停出现拖拽把手 ⠿；标题左侧数字为链条序号；<b>series 域显示路径前缀</b>（紫色）；日期取 created（设置项）；order 右对齐等宽。</li>
+      <li><span class="am">7</span>independent 域中受管子文件夹显示为文件夹行（☰ 前缀、无日期，order 取其索引页 frontmatter）——对应 PRD「直系文件与受管子文件夹混排」。</li>
+      <li><span class="am">8</span>编辑区（源码模式）：注入的包裹标记位于 frontmatter 之后第一行与文末，callout 内容为标准 md 链接；order 字段在 properties 中。注入默认关闭，此为开启后的效果。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= W2 状态大全 ================= -->
+<section id="w2">
+  <div class="sec-head">
+    <h2>W2 · 域卡片状态大全（红 / 黄 / 蓝）</h2>
+    <p>浅色主题。六种卡片形态：健康、红-断链、红-结构冲突、蓝-待排序、黄-索引过期、黄-间隙过密 + 平手。状态芯片可叠加，图例置顶。</p>
+  </div>
+  <div class="board">
+    <div class="p-sum lt" style="padding:0 0 14px;">
+      <span class="legend" style="margin:0;">
+        <b><span class="dot r"></span>red — broken link / structural conflict, needs action</b>
+        <b><span class="dot y"></span>yellow — rebuild / reorder suggested</b>
+        <b><span class="dot b"></span>blue — pending sort, informational</b>
+      </span>
+    </div>
+    <div class="grid2 lt">
+      <div class="card" style="position:relative;">
+        <div class="card-h"><span class="pth">Blogs/Quartz 建站教程</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
+        <div class="menu" style="top:34px;right:10px;">
+          <div class="mi">Open index page</div>
+          <div class="mi">Copy domain path</div>
+          <div class="msep"></div>
+          <div class="mi danger">Stop managing…</div>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">01</span>为什么选择 Quartz</span><span class="dt">2025-11-02</span><span class="ord">10000</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">02</span>环境搭建与部署</span><span class="dt">2025-11-09</span><span class="ord">20000</span></div>
+        </div>
+        <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span></div>
+        <div class="note" style="padding:0 10px 10px;">健康卡片：无芯片。⋮ 菜单含打开索引页 / 停止管理。</div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="pth">Blogs/Quartz 建站教程</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
+        <div class="chips"><span class="chip r"><span class="dot"></span>2 broken links</span></div>
+        <div class="rows">
+          <div class="row miss"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span>进阶篇/插件机制</span><span class="dt">—</span><span class="ord">40000</span></div>
+          <div class="row dim"><span class="grip" style="visibility:hidden"></span><span class="ttl">file not found — deleted or moved out of the vault</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">05</span>进阶篇/主题定制</span><span class="dt">2025-11-30</span><span class="ord">50000</span></div>
+        </div>
+        <div class="card-btns"><span class="btn">Rebuild index</span></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="pth">Blogs/Quartz 建站教程</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
+        <div class="chips"><span class="chip r"><span class="dot"></span>Nested index conflict</span></div>
+        <div class="rows">
+          <div class="row dim"><span class="grip" style="visibility:hidden"></span><span class="ttl">进阶篇/目录.md has <code>is-index: true</code> inside a series domain</span></div>
+          <div class="row dim"><span class="grip" style="visibility:hidden"></span><span class="ttl">resolve: demote to note / delete / exclude folder</span></div>
+        </div>
+        <div class="card-btns"><span class="btn acc">Resolve…</span></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="pth">读书笔记/卡片盒笔记法</span><span class="mode">Independent</span><span class="icbtn">⋮</span></div>
+        <div class="chips"><span class="chip b"><span class="dot"></span>20 need ordering</span></div>
+        <div class="rows">
+          <div class="row"><span class="pend"></span><span class="ttl" style="color:var(--fnt)">从卡片盒到 Zettelkasten.md</span><span class="dt">—</span><span class="ord">—</span></div>
+          <div class="row"><span class="pend"></span><span class="ttl" style="color:var(--fnt)">项目的三条兴奋线.md</span><span class="dt">—</span><span class="ord">—</span></div>
+          <div class="row dim"><span class="grip" style="visibility:hidden"></span><span class="ttl">…18 more (git sync batch — no auto-write, sort manually or drag)</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="pth">读书笔记/卡片盒笔记法</span><span class="mode">Independent</span><span class="icbtn">⋮</span></div>
+        <div class="chips"><span class="chip y"><span class="dot"></span>Index outdated</span></div>
+        <div class="rows">
+          <div class="row dim"><span class="grip" style="visibility:hidden"></span><span class="ttl">3 changes since last rebuild — entries or prev/next links may be stale</span></div>
+        </div>
+        <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="pth">随笔/数字花园周记</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
+        <div class="chips"><span class="chip y"><span class="dot"></span>Gaps too tight</span><span class="chip y"><span class="dot"></span>2 tied orders</span></div>
+        <div class="rows">
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">01</span>周记 #37</span><span class="dt">2026-09-14</span><span class="ord">10000</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">02</span>周记 #38</span><span class="dt">2026-09-21</span><span class="ord">10003</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">03</span>周记 #39 ⚑</span><span class="dt">2026-09-28</span><span class="ord">20000</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span>周记 #40 ⚑</span><span class="dt">2026-10-05</span><span class="ord">20000</span></div>
+        </div>
+        <div class="card-btns"><span class="btn acc">Reorder order</span></div>
+      </div>
+    </div>
+    <ul class="alist">
+      <li><span class="am">1</span>断链：条目渲染为红色删除线 + 「not found」说明行；重建索引后死链消失（A4）。</li>
+      <li><span class="am">2</span>series 嵌套索引冲突：Resolve… 打开三选一弹窗（见 W5-M4，A7）。</li>
+      <li><span class="am">3</span>待排序（蓝）：git 同步批量 20 篇整批蓝标、order 列显示「—」，不自动写入（A10）；首列蓝点增强可达性（不仅靠颜色）。</li>
+      <li><span class="am">4</span>间隙过密（相邻差 &lt;10）+ 平手（同 order 值 ⚑ 标注）：主按钮高亮 Reorder 引导重排（A6）。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= W3 拖拽交互 ================= -->
+<section id="w3">
+  <div class="sec-head">
+    <h2>W3 · 拖拽重排交互</h2>
+    <p>面板内拖拽 = 修改目标位置的前后 order 中点（日常只写 1 个文件）；落入过密间隙（&lt;10）时自动重排整域再落位并提示。基于 pragmatic-drag-and-drop（逐元素绑定，兼容虚拟化列表），v1 仅鼠标。</p>
+  </div>
+  <div class="board grid3 lt" style="grid-template-columns: 1.4fr 1fr 1fr;">
+    <div>
+      <div class="note" style="margin-bottom:8px;">拖拽进行中的列表</div>
+      <div class="card">
+        <div class="rows">
+          <div class="row"><span class="grip" style="visibility:visible">⠿</span><span class="ttl"><span class="idx">01</span>为什么选择 Quartz</span><span class="ord">10000</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">02</span>进阶篇/配置详解</span><span class="ord">30000</span></div>
+          <div class="drop-line"></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">03</span>进阶篇/插件机制</span><span class="ord">40000</span></div>
+          <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span>进阶篇/主题定制</span><span class="ord">50000</span></div>
+        </div>
+      </div>
+      <div style="margin-top:18px; text-align:center;"><span class="ghost">⠿ 02 环境搭建与部署</span><div class="note" style="margin-top:8px;">← 跟随光标的拖拽幻影（源行位置留空，两侧行让位）</div></div>
+    </div>
+    <div>
+      <div class="note" style="margin-bottom:8px;">列表边缘自动滚动</div>
+      <div class="edge" style="height:150px;">
+        <div class="fade" style="top:0"></div>
+        <div style="margin-top:6px;">↑ auto-scroll</div>
+        <div style="margin-top:44px;">…rows…</div>
+        <div class="fade" style="bottom:0; transform:rotate(180deg)"></div>
+        <div style="margin-top:6px;">↓ auto-scroll（拖到列表边缘持续滚动，500 行域也能一拖到底）</div>
+      </div>
+      <div class="note" style="margin-top:10px;">虚拟化列表：只有渲染出来的行参与拖拽监听；拖拽期间列表照常滚动。</div>
+    </div>
+    <div>
+      <div class="note" style="margin-bottom:8px;">无障碍降级（行右键 / 键盘）</div>
+      <div class="menu lt" style="position:static; box-shadow:none;">
+        <div class="mi">Move up</div>
+        <div class="mi">Move down</div>
+      </div>
+      <div class="note" style="margin:6px 0 18px;">绕开纯拖拽的键盘不可达问题，成本极低。</div>
+      <div class="note" style="margin-bottom:8px;">过密间隙拖入 → 自动重排提示（Notice）</div>
+      <div class="toast">Gap too tight — reordered the whole domain, then placed the entry.<div class="sub">orders normalized to 10000-step · 「随笔/数字花园周记」</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= W4 开始管理 ================= -->
+<section id="w4">
+  <div class="sec-head">
+    <h2>W4 · 开始管理流程（两步弹窗）</h2>
+    <p>入口：面板底部「＋ Start managing a folder」或命令面板「Start managing current folder」。第一步选文件夹（模糊搜索），第二步选模式并明示后果（将创建带 <code>is-index: true</code> 与标记区块的索引页）。</p>
+  </div>
+  <div class="board grid2 lt">
+    <div>
+      <div class="note" style="margin-bottom:8px;">Step 1 · 选择文件夹</div>
+      <div class="dimmer"><div class="modal-m" style="max-width:420px;margin:0 auto;">
+        <div class="m-title">Start managing a folder</div>
+        <div class="m-body"><span class="inp" style="width:100%;">Filter folders…</span></div>
+        <div class="opts">
+          <div class="opt sel"><span class="radio"></span><div><b>读书笔记/卡片盒笔记法</b><div class="d">9 notes · 1 subfolder</div></div></div>
+          <div class="opt"><span class="radio"></span><div><b>随笔</b><div class="d">12 notes · 1 subfolder</div></div></div>
+          <div class="opt" style="opacity:.45;"><span class="radio"></span><div><b>Blogs/Quartz 建站教程</b><div class="d">already managed</div></div></div>
+        </div>
+        <div class="m-btns"><span class="btn">Cancel</span><span class="btn acc">Next</span></div>
+        <div class="note" style="margin-top:8px;"><span class="kbd">↵</span> select · <span class="kbd">↑↓</span> navigate · <span class="kbd">esc</span> dismiss</div>
+      </div></div>
+    </div>
+    <div>
+      <div class="note" style="margin-bottom:8px;">Step 2 · 选择模式（二选一）</div>
+      <div class="dimmer"><div class="modal-m" style="max-width:460px;margin:0 auto;">
+        <div class="m-title">Choose a mode for “读书笔记/卡片盒笔记法”</div>
+        <div class="opts">
+          <div class="opt sel"><span class="radio"></span><div><b>Independent</b><div class="d">Direct notes and managed subfolders mix in one ordering. Each managed subfolder keeps its own chain. Best for loosely related notes.</div></div></div>
+          <div class="opt"><span class="radio"></span><div><b>Series</b><div class="d">One chain across the whole subtree; subfolders become path labels only. Best for tutorials and serials.</div></div></div>
+        </div>
+        <div class="warn">Creates <b>目录.md</b> with <code>is-index: true</code> and a plugin-owned marked block. You can rename it later in settings; recognition is by the marker, not the file name.</div>
+        <div class="m-btns"><span class="btn">Cancel</span><span class="btn acc">Start managing</span></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= W5 弹窗合集 ================= -->
+<section id="w5">
+  <div class="sec-head">
+    <h2>W5 · 确认弹窗合集（显式且可逆）</h2>
+    <p>所有批量写入前都有确认框并显示写入数量；破坏性操作（停止管理 / 全部清除）逐步确认。全部走 Obsidian 原生 Modal。</p>
+  </div>
+  <div class="board grid2">
+    <div class="dimmer lt"><div class="modal-m">
+      <div class="m-title">Rebuild index</div>
+      <div class="m-body">Rebuild the index page for <span class="hl">Blogs/Quartz 建站教程</span>?<br>
+      Rewrites the marked block in <code>目录.md</code>. Content outside the block — including your own preamble — is untouched.</div>
+      <div class="m-btns"><span class="btn">Cancel</span><span class="btn acc">Rebuild · 1 file</span></div>
+      <div class="note" style="margin-top:8px;">M1 重建索引（单域/全部同理，计数=写入文件数）</div>
+    </div></div>
+    <div class="dimmer lt"><div class="modal-m">
+      <div class="m-title">Turn on navigation injection</div>
+      <div class="m-body">Chapter Trail will write a collapsible prev / next / index callout into <span class="hl">47 notes</span> across 3 domains. Each block is wrapped in <code>&lt;!-- chapter-trail:nav-* --&gt;</code> markers and can be removed anytime.</div>
+      <div class="warn">Batch writes run in chunks of 25 with a progress bar — you can cancel mid-run.</div>
+      <div class="m-btns"><span class="btn">Not now</span><span class="btn acc">Enable · write 47 notes</span></div>
+      <div class="note" style="margin-top:8px;">M2 开启注入（设置开关触发，注入默认关）</div>
+    </div></div>
+    <div class="dimmer lt"><div class="modal-m">
+      <div class="m-title">目录.md already exists</div>
+      <div class="m-body">The target folder already has a file named <span class="hl">目录.md</span> without a chapter-trail marker.</div>
+      <div class="opts">
+        <div class="opt sel"><span class="radio"></span><div><b>Adopt it</b><div class="d">Keep all existing frontmatter keys and body; the plugin block is added around the existing list. Your content stays byte-identical.</div></div></div>
+        <div class="opt"><span class="radio"></span><div><b>Rename and keep</b><div class="d">Keep the existing file under a new name, create a fresh index page.</div></div></div>
+        <div class="opt"><span class="radio"></span><div><b>Cancel</b><div class="d">Do nothing.</div></div></div>
+      </div>
+      <div class="m-btns"><span class="btn acc">Confirm</span></div>
+      <div class="note" style="margin-top:8px;">M3 同名冲突三选一（A11：用户键逐字节保留）</div>
+    </div></div>
+    <div class="dimmer lt"><div class="modal-m">
+      <div class="m-title">Nested index page detected</div>
+      <div class="m-body"><span class="hl">进阶篇/目录.md</span> has <code>is-index: true</code>, but its folder is inside the series domain <span class="hl">Blogs/Quartz 建站教程</span>. Choose how to resolve:</div>
+      <div class="opts">
+        <div class="opt sel"><span class="radio"></span><div><b>Demote to a normal note</b><div class="d">Remove <code>is-index</code> and the marked block; the file itself is kept.</div></div></div>
+        <div class="opt"><span class="radio"></span><div><b>Delete the file</b><div class="d">Move to system trash.</div></div></div>
+        <div class="opt"><span class="radio"></span><div><b>Exclude the folder</b><div class="d">Add <code>进阶篇/</code> to excluded-folders; the domain ignores it.</div></div></div>
+      </div>
+      <div class="m-btns"><span class="btn">Cancel</span><span class="btn acc">Apply</span></div>
+      <div class="note" style="margin-top:8px;">M4 series 嵌套冲突三选一（A7）</div>
+    </div></div>
+    <div class="dimmer lt"><div class="modal-m">
+      <div class="m-title">Stop managing this folder?</div>
+      <div class="m-body">Deleting <span class="hl">目录.md</span> dissolves the domain <span class="hl">读书笔记/卡片盒笔记法</span>. The ordering data lives in each note’s frontmatter and will remain.</div>
+      <div class="opts">
+        <div class="opt"><span class="radio" style="border-radius:3px"></span><div><b>Also clear <code>order</code> fields</b> <span class="d">(12 notes)</span></div></div>
+        <div class="opt"><span class="radio" style="border-radius:3px"></span><div><b>Also remove injected navigation</b> <span class="d">(12 notes, markers only)</span></div></div>
+      </div>
+      <div class="m-btns"><span class="btn">Cancel</span><span class="btn danger">Delete index &amp; stop</span></div>
+      <div class="note" style="margin-top:8px;">M5 停止管理（删除索引页 = 域解散 + 遗留 order 提示）</div>
+    </div></div>
+    <div class="dimmer lt"><div class="modal-m">
+      <div class="m-title">Remove all Chapter Trail data — step 3 of 3</div>
+      <div class="m-body" style="color:#5b6472;font-size:12px;margin-bottom:6px;">① Strip injected navigation ✓ &nbsp;② Delete index pages ✓ &nbsp;<b style="color:#232323">③ Clear order fields</b></div>
+      <div class="m-body">Clear <code>order</code> in <span class="hl">Blogs/Quartz 建站教程</span> (12 notes)?</div>
+      <div class="warn">This removes <b>all</b> <code>order</code> fields in the domain — including any not created by Chapter Trail. This cannot be undone except by reordering.</div>
+      <div class="m-btns"><span class="btn">Back</span><span class="btn danger">Clear order in this domain</span></div>
+      <div class="note" style="margin-top:8px;">M6 全部清除三步向导（可逆性契约 A8：每域逐个确认）</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= W6 设置页 ================= -->
+<section id="w6">
+  <div class="sec-head">
+    <h2>W6 · 插件设置页（Obsidian 原生 Setting API）</h2>
+    <p>共三项设置（PRD T1）；字段名 <code>created / updated / order</code> 固定不可配。</p>
+  </div>
+  <div class="board">
+    <div class="settings lt">
+      <div class="s-head"><h3>Chapter Trail</h3><div class="s-sub">Folder ordering, index pages and series navigation · v1.0.0 · MIT · no telemetry</div></div>
+      <div class="set-row">
+        <div class="s-info"><div class="s-name">Index file name</div><div class="s-desc">Used when creating new index pages. Recognition is by the <code>is-index</code> marker, not the file name — existing pages are never renamed. Preset suggestion: <code>index</code>.</div></div>
+        <span class="inp">目录</span>
+      </div>
+      <div class="set-row">
+        <div class="s-info"><div class="s-name">Date display on index entries</div><div class="s-desc">Reads each note’s <code>created</code> / <code>updated</code> property (ISO or Obsidian date format). Entries without a parsable date simply show no date. Changing this marks affected domains “Index outdated”.</div></div>
+        <span class="sel">created <span style="color:#999">▾</span></span>
+      </div>
+      <div class="set-row">
+        <div class="s-info"><div class="s-name">Write prev / next navigation</div><div class="s-desc"><b>Off: nothing is ever written into your notes</b> — jump commands (prev / next / index) still work. Turning on asks for confirmation, then writes collapsible callouts wrapped in removal markers.</div></div>
+        <span class="tgl"><i></i></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= W7 写入进度 ================= -->
+<section id="w7">
+  <div class="sec-head">
+    <h2>W7 · 批量写入进度（分块 + 可取消）</h2>
+    <p>批量写入按 25 篇一块执行、块间让出主线程；自绘 Notice 进度条（Obsidian 无公开进度 API）；失败文件跳过并汇总，不中断整批。</p>
+  </div>
+  <div class="board dk" style="background:#161616; display:flex; flex-direction:column; gap:14px; align-items:flex-start;">
+    <div class="toast" style="min-width:320px;">
+      Rebuilding index — 126 / 200
+      <div class="pbar"><i></i></div>
+      <div class="sub">Blogs/Quartz 建站教程 · chunk 6/8 · <span style="color:#8b6cef">Cancel</span></div>
+    </div>
+    <div class="toast" style="min-width:320px;">
+      ✓ Index rebuilt — 200 files written, 3 skipped (locked)
+      <div class="sub">skipped files were marked in the panel · 4.2s</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= W8 成品预览 ================= -->
+<section id="w8">
+  <div class="sec-head">
+    <h2>W8 · 成品效果预览 <span class="tag warn">此组屏为提案，需确认是否纳入</span></h2>
+    <p>展示「静态 Markdown → Quartz 原样发布即可点击」的核心卖点：索引页在 Obsidian 阅读视图的渲染、注入导航的阅读态、以及 Quartz 发布后的效果（未知 callout 类型走默认样式，对应 T0-③ 实验）。</p>
+  </div>
+  <div class="board grid3">
+    <div>
+      <div class="note" style="margin-bottom:8px;">8a · 索引页（series）阅读视图 — 标记区块不可见，用户序言保留</div>
+      <div class="doc lt">
+        <div class="props"><span>is-index <b>true</b></span><span>mode <b>series</b></span><span>order <b>—</b></span></div>
+        <h1>Quartz 建站教程</h1>
+        <div class="preamble">这是我手写的导读，重建索引不会动它。</div>
+        <ul>
+          <li><a href="#">01 为什么选择 Quartz</a><span class="dt">2025-11-02</span></li>
+          <li><a href="#">02 环境搭建与部署</a><span class="dt">2025-11-09</span></li>
+          <li><b>进阶篇</b>
+            <ul>
+              <li><a href="#">03 配置详解</a><span class="dt">2025-11-16</span></li>
+              <li><a href="#">04 插件机制</a><span class="dt">2025-11-23</span></li>
+              <li><a href="#">05 主题定制</a><span class="dt">2025-11-30</span></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="note" style="margin-bottom:8px;">8b · 笔记阅读视图 — 顶部/底部折叠导航 callout</div>
+      <div class="doc lt">
+        <div class="props"><span>title <b>02 环境搭建与部署</b></span><span>order <b>20000</b></span><span>created <b>2025-11-09</b></span></div>
+        <div class="callout"><span class="co-t">▸ chapter-trail</span> &nbsp;上一篇：01 为什么选择 Quartz · 总览：目录 · 下一篇：03 配置详解</div>
+        <p style="color:#444">首先 clone 官方仓库并安装依赖，随后执行构建命令……（正文）</p>
+        <p style="color:#444">部署到 Vercel 只需三步……</p>
+        <div class="callout"><span class="co-t">▸ chapter-trail</span> &nbsp;上一篇：01 为什么选择 Quartz · 总览：目录 · 下一篇：03 配置详解</div>
+      </div>
+    </div>
+    <div>
+      <div class="note" style="margin-bottom:8px;">8c · Quartz 发布效果 — 导航随页面一起发布、可点击</div>
+      <div class="urlbar">🔒&nbsp; https://notes.example.com/blogs/quartz-tutorial/02-环境搭建与部署</div>
+      <div class="quartz lt">
+        <div class="q-top"><span class="site">我的数字花园</span><span style="margin-left:auto;color:#b8b8b8">⌕&nbsp; ☾</span></div>
+        <div class="q-body">
+          <h1>02 环境搭建与部署</h1>
+          <div class="q-meta">2025-11-09 · 3 min read</div>
+          <p>首先 clone 官方仓库并安装依赖，随后执行构建命令……</p>
+          <div class="q-callout"><b>chapter-trail</b> — 上一篇：<a href="#">01 为什么选择 Quartz</a> · 总览：<a href="#">目录</a> · 下一篇：<a href="#">03 配置详解</a></div>
+          <p>部署到 Vercel 只需三步……</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 待确认清单 ================= -->
+<section id="qa">
+  <div class="sec-head"><h2>待确认清单（回复时请逐条给出结论）</h2></div>
+  <div class="board">
+    <ul class="qa">
+      <li><b>整体确认</b><span class="d">以上线框与风格板是否可以作为高保真原型开发的基线？需要调整的点请直接指出（可只改局部）。</span></li>
+      <li><b>主题覆盖</b><span class="d">高保真原型：亮/暗双主题都出（顶部切换，验证双主题无违和），还是只出其一？草图建议双主题。</span></li>
+      <li><b>交互程度</b><span class="d">纯静态展示 / 可点击演示（弹窗开合、开关下拉可操作、拖拽用动画演示）/ 全交互（真实指针拖拽排序，JS 模拟）。草图建议「可点击演示」。</span></li>
+      <li><b>W8 成品预览</b><span class="d">「Obsidian 阅读视图渲染 + Quartz 发布效果」这组屏是否纳入原型范围？</span></li>
+      <li><b>两个提案细节</b><span class="d">① 面板头部加「全量重扫 ⟳」按钮；② 条目行内显示 created 日期（可由设置关闭）。PRD 未明确要求，是否接受？</span></li>
+    </ul>
+  </div>
+</section>
+
+<footer>Chapter Trail · UI 原型草图 v0.1 · 2026-10-06 · 确认后进入高保真原型开发</footer>
+</div>
+</body>
+</html>

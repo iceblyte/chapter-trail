@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 · 批量写入进度 — Chapter Trail 原型</title>
+<script>document.documentElement.dataset.theme = (localStorage.getItem("ct-theme") || "dark") === "light" ? "light" : "dark";</script>
+<link rel="stylesheet" href="assets/ct.css">
+<style>
+.ct-log { font-family: Consolas, monospace; font-size: 11.5px; line-height: 1.8; color: var(--text-muted); background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m, 8px); padding: 12px 14px; height: 300px; overflow-y: auto; }
+.ct-log .ok { color: var(--ct-green); }
+.ct-log .warn { color: var(--ct-chip-yellow-text); }
+.ct-log .dim { color: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<div class="ct-chrome">
+  <span class="ct-chrome-brand">Chapter Trail 原型</span>
+  <span class="ct-chrome-tag">原型导航 · 非插件 UI</span>
+  <nav>
+    <a href="index.html">索引</a>
+    <a href="01-panel.html">01 面板</a>
+    <a href="02-states.html">02 状态</a>
+    <a href="03-drag.html">03 拖拽</a>
+    <a href="04-start-managing.html">04 开始管理</a>
+    <a href="05-dialogs.html">05 弹窗</a>
+    <a href="06-settings.html">06 设置</a>
+    <a class="on" href="07-progress.html">07 进度</a>
+    <a href="08-preview.html">08 成品预览</a>
+  </nav>
+  <span class="ct-theme-seg">
+    <button data-ct-theme-btn="light">浅色</button>
+    <button data-ct-theme-btn="dark">深色</button>
+  </span>
+</div>
+
+<div class="ct-wrap">
+  <div class="ct-pagehead">
+    <h1>07 · 批量写入进度（分块 + 可取消）</h1>
+    <p>批量写入按 <b>25 篇/块</b>执行、块间让出主线程（UI 不冻结）；进度为自绘 Notice（Obsidian 无公开进度 API），<b>可取消</b>——取消在当前块完成后停止，已写入的文件保留内容（写入粒度是单文件，无半篇状态）；单文件失败跳过并汇总，不中断整批。右下角 Notice 即真实插件中的呈现位置。</p>
+  </div>
+
+  <div class="ct-section ct-grid2" style="grid-template-columns: 1fr 1.1fr; align-items:start;">
+    <div class="ct-stack">
+      <div class="ct-board">
+        <div class="ct-section-h">触发批量任务</div>
+        <div class="ct-stack" style="gap:10px; margin-top:12px;">
+          <button class="ct-btn is-accent is-lg" id="btn-all" style="text-align:left;">Rebuild all indexes — 3 domains · 201 files</button>
+          <button class="ct-btn is-lg" id="btn-first" style="text-align:left;">First-run order assignment — 读书笔记/卡片盒笔记法 · 20 notes</button>
+        </div>
+        <p class="ct-anno" style="margin-top:12px;">任务运行中再次点击无效；多次任务依次排队。每次写入前都会登记回声抑制账本（EchoLedger），插件自身写入不触发级联处理。</p>
+      </div>
+      <div class="ct-board">
+        <div class="ct-section-h">实现要点（设计文档 §5.5）</div>
+        <p class="ct-anno" style="margin-top:10px;">
+          · 每块 25 篇，块间 <code>await nextTick()</code> 让出主线程；<br>
+          · 进度：Notice 常驻实例 + 内嵌进度条，完成替换为结果文案；<br>
+          · 取消：当前块完成即停，粒度 = 单文件；<br>
+          · 失败：单文件锁定等 → 跳过 + 汇总 Notice + 面板黄标；<br>
+          · 回声抑制：写入前登记内容指纹，5s TTL 内命中即弃。
+        </p>
+      </div>
+    </div>
+
+    <div class="ct-board">
+      <div class="ct-section-h">事件日志（示意 ChunkedWriter 输出）</div>
+      <div class="ct-log" id="log"><span class="dim">// idle — 从左侧触发一个批量任务</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ct.js"></script>
+<script>
+(function () {
+  "use strict";
+  var logEl = document.getElementById("log");
+  var running = false;
+
+  function log(line, cls) {
+    var span = document.createElement("div");
+    if (cls) span.className = cls;
+    span.textContent = line;
+    logEl.appendChild(span);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function fmt(n) { return String(n).padStart(3, "0"); }
+
+  function runBatch(title, total, chunk, writer) {
+    if (running) return;
+    running = true;
+    logEl.innerHTML = "";
+    log("▶ " + title, "ok");
+    log("confirm ok · EchoLedger armed · ChunkedWriter start");
+
+    var el = document.createElement("div");
+    el.className = "ct-toast";
+    el.innerHTML = "<div>" + title + " — 0/" + total + '<span class="ct-cancel">Cancel</span></div><div class="ct-pbar"><i></i></div><div class="ct-toast-sub">chunk 0/' + Math.ceil(total / chunk) + "</div>";
+    document.querySelector(".ct-toast-root") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "ct-toast-root", className: "ct-toast-root" }));
+    document.getElementById("ct-toast-root").appendChild(el);
+    var bar = el.querySelector(".ct-pbar i");
+    var sub = el.querySelector(".ct-toast-sub");
+    var cancelled = false;
+    el.querySelector(".ct-cancel").addEventListener("click", function () { cancelled = true; });
+
+    var done = 0, chunkNo = 0, t0 = performance.now();
+    var totalChunks = Math.ceil(total / chunk);
+
+    function tick() {
+      chunkNo++;
+      var write = Math.min(chunk, total - done);
+      var failures = [];
+      for (var i = 0; i < write; i++) {
+        done++;
+        if (writer && (done === 57 || done === 132 || done === 190)) failures.push(done);
+      }
+      log("chunk " + fmt(chunkNo) + "/" + fmt(totalChunks) + " · " + done + "/" + total + " files written · yield to UI thread", "dim");
+      failures.forEach(function (f) { log("  ⚠ skip file #" + f + " — locked by another process (collected for summary)", "warn"); });
+      bar.style.width = (done / total * 100).toFixed(1) + "%";
+      el.querySelector("div").innerHTML = title + " — " + done + "/" + total + '<span class="ct-cancel">Cancel</span>';
+      el.querySelector(".ct-cancel").addEventListener("click", function () { cancelled = true; });
+      sub.textContent = "chunk " + chunkNo + "/" + totalChunks + (failures.length ? " · " + failures.length + " skipped" : "");
+
+      if (cancelled && done < total) {
+        log("■ cancelled by user at " + done + "/" + total + " — written files keep their new content", "warn");
+        el.querySelector("div").textContent = "Cancelled at " + done + " / " + total;
+        sub.textContent = "written files keep content · nothing rolled back";
+        setTimeout(function () { el.classList.add("is-leaving"); setTimeout(function () { el.remove(); }, 300); }, 2400);
+        running = false;
+        return;
+      }
+      if (done >= total) {
+        var secs = ((performance.now() - t0) / 1000).toFixed(1);
+        log("✓ done in " + secs + "s · " + done + " written · skipped: 3 (panel marked yellow)", "ok");
+        el.querySelector("div").textContent = "✓ " + title + " — complete";
+        sub.textContent = done + " files written · 3 skipped (locked) · " + secs + "s";
+        setTimeout(function () { el.classList.add("is-leaving"); setTimeout(function () { el.remove(); }, 300); }, 3400);
+        running = false;
+        return;
+      }
+      setTimeout(tick, 380);
+    }
+    setTimeout(tick, 200);
+  }
+
+  document.getElementById("btn-all").addEventListener("click", function () {
+    runBatch("Rebuilding all indexes", 201, 25, true);
+  });
+  document.getElementById("btn-first").addEventListener("click", function () {
+    runBatch("Assigning first-run orders", 20, 25, false);
+  });
+})();
+</script>
+</body>
+</html>
