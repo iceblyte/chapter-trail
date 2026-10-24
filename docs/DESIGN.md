@@ -5,10 +5,10 @@
 | 项目 | 内容 |
 |------|------|
 | 文档 | Chapter Trail 方案设计文档（技术选型 + 架构 + 开发流程） |
-| 版本 | v1.1 |
-| 日期 | 2026-10-06（v1.0 初版 2026-10-05） |
-| 修订记录 | v1.1 采纳用户评审 4 项：① 索引页用户产权保护（§4.6）；② 过密插入 normalize 时序与 Diff 最小化（§4.3/§5.1）；③ FrontmatterPatch 注释/锚点鲁棒性（§4.4/§5.2）；④ Quartz slug 与总览链接规范（§5.6/T0-1/C3） |
-| 需求基线 | PRD v1.3（2026-10-04 已确认基线，见 [docs/PRD.md](./PRD.md)） |
+| 版本 | v1.3 |
+| 日期 | 2026-10-24（v1.0 初版 2026-10-05；v1.1 2026-10-06；v1.2 2026-10-24） |
+| 修订记录 | v1.1 采纳用户评审 4 项：① 索引页用户产权保护（§4.6）；② 过密插入 normalize 时序与 Diff 最小化（§4.3/§5.1）；③ FrontmatterPatch 注释/锚点鲁棒性（§4.4/§5.2）；④ Quartz slug 与总览链接规范（§5.6/T0-1/C3）；v1.2（2026-10-24）：运行时基线论证对照 Obsidian v1.14.5 复核更新（Electron 43 安装器、应用内更新不更新安装器，§3.1）；新增设置"order 变更后自动重建当前域索引"（§4.9/§4.10，对应 PRD v1.4）；附录 B 检索日期刷新；v1.3（2026-10-24）：新增设置"Language"（UI 中英文切换，默认英文，§4.9）与 i18n 文案策略（§4.9a），对应 PRD v1.5 移除"仅英文 UI"限制 |
+| 需求基线 | PRD v1.5（2026-10-24 已确认基线，见 [docs/PRD.md](./PRD.md)） |
 | 技术调研截止 | **2026-10-05**（所有生态现状、版本号均以此日期检索核实，来源见附录 B） |
 | 已拍板决定 | 面板 UI = React 19 方案；本文档 = 单文件 Markdown；深度 = 含接口草图与算法伪代码（2026-10-05 确认） |
 | 标注约定 | 沿用 PRD：【已确认】用户拍板 /【设计决策】本文档裁量，可复议 /【T0 待定】进入开发前必须实测定案 |
@@ -42,7 +42,7 @@ Chapter Trail 是一款 Obsidian 社区插件（MIT、免费、纯本地、无�
 
 ### 1.3 非目标（v1）
 
-与 PRD §3 一致：不做阅读视图动态渲染、不做 UI 多语言（v1 仅英文 UI）、不承诺移动端、不做嵌套 series 融合语义（只做冲突检测与处置）、不做 Notebook Navigator 导入、不做 Bases/属性视图集成与 Quartz 专用输出格式、不支持 vault 根目录作为受管域。
+与 PRD §3 一致：不做阅读视图动态渲染、不承诺移动端、不做嵌套 series 融合语义（只做冲突检测与处置）、不做 Notebook Navigator 导入、不做 Bases 深度集成与 Quartz 专用输出格式、不支持 vault 根目录作为受管域。（UI 多语言已随 PRD v1.5 转为做：中英文切换、默认英文，见 §4.9。）
 
 ### 1.4 全局设计原则
 
@@ -255,7 +255,7 @@ interface Registry {
 // tsconfig.json 关键项
 {
   "compilerOptions": {
-    "target": "ES2022",                  // Obsidian 桌面版 Chromium ≥ 128，ES2022 全支持
+    "target": "ES2022",                  // 桌面版全程支持 ES2022（2026-10 复核：v1.14 安装器为 Electron 43 / Chromium ~148；minAppVersion 1.5.0 对应内核亦支持）
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -271,7 +271,7 @@ interface Registry {
 
 **理由**：`tsc --noEmit` 管 类型安全，`esbuild` 管转译速度，二者职责分离是 2025+ 社区模板的共识形态；`noUncheckedIndexedAccess` 对"路径→文件"这类查找密集代码的空值防护价值极高。
 
-**运行时基线**：`manifest.json` 的 `minAppVersion` 取 **1.5.0**【设计决策，T0 可下调】。理由：1.4 引入 Properties 属性面板（本插件 order 字段的主要可视化载体），1.5 修复了 properties 早期多个缺陷；1.5（2023-12）距今近三年，实际用户覆盖率极高。不追逐 1.11+ 新 API（如 `SettingGroup`），避免收窄兼容面。**约束**：代码不得使用 `minAppVersion` 之上才有的 API（即不依赖 Temporal，见 §3.7）。
+**运行时基线**：`manifest.json` 的 `minAppVersion` 取 **1.5.0**【设计决策，2026-10-24 对照 Obsidian v1.14.5 复核后维持】。理由：① 1.4 引入 Properties 属性面板（本插件 order 字段的主要可视化载体），1.5 修复了 properties 早期多个缺陷；② **安装器滞后是常态**：当前最新安装器已到 Electron 43（Chromium ~148），但官方确认应用内自动更新只更新应用代码、不更新 Electron 安装器（1.14 自身的"打开单个 Markdown 文件"也要求重装最新安装器），存量用户实际内核高度参差，以最新安装器能力设门槛会误伤；③ 1.5（2023-12）距今近三年，实际用户覆盖率极高。不追逐 1.11+ 新 API（如 `SettingGroup`）与 1.12–1.14 新物（CLI、可搜索设置页、新 CSS 变量），避免收窄兼容面。**约束**：代码不得使用 `minAppVersion` 之上才有的 API（即不依赖 Temporal，见 §3.7——即使 2026-02 起 Chrome 144 stable 已有 Temporal，同理由排除）。
 
 ### 3.2 构建工具【设计决策：esbuild（官方模板基线）】
 
@@ -456,7 +456,8 @@ chapter-trail/
 │  │  ├─ store-bridge.ts         # RegistryStore → useSyncExternalStore 桥
 │  │  └─ components/             # VaultSummary / DomainCard / EntryList / StatusChip
 │  ├─ commands.ts                # §4.9 命令注册
-│  └─ settings.ts                # 设置定义与持久化（data.json）
+│  ├─ settings.ts                # 设置定义与持久化（data.json）
+│  └─ i18n/                      # en.ts / zh.ts 文案词典（§4.9，默认 en）
 ├─ test/
 │  ├─ unit/                      # core 层单测（Node 环境）
 │  ├─ integration/               # FakeVault 集成（A1–A8、A11）
@@ -690,6 +691,8 @@ class NavWriter {
 | 索引文件名 | text | `目录` | 预设建议 `index`；识别只看标记不看文件名【已确认】 |
 | 日期显示方式 | select | `created` | created / updated / both【已确认】 |
 | 写入上下篇导航 | toggle | **关** | 注入唯一闸门【已确认；开启时确认框计数】 |
+| order 变更后自动重建当前域索引 | toggle | **关** | 【v1.2 新增，对应 PRD v1.4 暂定】开启时域内 order 写入（拖拽落位/重排/首次声明/过密自动重排）完成后自动重建**该域**索引，不级联全库；关闭时维持黄标+手动重建。走 ChunkedWriter + EchoLedger 同一写路径，产权规则不变 |
+| Language | select | `en` | 【v1.3 新增，对应 PRD v1.5】UI 语言：en（默认）/ zh。全部 UI 文案（面板、命令名、确认框、Notice）集中到 i18n 词典（`src/i18n/en.ts` / `zh.ts`，编译期 TS 对象、键为英文文案 ID），React 组件与原生 Setting 均从词典取词，禁止硬编码字符串；命令 `addCommand` 的 `name` 按当前语言注册，语言切换后提示重载面板刷新 |
 
 字段名 `created` / `updated` 固定不可配（PRD T1）；`order` 等插件键不开放改名（缩小设置面 + 便于 Dataview 生态形成事实约定）【设计决策】。
 
@@ -711,7 +714,7 @@ class NavWriter {
 </PanelRoot>
 ```
 
-**拖拽落位语义**（衔接 §4.3）：拖放产生"目标插入位置" → `SortCore.midpointOrder` 计算单文件 order → 经 ChunkedWriter 写入 → Registry 刷新；仅当落入过密间隙才触发整域重排。**拖拽只重排 order，不产生其他写入**（最小写入原则）。
+**拖拽落位语义**（衔接 §4.3）：拖放产生"目标插入位置" → `SortCore.midpointOrder` 计算单文件 order → 经 ChunkedWriter 写入 → Registry 刷新；仅当落入过密间隙才触发整域重排。**拖拽只重排 order，不产生其他写入**（最小写入原则）。若 §4.9"order 变更后自动重建当前域索引"开启（默认关，PRD v1.4 暂定）：order 写入并刷新 Registry 后自动对该域执行一次 IndexRenderer 重建（仍经 ChunkedWriter 登记 EchoLedger，回声抑制天然覆盖自触发事件）；关闭时该域标黄"索引过期"等待手动重建。【v1.2 增补】
 
 **虚拟化细节**：`useVirtualizer({ count, getScrollElement, estimateSize: () => 32, overscan: 8 })`；行组件 `React.memo` + 稳定 key（entry path）；拖拽期间虚拟列表照常滚动（`…-auto-scroll` 作用于滚动容器）；500 条域下拖拽路径上没有全列表 re-render（只更新两个受影响行 + 计数），A9 <100ms 余量充足。
 
@@ -1012,9 +1015,13 @@ PRD §6（R1–R6）继续有效，此处登记**新增的技术实现风险**�
 | 手术式编辑 | 只增删改插件键所在行的 frontmatter 写入策略，用户内容逐字节保留 |
 | 回声抑制 | 识别并忽略插件自身写入引发的事件，防止级联处理 |
 
-## 附录 B：参考资料（检索日期 2026-10-05）
+## 附录 B：参考资料（检索日期 2026-10-05；2026-10-24 复核刷新）
 
 - Obsidian 官方 changelog（版本与 Electron 基线）：https://obsidian.md/changelog
+- Obsidian 1.14 Desktop v1.14.4（Bases kanban、Electron 43.7.5，2026-10-05）：https://obsidian.md/changelog/2026-10-05-desktop-v1.14.4
+- Obsidian 1.14.5（Electron 43.7.5 → 43.8.3 安全更新）：https://obsidian.md/changelog
+- 应用内自动更新不更新 Electron 安装器（官方论坛）：https://forum.obsidian.md/t/electron-update-reminder/108159
+- File Explorer 手动排序 Feature Request（2020 起持续开放，2026-10 仍未入核心）：https://forum.obsidian.md/t/file-explorer-custom-sort/1602
 - Obsidian 开发文档 – Plugin guidelines：https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
 - Obsidian 开发文档 – Developer policies：https://docs.obsidian.md/Developer+policies
 - Obsidian 开发文档 – Submission requirements：https://docs.obsidian.md/community-directory/submission-requirements-for-plugins
@@ -1036,5 +1043,5 @@ PRD §6（R1–R6）继续有效，此处登记**新增的技术实现风险**�
 | C1 | 链接最终格式（预案 A 原样相对路径 / B 段编码） | T0 实验 1 定案 | PRD §2.5 条目格式 |
 | C2 | callout 类型 `[!chapter-trail]` vs `[!chaptertrail]` | T0 实验 3 定案 | PRD §2.6 |
 | C3 | 默认索引文件名 `目录` 的 Quartz slug 行为；总览链接标准形态（`./目录.md` vs `./`） | T0 实验 2 定案 | 设置默认值 + NavTemplate 输出格式 |
-| C4 | `minAppVersion` 维持 1.5.0 或下调 1.4.0 | T0-2 通读后定案 | manifest |
+| C4 | `minAppVersion` 维持 1.5.0 或下调 1.4.0 | **已定案（2026-10-24 复核）：维持 1.5.0**——安装器滞后论成立（§3.1），无需下调也暂不上调 | manifest |
 | C5 | series 嵌套冲突三选项的弹窗文案与默认选中项 | M3 前 UI 打磨时定 | §4.2 |
