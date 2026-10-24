@@ -46,7 +46,8 @@
       <div class="ct-board">
         <div class="ct-section-h">触发批量任务</div>
         <div class="ct-stack" style="gap:10px; margin-top:12px;">
-          <button class="ct-btn is-accent is-lg" id="btn-all" style="text-align:left;">Rebuild all indexes — 3 domains · 201 files</button>
+          <button class="ct-btn is-accent is-lg" id="btn-all" style="text-align:left;">Rebuild all indexes — 3 domains · 3 index pages (1 file per domain)</button>
+          <button class="ct-btn is-accent is-lg" id="btn-inj" style="text-align:left;">Rebuild all injections — 3 domains · 47 notes</button>
           <button class="ct-btn is-lg" id="btn-first" style="text-align:left;">First-run order assignment — 读书笔记/卡片盒笔记法 · 20 notes</button>
         </div>
         <p class="ct-anno" style="margin-top:12px;">任务运行中再次点击无效；多次任务依次排队。每次写入前都会登记回声抑制账本（EchoLedger），插件自身写入不触发级联处理。</p>
@@ -70,6 +71,7 @@
   </div>
 </div>
 
+<script src="assets/ct-i18n.js"></script>
 <script src="assets/ct.js"></script>
 <script>
 (function () {
@@ -103,7 +105,7 @@
     var cancelled = false;
     el.querySelector(".ct-cancel").addEventListener("click", function () { cancelled = true; });
 
-    var done = 0, chunkNo = 0, t0 = performance.now();
+    var done = 0, chunkNo = 0, t0 = performance.now(), skippedTotal = 0;
     var totalChunks = Math.ceil(total / chunk);
 
     function tick() {
@@ -112,7 +114,7 @@
       var failures = [];
       for (var i = 0; i < write; i++) {
         done++;
-        if (writer && (done === 57 || done === 132 || done === 190)) failures.push(done);
+        if (writer && total >= 20 && (done === Math.floor(total * 0.3) || done === Math.floor(total * 0.62) || done === Math.floor(total * 0.85))) { failures.push(done); skippedTotal++; }
       }
       log("chunk " + fmt(chunkNo) + "/" + fmt(totalChunks) + " · " + done + "/" + total + " files written · yield to UI thread", "dim");
       failures.forEach(function (f) { log("  ⚠ skip file #" + f + " — locked by another process (collected for summary)", "warn"); });
@@ -131,9 +133,10 @@
       }
       if (done >= total) {
         var secs = ((performance.now() - t0) / 1000).toFixed(1);
-        log("✓ done in " + secs + "s · " + done + " written · skipped: 3 (panel marked yellow)", "ok");
+        var skipTxt = skippedTotal ? " · skipped: " + skippedTotal + " (panel marked yellow)" : "";
+        log("✓ done in " + secs + "s · " + done + " written" + skipTxt, "ok");
         el.querySelector("div").textContent = "✓ " + title + " — complete";
-        sub.textContent = done + " files written · 3 skipped (locked) · " + secs + "s";
+        sub.textContent = done + " files written" + (skippedTotal ? " · " + skippedTotal + " skipped (locked)" : "") + " · " + secs + "s";
         setTimeout(function () { el.classList.add("is-leaving"); setTimeout(function () { el.remove(); }, 300); }, 3400);
         running = false;
         return;
@@ -144,7 +147,10 @@
   }
 
   document.getElementById("btn-all").addEventListener("click", function () {
-    runBatch("Rebuilding all indexes", 201, 25, true);
+    runBatch("Rebuilding all indexes", 3, 3, true);
+  });
+  document.getElementById("btn-inj").addEventListener("click", function () {
+    runBatch("Rebuilding all injections", 47, 25, true);
   });
   document.getElementById("btn-first").addEventListener("click", function () {
     runBatch("Assigning first-run orders", 20, 25, false);

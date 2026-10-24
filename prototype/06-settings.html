@@ -32,7 +32,7 @@
 <div class="ct-wrap">
   <div class="ct-pagehead">
     <h1>06 · 插件设置页（Obsidian 原生 Setting API）</h1>
-    <p>共三项设置；字段名 <code>created / updated / order</code> 固定不可配。可交互：<b>写入上下篇导航</b>开关——打开会弹出写入确认框（注入默认关，开关是写入路径的唯一闸门），关闭会出现清除询问；切换日期显示会提示相关域标黄。</p>
+    <p>共四项设置；字段名 <code>created / updated / order</code> 固定不可配。可交互：<b>写入上下篇导航</b>开关——打开会弹出写入确认框（注入默认关，开关是写入路径的唯一闸门），关闭会出现清除询问；切换日期显示会提示相关域标黄；切换语言（Language）即时生效并持久化，默认英文。</p>
   </div>
 
   <div class="ct-section">
@@ -77,6 +77,19 @@
         <div class="ct-set-ctl"><button class="ct-toggle" id="tgl-inject" aria-label="Write prev/next navigation"><i></i></button></div>
       </div>
 
+      <div class="ct-set-row">
+        <div class="ct-set-info">
+          <div class="ct-set-name">Language</div>
+          <div class="ct-set-desc">UI language for the panel, commands and dialogs. Defaults to <b>English</b>; switching also re-labels the panel, commands and dialogs. All plugin copy goes through an i18n dictionary.</div>
+        </div>
+        <div class="ct-set-ctl">
+          <select class="ct-select" id="sel-lang">
+            <option value="en" selected>English</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+      </div>
+
       <div class="ct-set-row" style="border-top:1px solid var(--background-modifier-border);">
         <div class="ct-set-info">
           <div class="ct-set-name">Remove all Chapter Trail data</div>
@@ -101,12 +114,21 @@
   </div>
 </div>
 
+<script src="assets/ct-i18n.js"></script>
 <script src="assets/ct.js"></script>
 <script>
 (function () {
   "use strict";
   var toggle = document.getElementById("tgl-inject");
   var extra = document.getElementById("inject-extra");
+
+  var selLang = document.getElementById("sel-lang");
+  selLang.value = window.CT_LANG;
+  selLang.addEventListener("change", function () {
+    window.CT_LANG = selLang.value;
+    try { localStorage.setItem("ct-lang", window.CT_LANG); } catch (e) {}
+    window.ctApplyLang();
+  });
 
   document.getElementById("inp-filename").addEventListener("change", function (e) {
     ctToast("Index file name updated", "new pages will use “" + e.target.value + "” · affected domains marked “Index outdated” · nothing renamed");

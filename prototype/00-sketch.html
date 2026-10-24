@@ -198,7 +198,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
 
 <header>
   <h1>Chapter Trail · UI 原型草图 <span class="tag">v0.1 · 待确认</span></h1>
-  <p class="meta">依据：PRD v1.3（2026-10-04 基线）+ 方案设计文档 v1.1 · 生成日期 2026-10-06 · 插件 ID <code>chapter-trail</code><br>
+  <p class="meta">依据：PRD v1.5（2026-10-24 基线）+ 方案设计文档 v1.3 · 生成日期 2026-10-06 · 插件 ID <code>chapter-trail</code><br>
   阅读方式：<b>灰阶线框 = 确认布局与信息架构</b>；<b>风格板 = 确认视觉方向</b>。线框中界面文案用英文（PRD 约束 v1 仅英文 UI），示例笔记内容用中文（贴近真实 vault）。颜色为近似占位值，高保真阶段将直接引用 Obsidian 主题变量。</p>
   <nav class="toc">
     <a href="#s-style">风格板</a><a href="#w1">W1 面板总览</a><a href="#w2">W2 状态大全</a><a href="#w3">W3 拖拽交互</a><a href="#w4">W4 开始管理</a><a href="#w5">W5 弹窗合集</a><a href="#w6">W6 设置页</a><a href="#w7">W7 写入进度</a><a href="#w8">W8 成品预览</a><a href="#qa">待确认清单</a>
@@ -293,8 +293,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
         <b style="color:#c7b6ff">order: 20000</b><br>
         ---</div>
         <span class="mk">&lt;!-- chapter-trail:nav-begin --&gt;</span>
-        &gt; [!chapter-trail]- 上一篇：<span class="lk">[01 为什么选择 Quartz](./01%20为什么选择%20Quartz.md)</span><br>
-        &gt; 总览：<span class="lk">[目录](./目录.md)</span> | 下一篇：<span class="lk">[03 配置详解](./进阶篇/03%20配置详解.md)</span><br>
+        &gt; [!chapter-trail]- 上一篇：<span class="lk">[01 为什么选择 Quartz](./01 为什么选择 Quartz.md)</span> | 总览：<span class="lk">[目录](./目录.md)</span> | 下一篇：<span class="lk">[03 配置详解](./进阶篇/03 配置详解.md)</span><br>
         <span class="mk">&lt;!-- chapter-trail:nav-end --&gt;</span><br>
         <br>
         ## 环境搭建<br>
@@ -324,7 +323,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
               <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">05</span><span class="fld">进阶篇/</span>主题定制</span><span class="dt">2025-11-30</span><span class="ord">50000</span></div>
             </div>
             <div class="rows-foot">5 entries · virtualized list (32px rows)</div>
-            <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span><span class="btn">Rebuild injection</span></div>
+            <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reindex order</span><span class="btn">Rebuild injection</span></div>
           </div>
 
           <div class="card">
@@ -336,7 +335,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
               <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">03</span>卡片的三种类型</span><span class="dt">2025-09-28</span><span class="ord">30000</span></div>
               <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span>文献笔记与永久笔记</span><span class="dt">2025-10-05</span><span class="ord">40000</span></div>
             </div>
-            <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span></div>
+            <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reindex order</span><span class="btn">Rebuild injection</span></div>
           </div>
 
           <div class="card">
@@ -356,7 +355,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
       <li><span class="am">2</span>VaultSummary：受管域数量 + 异常计数 + 红黄蓝图例（PRD §2.7「面板顶部汇总」）。</li>
       <li><span class="am">3</span>Vault 级黄条：遗留 order 提示（删除索引页 = 域解散后），一键 Review 进入清理（PRD §2.5）。</li>
       <li><span class="am">4</span>卡片头：域路径 + 模式徽标（Series/Independent）+ ⋮ 菜单（Open index page / Stop managing…）。</li>
-      <li><span class="am">5</span>操作按钮：重建索引 / 重排 order /（注入开启时才出现）重建注入——卡片 B 注入关闭所以没有第三个按钮。</li>
+      <li><span class="am">5</span>操作按钮：重建索引 / 重排 order / 重建注入——注入开关为全局设置（默认关），本套草图统一演示开启状态，故每张卡片均有第三个按钮。</li>
       <li><span class="am">6</span>条目行 32px 等高：悬停出现拖拽把手 ⠿；标题左侧数字为链条序号；<b>series 域显示路径前缀</b>（紫色）；日期取 created（设置项）；order 右对齐等宽。</li>
       <li><span class="am">7</span>independent 域中受管子文件夹显示为文件夹行（☰ 前缀、无日期，order 取其索引页 frontmatter）——对应 PRD「直系文件与受管子文件夹混排」。</li>
       <li><span class="am">8</span>编辑区（源码模式）：注入的包裹标记位于 frontmatter 之后第一行与文末，callout 内容为标准 md 链接；order 字段在 properties 中。注入默认关闭，此为开启后的效果。</li>
@@ -391,7 +390,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
           <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">01</span>为什么选择 Quartz</span><span class="dt">2025-11-02</span><span class="ord">10000</span></div>
           <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">02</span>环境搭建与部署</span><span class="dt">2025-11-09</span><span class="ord">20000</span></div>
         </div>
-        <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span></div>
+        <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reindex order</span></div>
         <div class="note" style="padding:0 10px 10px;">健康卡片：无芯片。⋮ 菜单含打开索引页 / 停止管理。</div>
       </div>
       <div class="card">
@@ -428,7 +427,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
         <div class="rows">
           <div class="row dim"><span class="grip" style="visibility:hidden"></span><span class="ttl">3 changes since last rebuild — entries or prev/next links may be stale</span></div>
         </div>
-        <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reorder order</span></div>
+        <div class="card-btns"><span class="btn">Rebuild index</span><span class="btn">Reindex order</span></div>
       </div>
       <div class="card">
         <div class="card-h"><span class="pth">随笔/数字花园周记</span><span class="mode">Series</span><span class="icbtn">⋮</span></div>
@@ -439,14 +438,14 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
           <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">03</span>周记 #39 ⚑</span><span class="dt">2026-09-28</span><span class="ord">20000</span></div>
           <div class="row"><span class="grip">⠿</span><span class="ttl"><span class="idx">04</span>周记 #40 ⚑</span><span class="dt">2026-10-05</span><span class="ord">20000</span></div>
         </div>
-        <div class="card-btns"><span class="btn acc">Reorder order</span></div>
+        <div class="card-btns"><span class="btn acc">Reindex order</span></div>
       </div>
     </div>
     <ul class="alist">
       <li><span class="am">1</span>断链：条目渲染为红色删除线 + 「not found」说明行；重建索引后死链消失（A4）。</li>
       <li><span class="am">2</span>series 嵌套索引冲突：Resolve… 打开三选一弹窗（见 W5-M4，A7）。</li>
       <li><span class="am">3</span>待排序（蓝）：git 同步批量 20 篇整批蓝标、order 列显示「—」，不自动写入（A10）；首列蓝点增强可达性（不仅靠颜色）。</li>
-      <li><span class="am">4</span>间隙过密（相邻差 &lt;10）+ 平手（同 order 值 ⚑ 标注）：主按钮高亮 Reorder 引导重排（A6）。</li>
+      <li><span class="am">4</span>间隙过密（相邻差 &lt;10）+ 平手（同 order 值 ⚑ 标注）：主按钮高亮 Reindex 引导规范化（A6）。</li>
     </ul>
   </div>
 </section>
@@ -556,7 +555,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
       <div class="m-title">目录.md already exists</div>
       <div class="m-body">The target folder already has a file named <span class="hl">目录.md</span> without a chapter-trail marker.</div>
       <div class="opts">
-        <div class="opt sel"><span class="radio"></span><div><b>Adopt it</b><div class="d">Keep all existing frontmatter keys and body; the plugin block is added around the existing list. Your content stays byte-identical.</div></div></div>
+        <div class="opt sel"><span class="radio"></span><div><b>Adopt it</b><div class="d">Keep all existing frontmatter keys; the existing list and body stay <b>outside</b> the plugin's marked block, byte-identical. The plugin only appends its keys and the marked block.</div></div></div>
         <div class="opt"><span class="radio"></span><div><b>Rename and keep</b><div class="d">Keep the existing file under a new name, create a fresh index page.</div></div></div>
         <div class="opt"><span class="radio"></span><div><b>Cancel</b><div class="d">Do nothing.</div></div></div>
       </div>
@@ -669,10 +668,10 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
       <div class="note" style="margin-bottom:8px;">8b · 笔记阅读视图 — 顶部/底部折叠导航 callout</div>
       <div class="doc lt">
         <div class="props"><span>title <b>02 环境搭建与部署</b></span><span>order <b>20000</b></span><span>created <b>2025-11-09</b></span></div>
-        <div class="callout"><span class="co-t">▸ chapter-trail</span> &nbsp;上一篇：01 为什么选择 Quartz · 总览：目录 · 下一篇：03 配置详解</div>
+        <div class="callout"><span class="co-t">▸ chapter-trail</span> &nbsp;上一篇：01 为什么选择 Quartz | 总览：目录 | 下一篇：03 配置详解</div>
         <p style="color:#444">首先 clone 官方仓库并安装依赖，随后执行构建命令……（正文）</p>
         <p style="color:#444">部署到 Vercel 只需三步……</p>
-        <div class="callout"><span class="co-t">▸ chapter-trail</span> &nbsp;上一篇：01 为什么选择 Quartz · 总览：目录 · 下一篇：03 配置详解</div>
+        <div class="callout"><span class="co-t">▸ chapter-trail</span> &nbsp;上一篇：01 为什么选择 Quartz | 总览：目录 | 下一篇：03 配置详解</div>
       </div>
     </div>
     <div>
@@ -684,7 +683,7 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
           <h1>02 环境搭建与部署</h1>
           <div class="q-meta">2025-11-09 · 3 min read</div>
           <p>首先 clone 官方仓库并安装依赖，随后执行构建命令……</p>
-          <div class="q-callout"><b>chapter-trail</b> — 上一篇：<a href="#">01 为什么选择 Quartz</a> · 总览：<a href="#">目录</a> · 下一篇：<a href="#">03 配置详解</a></div>
+          <div class="q-callout"><b>chapter-trail</b> — 上一篇：<a href="#">01 为什么选择 Quartz</a> | 总览：<a href="#">目录</a> | 下一篇：<a href="#">03 配置详解</a></div>
           <p>部署到 Vercel 只需三步……</p>
         </div>
       </div>
@@ -708,5 +707,6 @@ footer { margin-top: 60px; color: var(--faint); font-size: 12px; text-align: cen
 
 <footer>Chapter Trail · UI 原型草图 v0.1 · 2026-10-06 · 确认后进入高保真原型开发</footer>
 </div>
+<script src="assets/ct-i18n.js"></script>
 </body>
 </html>

@@ -64,8 +64,7 @@
         <span class="fm-key">order:</span> <span class="fm-val">20000</span><br>
         <span class="fm-key">---</span><br>
         <span class="mk">&lt;!-- chapter-trail:nav-begin --&gt;</span><br>
-        &gt; [!chapter-trail]- 上一篇：<span class="lk">[01 为什么选择 Quartz](./01%20为什么选择%20Quartz.md)</span><br>
-        &gt; 总览：<span class="lk">[目录](./目录.md)</span> | 下一篇：<span class="lk">[03 配置详解](./进阶篇/03%20配置详解.md)</span><br>
+        &gt; [!chapter-trail]- 上一篇：<span class="lk">[01 为什么选择 Quartz](./01 为什么选择 Quartz.md)</span> | 总览：<span class="lk">[目录](./目录.md)</span> | 下一篇：<span class="lk">[03 配置详解](./进阶篇/03 配置详解.md)</span><br>
         <span class="mk">&lt;!-- chapter-trail:nav-end --&gt;</span><br>
         <br>
         ## 环境搭建<br>
@@ -100,7 +99,7 @@
 
         <div class="ct-panel-body">
 
-          <!-- 卡片 A：Series（健康，注入已开启） -->
+          <!-- 卡片 A：Series（健康；注入为全局设置，演示统一开启） -->
           <div class="ct-card" id="card-a">
             <div class="ct-card-head">
               <span class="ct-card-path">Blogs/Quartz 建站教程</span>
@@ -118,7 +117,7 @@
             <div class="ct-rows-foot">5 entries · virtualized list (32px rows) · right-click a row to move</div>
             <div class="ct-card-actions">
               <button class="ct-btn" data-ct-rebuild data-ct-card="card-a">Rebuild index</button>
-              <button class="ct-btn" data-ct-reorder data-ct-card="card-a">Reorder order</button>
+              <button class="ct-btn" data-ct-reorder data-ct-card="card-a">Reindex order</button>
               <button class="ct-btn" data-ct-reinj data-ct-card="card-a">Rebuild injection</button>
             </div>
             <div class="ct-menu" id="menu-a" style="top:32px;right:8px;">
@@ -129,7 +128,7 @@
             </div>
           </div>
 
-          <!-- 卡片 B：Independent（黄：索引过期；注入关闭 → 无第三个按钮） -->
+          <!-- 卡片 B：Independent（黄：索引过期） -->
           <div class="ct-card" id="card-b">
             <div class="ct-card-head">
               <span class="ct-card-path">读书笔记/卡片盒笔记法</span>
@@ -148,7 +147,8 @@
             <div class="ct-rows-foot">4 entries · managed subfolder shares the ordering (no date)</div>
             <div class="ct-card-actions">
               <button class="ct-btn" data-ct-rebuild data-ct-card="card-b">Rebuild index</button>
-              <button class="ct-btn" data-ct-reorder data-ct-card="card-b">Reorder order</button>
+              <button class="ct-btn" data-ct-reorder data-ct-card="card-b">Reindex order</button>
+              <button class="ct-btn" data-ct-reinj data-ct-card="card-b">Rebuild injection</button>
             </div>
             <div class="ct-menu" id="menu-b" style="top:32px;right:8px;">
               <div class="ct-menu-item" data-ct-noop>Open index page</div>
@@ -172,7 +172,8 @@
             </div>
             <div class="ct-card-actions">
               <button class="ct-btn" data-ct-rebuild data-ct-card="card-c">Rebuild index</button>
-              <button class="ct-btn" data-ct-reorder data-ct-card="card-c">Reorder order</button>
+              <button class="ct-btn" data-ct-reorder data-ct-card="card-c">Reindex order</button>
+              <button class="ct-btn" data-ct-reinj data-ct-card="card-c">Rebuild injection</button>
             </div>
             <div class="ct-menu" id="menu-c" style="top:32px;right:8px;">
               <div class="ct-menu-item" data-ct-noop>Open index page</div>
@@ -189,7 +190,7 @@
       </div>
     </div>
 
-    <p class="ct-anno">① 行高 32px 等高（虚拟化前提）；series 域条目显示紫色路径前缀，independent 域中受管子文件夹为 ☰ 文件夹行（无日期，order 取其索引页 frontmatter）。② 日期受「Date display」设置约束，此处为 created。③ 注入开启时卡片才有 Rebuild injection 按钮。④ 右键条目行可上移/下移——多次移动后间隙被中点侵蚀（&lt;10）会触发整域自动重排提示，可实际演示。⑤ ⋮ 菜单与 PRD 命令一一对应（Open index page = goto-index，Stop managing = stop-managing）。</p>
+    <p class="ct-anno">① 行高 32px 等高（虚拟化前提）；series 域条目显示紫色路径前缀，independent 域中受管子文件夹为 ☰ 文件夹行（无日期，order 取其索引页 frontmatter）。② 日期受「Date display」设置约束，此处为 created。③ 注入开关为全局设置（默认关，本套演示统一为开启），故所有域卡片均有 Rebuild injection 按钮。④ 右键条目行可上移/下移——落点间隙过密（&lt;10）时先整域规范化再取中点落位（DESIGN §4.3 时序），可实际演示。⑤ ⋮ 菜单提供 goto-index / stop-managing（goto-prev / goto-next 跳转命令见 PRD §2.6，不占用面板空间）。</p>
   </div>
 </div>
 
@@ -211,9 +212,9 @@
   <div class="ct-modal">
     <div class="ct-modal-title">Stop managing this folder?</div>
     <div class="ct-modal-body">Deleting <b>目录.md</b> dissolves the domain <b id="stop-domain">…</b>. The ordering data lives in each note’s frontmatter and will remain unless you clear it below.</div>
-    <div class="ct-options">
-      <div class="ct-option" data-ct-options data-ct-toggle><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also clear <code>order</code> fields</div><div class="ct-option-d">removes the field from all notes in the domain</div></div></div>
-      <div class="ct-option" data-ct-options data-ct-toggle><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also remove injected navigation</div><div class="ct-option-d">strips chapter-trail markers only — your own callouts are kept</div></div></div>
+    <div class="ct-options" data-ct-options data-ct-toggle>
+      <div class="ct-option"><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also clear <code>order</code> fields</div><div class="ct-option-d">removes the field from all notes in the domain</div></div></div>
+      <div class="ct-option"><span class="ct-radio is-square"></span><div><div class="ct-option-tt">Also remove injected navigation</div><div class="ct-option-d">strips chapter-trail markers only — your own callouts are kept</div></div></div>
     </div>
     <div class="ct-modal-actions">
       <button class="ct-btn" data-ct-close>Cancel</button>
@@ -222,6 +223,7 @@
   </div>
 </div>
 
+<script src="assets/ct-i18n.js"></script>
 <script src="assets/ct.js"></script>
 <script>
 (function () {
@@ -244,7 +246,7 @@
     ctToast("Vault rescanned", "3 managed domains · 0 orphan index pages · 210 markdown files · 0.4s");
   });
   document.getElementById("btn-review").addEventListener("click", function () {
-    ctToast("Legacy orders — 旧项目/周刊 (dissolved)", "12 files still carry order fields · <b>Clear all</b> after confirmation", { ms: 5200 });
+    ctToast(ctT("Legacy orders — 旧项目/周刊 (dissolved)"), "12 files still carry order fields · <b>Clear all</b> after confirmation", { ms: 5200 });
   });
 
   /* ---------- 重建索引 ---------- */
@@ -271,7 +273,9 @@
   /* ---------- 重排 / 重建注入 ---------- */
   document.querySelectorAll("[data-ct-reorder]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      ctToast("Order normalized — 12 notes", "10000-step integers · chain sequence unchanged · Git diff limited to changed values");
+      var card = document.getElementById(btn.dataset.ctCard);
+      var n = card ? card.querySelectorAll(".ct-row").length : 0;
+      ctToast("Order normalized — " + n + " notes", "10000-step integers · chain sequence unchanged · Git diff limited to changed values");
     });
   });
   document.querySelectorAll("[data-ct-reinj]").forEach(function (btn) {
@@ -287,7 +291,7 @@
   document.querySelectorAll("[data-ct-stop]").forEach(function (item) {
     item.addEventListener("click", function () {
       stopCard = document.getElementById(item.dataset.ctCard);
-      document.getElementById("stop-domain").textContent = item.dataset.ctDomain;
+      document.getElementById("stop-domain").textContent = ctT(item.dataset.ctDomain);
       ctOpenModal("ct-modal-stop");
     });
   });
@@ -316,19 +320,12 @@
       if (ord) ord.textContent = row.dataset.order;
     });
   }
-  function maybeNormalize(card, list) {
+  function normalizeList(list) {
+    /* DESIGN §4.3：重排 = 按当前链条次序重新分配 10000 步长，次序不变 */
     var rows = Array.from(list.querySelectorAll(".ct-row"));
-    var tight = false;
-    for (var i = 1; i < rows.length; i++) {
-      if (+rows[i].dataset.order - +rows[i - 1].dataset.order < 10) { tight = true; break; }
-    }
-    if (!tight) return false;
     rows.forEach(function (row, i) { row.dataset.order = String((i + 1) * 10000); });
     rows.forEach(function (row) { row.classList.add("is-flash"); });
     setTimeout(function () { rows.forEach(function (row) { row.classList.remove("is-flash"); }); }, 1300);
-    renumber(list);
-    ctToast("Gap too tight — reordered the whole domain, then placed the entry", "orders normalized to 10000-step · chain sequence unchanged");
-    return true;
   }
   function moveRow(dir) {
     if (!ctxRow) return;
@@ -338,7 +335,18 @@
     if ((dir < 0 && idx === 0) || (dir > 0 && idx === rows.length - 1)) return;
     var target = rows[idx + dir];
     var outer = rows[idx + 2 * dir];
-    var newOrder = Math.floor((+outer.dataset.order + +target.dataset.order) / 2);
+    /* DESIGN §4.3：normalize 固定先于中点计算——落点间隙过密时先整域规范化，再在规范后的值上取中点 */
+    var normalized = false;
+    if (outer && (+target.dataset.order - +outer.dataset.order) < 10) {
+      normalizeList(list);
+      rows = Array.from(list.querySelectorAll(".ct-row"));
+      idx = rows.indexOf(row);
+      target = rows[idx + dir];
+      outer = rows[idx + 2 * dir];
+      normalized = true;
+    }
+    /* 无外侧邻居（贴边）→ 按尾部步长落位，防 NaN */
+    var newOrder = outer ? Math.floor((+outer.dataset.order + +target.dataset.order) / 2) : (+target.dataset.order + 10000);
     /* 先移出，再插入目标位置 */
     list.removeChild(row);
     var ref = dir < 0 ? target : target.nextElementSibling;
@@ -347,8 +355,13 @@
     var badge = row.querySelector(".ct-row-order");
     badge.classList.add("is-updated");
     setTimeout(function () { badge.classList.remove("is-updated"); }, 1600);
-    if (!maybeNormalize(card, list)) renumber(list);
-    ctToast("Entry moved", "order = " + newOrder + " · 1 file written (midpoint insert, Git diff minimal)");
+    renumber(list);
+    ctToast(
+      normalized ? "Gap too tight — reordered the whole domain, then placed the entry" : "Entry moved",
+      normalized
+        ? "orders normalized to 10000-step · chain sequence unchanged · order = " + newOrder
+        : "order = " + newOrder + " · 1 file written (midpoint insert, Git diff minimal)"
+    );
   }
   ctxMenu.addEventListener("click", function (e) {
     var item = e.target.closest(".ct-menu-item");

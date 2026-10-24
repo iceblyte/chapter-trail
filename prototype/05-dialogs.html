@@ -110,7 +110,7 @@
     <div class="ct-modal-title">目录.md already exists</div>
     <div class="ct-modal-body">The target folder already has a file named <b>目录.md</b> without a chapter-trail marker. What should happen?</div>
     <div class="ct-options" data-ct-options>
-      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">Adopt it</div><div class="ct-option-d">Keep all existing frontmatter keys and body; the plugin block wraps the existing list. Your content stays byte-identical.</div></div></div>
+      <div class="ct-option is-selected"><span class="ct-radio"></span><div><div class="ct-option-tt">Adopt it</div><div class="ct-option-d">Keep all existing frontmatter keys; the existing list and body stay <b>outside</b> the plugin's marked block, byte-identical. The plugin only appends its keys and the marked block.</div></div></div>
       <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Rename and keep</div><div class="ct-option-d">Keep the existing file under a new name, create a fresh index page.</div></div></div>
       <div class="ct-option"><span class="ct-radio"></span><div><div class="ct-option-tt">Cancel</div><div class="ct-option-d">Do nothing.</div></div></div>
     </div>
@@ -186,6 +186,7 @@
   </div>
 </div>
 
+<script src="assets/ct-i18n.js"></script>
 <script src="assets/ct.js"></script>
 <script>
 (function () {
@@ -221,8 +222,8 @@
     ctCloseModal("dlg-m4");
     var map = {
       "Demote to a normal note": "is-index and marked block removed · file kept as a normal note",
-      "Delete the file": "进阶篇/目录.md moved to system trash",
-      "Exclude the folder": "进阶篇/ added to excluded-folders · domain ignores it"
+      "Delete the file": ctT("进阶篇/目录.md moved to system trash"),
+      "Exclude the folder": ctT("进阶篇/ added to excluded-folders · domain ignores it")
     };
     ctToast("✓ Conflict resolved — " + sel, map[sel] || "");
   });
@@ -239,7 +240,7 @@
   });
 
   /* M6 三步向导 */
-  var domains = ["Blogs/Quartz 建站教程", "读书笔记/卡片盒笔记法", "随笔/数字花园周记"];
+  var domains = [ctT("Blogs/Quartz 建站教程"), ctT("读书笔记/卡片盒笔记法"), ctT("随笔/数字花园周记")];
   var counts = [12, 12, 2];
   var step = 1;
   var stepLabel = document.getElementById("m6-step-label");

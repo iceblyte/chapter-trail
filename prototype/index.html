@@ -32,7 +32,7 @@
 <div class="ct-wrap" style="max-width:1020px;">
   <div class="ct-pagehead">
     <h1>Chapter Trail · HTML UI 原型集</h1>
-    <p>Obsidian 插件 <code>chapter-trail</code> 的三件一体能力 —— <b>文件夹级自定义排序、自动维护的索引页（MOC）、静态可发布的系列导航</b> —— 的全套高保真界面原型。依据 PRD v1.3 与方案设计文档 v1.1；管理面板为 MVP 核心 UI（React 19 实现的对应物）。界面文案为英文（v1 仅英文 UI），示例笔记内容为中文。所有页面支持浅色 / 深色主题切换（右上角）。</p>
+    <p>Obsidian 插件 <code>chapter-trail</code> 的三件一体能力 —— <b>文件夹级自定义排序、自动维护的索引页（MOC）、静态可发布的系列导航</b> —— 的全套高保真界面原型。依据 PRD v1.5 与方案设计文档 v1.3；管理面板为 MVP 核心 UI（React 19 实现的对应物）。界面文案支持中英文切换（右上角，默认英文），示例笔记标题随语言同步翻译。所有页面支持浅色 / 深色主题切换（右上角）。</p>
   </div>
 
   <div class="ct-section ct-grid3">
@@ -90,7 +90,7 @@
       <div class="ct-section-h" style="margin:4px 0 6px;">草图与文档</div>
       <p class="ct-note" style="margin-bottom:8px;">
         <a href="00-sketch.html">00 · 线框草图（已确认基线）</a><br>
-        <a href="../docs/PRD.md">PRD v1.3</a> · <a href="../docs/DESIGN.md">方案设计文档 v1.1</a>
+        <a href="../docs/PRD.md">PRD v1.4</a> · <a href="../docs/DESIGN.md">方案设计文档 v1.2</a>
       </p>
     </div>
 
@@ -101,9 +101,10 @@
       <div class="ct-section-h">演示数据设定（全套页面共用）</div>
       <p class="ct-anno" style="margin-top:10px;">
         用户画像：教程 / 连载作者，约 1000 篇笔记、git 同步、发布到 Quartz。<br>
-        · <b>Blogs/Quartz 建站教程</b> — Series 域，5 篇 + 「进阶篇」子树，注入已开启；<br>
-        · <b>读书笔记/卡片盒笔记法</b> — Independent 域，直系文件与受管子文件夹混排，注入关闭；<br>
+        · <b>Blogs/Quartz 建站教程</b> — Series 域，5 篇 + 「进阶篇」子树；<br>
+        · <b>读书笔记/卡片盒笔记法</b> — Independent 域，直系文件与受管子文件夹混排；<br>
         · <b>随笔/数字花园周记</b> — Series 域，小型域；<br>
+        · 注入开关为全局设置（默认关），本套演示统一为开启，故所有域卡片均有 Rebuild injection 按钮；<br>
         · Vault 级黄条：已解散域「旧项目/周刊」遗留 12 个 order 字段。
       </p>
     </div>
@@ -121,5 +122,6 @@
   <p class="ct-note" style="margin-top:36px;">本原型为静态 HTML / CSS / JS，不依赖外部资源；样式仅作布局与状态演示，实现阶段以 Obsidian 宿主主题变量为准。</p>
 </div>
 
+<script src="assets/ct-i18n.js"></script>
 </body>
 </html>

@@ -106,6 +106,7 @@
 
 <div class="ct-ghost" id="ct-ghost"><span class="ct-grip">⠿</span><span id="ct-ghost-label"></span></div>
 
+<script src="assets/ct-i18n.js"></script>
 <script src="assets/ct.js"></script>
 <script>
 (function () {
@@ -121,19 +122,19 @@
 
   /* 场景一初始数据 */
   var initA =
-    rowHTML("01", "", "为什么选择 Quartz", 10000, "2025-11-02") +
-    rowHTML("02", "", "环境搭建与部署", 20000, "2025-11-09") +
-    rowHTML("03", "进阶篇/", "配置详解", 30000, "2025-11-16") +
-    rowHTML("04", "进阶篇/", "插件机制", 40000, "2025-11-23") +
-    rowHTML("05", "进阶篇/", "主题定制", 50000, "2025-11-30");
+    rowHTML("01", "", ctT("为什么选择 Quartz"), 10000, "2025-11-02") +
+    rowHTML("02", "", ctT("环境搭建与部署"), 20000, "2025-11-09") +
+    rowHTML("03", ctT("进阶篇/"), ctT("配置详解"), 30000, "2025-11-16") +
+    rowHTML("04", ctT("进阶篇/"), ctT("插件机制"), 40000, "2025-11-23") +
+    rowHTML("05", ctT("进阶篇/"), ctT("主题定制"), 50000, "2025-11-30");
 
   /* 场景二初始数据（中点侵蚀后的过密域） */
   var initB =
-    rowHTML("01", "", "引言：卢曼的盒子", 10000, "2025-09-14") +
-    rowHTML("02", "", "卡片的三种类型", 15000, "2025-09-28") +
-    rowHTML("03", "", "文献笔记与永久笔记", 17500, "2025-10-05") +
-    rowHTML("04", "", "项目的三条兴奋线", 18755, "2025-10-18") +
-    rowHTML("05", "", "从卡片盒到 Zettelkasten", 18760, "2025-10-25");
+    rowHTML("01", "", ctT("引言：卢曼的盒子"), 10000, "2025-09-14") +
+    rowHTML("02", "", ctT("卡片的三种类型"), 15000, "2025-09-28") +
+    rowHTML("03", "", ctT("文献笔记与永久笔记"), 17500, "2025-10-05") +
+    rowHTML("04", "", ctT("项目的三条兴奋线"), 18755, "2025-10-18") +
+    rowHTML("05", "", ctT("从卡片盒到 Zettelkasten"), 18760, "2025-10-25");
 
   var listA = document.getElementById("list-a");
   var listB = document.getElementById("list-b");
@@ -174,7 +175,7 @@
     var dropY = target.getBoundingClientRect().top - 2;
 
     src.classList.add("is-lifted");
-    ghostLabel.textContent = "02 环境搭建与部署";
+    ghostLabel.textContent = ctT("02 环境搭建与部署");
     ghost.style.transition = "none";
     ghost.style.left = sr.left + "px";
     ghost.style.top = sr.top + "px";
@@ -217,7 +218,7 @@
     var dropY = target.getBoundingClientRect().top - 2;
 
     src.classList.add("is-lifted");
-    ghostLabel.textContent = "文献笔记与永久笔记";
+    ghostLabel.textContent = ctT("文献笔记与永久笔记");
     ghost.style.transition = "none";
     ghost.style.left = sr.left + "px";
     ghost.style.top = sr.top + "px";
@@ -244,7 +245,7 @@
     src.classList.remove("is-lifted");
     renumber(listB);
     ctToast("Gap too tight — reordered the whole domain, then placed the entry",
-      "「读书笔记/卡片盒笔记法」 orders normalized to 10000-step · chain sequence unchanged", { ms: 5600 });
+      ctT("「读书笔记/卡片盒笔记法」 orders normalized to 10000-step · chain sequence unchanged"), { ms: 5600 });
     setTimeout(function () {
       finalRows.forEach(function (row) { row.classList.remove("is-flash"); });
       playingB = false;
