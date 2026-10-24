@@ -205,7 +205,7 @@
       '<div class="ct-row" data-order="40000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">04</span><span class="ct-prefix">' + ctT("进阶篇/") + '</span>' + ctT("插件机制") + '</span><span class="ct-row-date">2025-11-23</span><span class="ct-row-order">40000</span></div>' +
       '<div class="ct-row" data-order="50000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">05</span><span class="ct-prefix">' + ctT("进阶篇/") + '</span>' + ctT("主题定制") + '</span><span class="ct-row-date">2025-11-30</span><span class="ct-row-order">50000</span></div>';
     c.querySelector(".ct-card-actions").innerHTML = '<button class="ct-btn">Rebuild index</button><button class="ct-btn">Reindex order</button>';
-    ctToast("✓ Conflict resolved", "demoted to a normal note — is-index and the marked block removed, file kept; its notes rejoin the series chain");
+    ctToast(ctT("✓ Conflict resolved"), ctT("demoted to a normal note — is-index and the marked block removed, file kept; its notes rejoin the series chain"));
   });
 })();
 </script>

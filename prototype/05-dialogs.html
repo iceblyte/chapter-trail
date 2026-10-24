@@ -195,16 +195,16 @@
   /* M1 */
   document.getElementById("m1-ok").addEventListener("click", function () {
     ctCloseModal("dlg-m1");
-    ctProgressToast("Rebuilding index — {n}/{total}", "writing the marked block of 目录.md …", 1, 1, function () {
-      ctToast("✓ Index rebuilt", "1 file written · entries sorted by order · dead links removed");
+    ctProgressToast(ctT("Rebuilding index — {n}/{total}"), ctT("writing the marked block of 目录.md …"), 1, 1, function () {
+      ctToast(ctT("✓ Index rebuilt"), ctT("1 file written · entries sorted by order · dead links removed"));
     });
   });
 
   /* M2 */
   document.getElementById("m2-ok").addEventListener("click", function () {
     ctCloseModal("dlg-m2");
-    ctProgressToast("Writing navigation — {n}/{total} notes", "chunk of 25 · top + bottom blocks · 3 domains", 47, 25, function () {
-      ctToast("✓ Injection enabled", "47 notes written · wrapped in nav-begin/nav-end markers · removable anytime");
+    ctProgressToast(ctT("Writing navigation — {n}/{total} notes"), ctT("chunk of 25 · top + bottom blocks · 3 domains"), 47, 25, function () {
+      ctToast(ctT("✓ Injection enabled"), ctT("47 notes written · wrapped in nav-begin/nav-end markers · removable anytime"));
     });
   });
 
@@ -212,20 +212,19 @@
   document.getElementById("m3-ok").addEventListener("click", function () {
     var sel = document.querySelector("#dlg-m3 .ct-option.is-selected .ct-option-tt").textContent.trim();
     ctCloseModal("dlg-m3");
-    ctToast(sel === "Adopt it" ? "✓ Existing 目录.md adopted" : sel === "Rename and keep" ? "✓ Renamed to 目录-旧.md, fresh index created" : "Cancelled",
-      sel === "Adopt it" ? "frontmatter keys & body byte-identical · plugin keys + marked block added" : "");
+    ctToast(sel === ctT("Adopt it") ? ctT("✓ Existing 目录.md adopted") : sel === ctT("Rename and keep") ? ctT("✓ Renamed to 目录-旧.md, fresh index created") : ctT("Cancelled"),
+      sel === ctT("Adopt it") ? ctT("frontmatter keys & body byte-identical · plugin keys + marked block added") : "");
   });
 
   /* M4 */
   document.getElementById("m4-ok").addEventListener("click", function () {
     var sel = document.querySelector("#dlg-m4 .ct-option.is-selected .ct-option-tt").textContent.trim();
     ctCloseModal("dlg-m4");
-    var map = {
-      "Demote to a normal note": "is-index and marked block removed · file kept as a normal note",
-      "Delete the file": ctT("进阶篇/目录.md moved to system trash"),
-      "Exclude the folder": ctT("进阶篇/ added to excluded-folders · domain ignores it")
-    };
-    ctToast("✓ Conflict resolved — " + sel, map[sel] || "");
+    var map = {};
+    map[ctT("Demote to a normal note")] = ctT("is-index and marked block removed · file kept as a normal note");
+    map[ctT("Delete the file")] = ctT("进阶篇/目录.md moved to system trash");
+    map[ctT("Exclude the folder")] = ctT("进阶篇/ added to excluded-folders · domain ignores it");
+    ctToast(ctT("✓ Conflict resolved — ") + sel, map[sel] || "");
   });
 
   /* M5 */
@@ -234,9 +233,9 @@
     var stripNav = document.querySelector("#m5-checks .ct-option:nth-child(2)").classList.contains("is-selected");
     ctCloseModal("dlg-m5");
     var extra = [];
-    if (clearOrder) extra.push("order cleared (12)");
-    if (stripNav) extra.push("nav markers stripped (12)");
-    ctToast("✓ Domain dissolved", "目录.md deleted" + (extra.length ? " · " + extra.join(" · ") : " · order & injections kept"));
+    if (clearOrder) extra.push(ctT("order cleared (12)"));
+    if (stripNav) extra.push(ctT("nav markers stripped (12)"));
+    ctToast(ctT("✓ Domain dissolved"), ctT("目录.md deleted") + (extra.length ? " · " + extra.join(" · ") : ctT(" · order & injections kept")));
   });
 
   /* M6 三步向导 */
@@ -252,14 +251,14 @@
     labels.forEach(function (d, i) {
       var row = document.createElement("div");
       row.className = "ct-option" + (i === 0 ? " is-selected" : "");
-      row.innerHTML = '<span class="ct-radio is-square"></span><div><div class="ct-option-tt">' + d + ' <span class="ct-note">(' + counts[i] + ' notes)</span></div></div>';
+      row.innerHTML = '<span class="ct-radio is-square"></span><div><div class="ct-option-tt">' + d + ' <span class="ct-note">' + ctT("(") + counts[i] + ctT(" notes)") + '</span></div></div>';
       row.addEventListener("click", function () { row.classList.toggle("is-selected"); syncButtons(); });
       container.appendChild(row);
     });
   }
   function syncButtons() {
     backBtn.style.visibility = step > 1 && step < 4 ? "visible" : "hidden";
-    nextBtn.textContent = step === 3 ? "Finish" : "Next";
+    nextBtn.textContent = step === 3 ? ctT("Finish") : ctT("Next");
     nextBtn.classList.toggle("is-danger", step < 3);
   }
   function showStep(n) {
@@ -268,7 +267,7 @@
     s2.style.display = n === 2 ? "" : "none";
     s3.style.display = n === 3 ? "" : "none";
     sDone.style.display = n === 4 ? "" : "none";
-    stepLabel.textContent = "· Step " + Math.min(n, 3) + " of 3";
+    stepLabel.textContent = ctT("· Step {n} of 3").replace("{n}", Math.min(n, 3));
     syncButtons();
   }
   confirmList(document.getElementById("m6-domains"), domains, "deleted");
@@ -278,7 +277,7 @@
     if (step < 3) { showStep(step + 1); return; }
     showStep(4);
     nextBtn.style.display = "none"; backBtn.style.display = "none";
-    ctToast("✓ Chapter Trail data removed", "stripped injections · deleted confirmed index pages · cleared confirmed order fields · everything else untouched");
+    ctToast(ctT("✓ Chapter Trail data removed"), ctT("stripped injections · deleted confirmed index pages · cleared confirmed order fields · everything else untouched"));
   });
   /* 打开时重置 */
   document.querySelectorAll('[data-ct-open="dlg-m6"]').forEach(function (b) {

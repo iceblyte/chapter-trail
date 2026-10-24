@@ -30,7 +30,7 @@
     opts = opts || {};
     var el = document.createElement("div");
     el.className = "ct-toast";
-    el.innerHTML = "<div>" + msg + (opts.cancel ? '<span class="ct-cancel">Cancel</span>' : "") + "</div>" + (sub ? '<div class="ct-toast-sub">' + sub + "</div>" : "");
+    el.innerHTML = "<div>" + msg + (opts.cancel ? '<span class="ct-cancel">' + (window.ctT ? ctT("Cancel") : "Cancel") + '</span>' : "") + "</div>" + (sub ? '<div class="ct-toast-sub">' + sub + "</div>" : "");
     if (opts.html) el.innerHTML = msg + (sub ? '<div class="ct-toast-sub">' + sub + "</div>" : "");
     toastRoot().appendChild(el);
     var life = opts.ms || 4200;
@@ -57,8 +57,8 @@
     cancelBtn.addEventListener("click", function () { cancelled = true; });
     function tick() {
       if (cancelled) {
-        titleTpl && (el.querySelector("div").innerHTML = "Cancelled at " + done + " / " + total + '<span class="ct-cancel" style="display:none"></span>');
-        sub.textContent = "written files keep their new content — nothing is rolled back";
+        titleTpl && (el.querySelector("div").innerHTML = (window.ctT ? ctT("Cancelled at ") : "Cancelled at ") + done + " / " + total + '<span class="ct-cancel" style="display:none"></span>');
+        sub.textContent = window.ctT ? ctT("written files keep their new content — nothing is rolled back") : "written files keep their new content — nothing is rolled back";
         setTimeout(function () { el.classList.add("is-leaving"); setTimeout(function () { el.remove(); }, 260); }, 2600);
         return;
       }

@@ -507,33 +507,301 @@
     "间隙过密（相邻差 <10）+ 平手（同 order 值 ⚑ 标注）：主按钮高亮 Reindex 引导规范化（A6）。": "Gaps too tight (adjacent diff <10) + ties (same order value, ⚑ marked): the primary button highlights Reindex to guide normalization (A6).",
   };
 
-  /* ---------- 语言状态与运行时 ---------- */
+  /* ---------- 英 → 中词典（zh 态翻译 UI 文案；技术标记/属性键保留英文） ---------- */
+  window.CT_I18N_ZH = {
+    "Rebuild index": "重建索引",
+    "Reindex order": "重排 order",
+    "Rebuild injection": "重建注入",
+    "Resolve…": "解决…",
+    "Apply": "应用",
+    "Cancel": "取消",
+    "Cancelled": "已取消",
+    "Rebuild": "重建",
+    "Rebuild · 1 file": "重建 · 1 个文件",
+    "Delete index & stop": "删除索引页并停止",
+    "Review": "去处理",
+    "Open index page": "打开索引页",
+    "Copy domain path": "复制域路径",
+    "Stop managing…": "停止管理…",
+    "Stop managing": "停止管理",
+    "Stop managing this folder?": "停止管理该文件夹？",
+    "Start managing": "开始管理",
+    "Start managing a folder": "开始管理文件夹",
+    "＋ Start managing a folder": "＋ 开始管理文件夹",
+    "Open wizard…": "打开向导…",
+    "Remove all Chapter Trail data": "清除全部 Chapter Trail 数据",
+    "Remove all Chapter Trail data — step 3 of 3": "清除全部 Chapter Trail 数据 — 第 3 步 / 共 3 步",
+    "Turn on navigation injection": "开启导航注入",
+    "Not now": "暂不",
+    "Enable · write 47 notes": "开启 · 写入 47 篇笔记",
+    "Clear markers": "清除标记",
+    "Keep them": "保留",
+    "Remove all injected markers from 47 notes?": "从 47 篇笔记中移除全部已注入标记？",
+    "Clear": "清除",
+    "Clear order in this domain": "清除该域的 order",
+    "Confirm": "确认",
+    "Close": "关闭",
+    "Back": "上一步",
+    "Next": "下一步",
+    "Finish": "完成",
+    "Choose a mode": "选择模式",
+    "Move up": "上移",
+    "Move down": "下移",
+    "Adopt it": "采纳",
+    "Rename and keep": "重命名保留",
+    "Delete the file": "删除文件",
+    "Move to system trash.": "移入系统回收站。",
+    "Demote to a normal note": "降级为普通笔记",
+    "Exclude the folder": "排除该文件夹",
+    "Do nothing.": "不做任何操作。",
+    "Nested index page detected": "检测到嵌套索引页",
+    "Nested index conflict": "嵌套索引冲突",
+    "Index outdated": "索引过期",
+    "Gaps too tight": "间隙过密",
+    "2 tied orders": "2 个平手 order",
+    "2 broken links": "2 处断链",
+    "20 need ordering": "20 篇待排序",
+    "First run: review suggested order": "首次声明：请检查建议顺序",
+    "file not found — deleted or moved out of the vault": "找不到文件 — 已删除或已移出 vault",
+    "resolve: demote to note / delete / exclude folder": "处置：降级为笔记 / 删除 / 排除文件夹",
+    "3 changes since last rebuild — entries or prev/next links may be stale": "上次重建后有 3 处变更 — 条目或前后篇链接可能已过期",
+    "red — broken link / structural conflict, needs action": "红 — 断链 / 结构冲突，需处理",
+    "yellow — rebuild / reorder suggested": "黄 — 建议重建 / 重排",
+    "blue — pending sort, informational": "蓝 — 待排序，仅提示",
+    "red": "红",
+    "yellow": "黄",
+    "blue": "蓝",
+    "· blue": "· 蓝",
+    "· yellow": "· 黄",
+    "5 entries · virtualized list (32px rows) · right-click a row to move": "5 条 · 虚拟化列表（32px 行）· 右键条目可移动",
+    "5 entries · virtualized list (32px rows)": "5 条 · 虚拟化列表（32px 行）",
+    "4 entries · managed subfolder shares the ordering (no date)": "4 条 · 受管子文件夹参与混排（无日期）",
+    "12 notes · 1 subfolder": "12 篇笔记 · 1 个子文件夹",
+    "12 notes · 1 subfolder · no index page yet": "12 篇笔记 · 1 个子文件夹 · 尚无索引页",
+    "9 notes · 1 subfolder": "9 篇笔记 · 1 个子文件夹",
+    "8 notes · carries legacy order fields": "8 篇笔记 · 含遗留 order 字段",
+    "4 notes this month": "本月 4 篇",
+    "12 legacy": "12 个遗留",
+    "Independent": "独立",
+    "Series": "系列",
+    "Rebuild the index page for": "重建以下域的索引页：",
+    "Rewrites the marked block in": "仅重写 ",
+    ". Content outside the block — including your own preamble — is untouched.": " 中标记区块内的内容。区块外内容（包括你手写的序言）不会改动。",
+    "1 file will be written": "将写入 1 个文件",
+    "Deleting": "删除 ",
+    "dissolves the domain": " 将解散域",
+    ". The ordering data lives in each note’s frontmatter and will remain unless you clear it below.": "。排序数据保存在每篇笔记的 frontmatter 中，除非在下方勾选清除，否则将保留。",
+    ". The ordering data lives in each note’s frontmatter and will remain.": "。排序数据保存在每篇笔记的 frontmatter 中，将保留。",
+    "Also clear": "同时清除",
+    "fields": " 字段",
+    "Also remove injected navigation": "同时移除已注入的导航",
+    "strips chapter-trail markers only — your own callouts are kept": "仅剥离 chapter-trail 标记 — 你自己写的 callout 不受影响",
+    "removes the field from all notes in the domain": "从该域全部笔记中移除该字段",
+    "① Strip injected navigation — removes everything inside": "① 剥离注入导航 — 移除",
+    "markers across 3 domains. Your own callouts are never touched.": " 标记内的全部内容（3 个域）。你自己写的 callout 永不触碰。",
+    "② Delete index pages — confirm per domain. Dissolved domains lose their auto-maintained index; the pages are plain Markdown and stay readable otherwise.": "② 删除索引页 — 逐域确认。域解散后失去自动维护的索引；索引页本身是普通 Markdown，仍可阅读。",
+    "③ Clear": "③ 清除",
+    "③ Clear order fields": "③ 清除 order 字段",
+    "This removes": "此步骤将移除",
+    "fields in each confirmed domain — including any not created by Chapter Trail. This cannot be undone except by reordering.": " 字段（逐域确认范围内全部，包括非 Chapter Trail 创建的同名字段）。除重新排序外无法撤销。",
+    "fields in the domain — including any not created by Chapter Trail. This cannot be undone except by reordering.": " 字段（该域内全部，包括非 Chapter Trail 创建的同名字段）。除重新排序外无法撤销。",
+    "fields — confirm per domain.": " 字段 — 逐域确认。",
+    "① Strip injected navigation ✓  ② Delete index pages ✓": "① 剥离注入导航 ✓  ② 删除索引页 ✓",
+    "✓ All steps completed. Files outside the confirmed scope are byte-identical to before (A8).": "✓ 全部步骤完成。确认范围之外的文件与之前逐字节一致（A8）。",
+    "Chapter Trail will write a collapsible prev / next / index callout into": "Chapter Trail 将向",
+    "47 notes": " 篇笔记",
+    "across 3 domains. Each block is wrapped in": "（共 3 个域）写入可折叠的前后篇/总览 callout。每段内容都包裹在",
+    "markers and can be removed anytime.": " 标记中，可随时移除。",
+    "Batch writes run in chunks of 25 with a progress bar — you can cancel mid-run. Written files keep their content on cancel.": "批量写入按每块 25 篇分块执行并显示进度条 — 可中途取消；取消时已写入的文件保留内容。",
+    "Batch writes run in chunks of 25 with a progress bar — you can cancel mid-run.": "批量写入按每块 25 篇分块执行并显示进度条 — 可中途取消。",
+    "The target folder already has a file named": "目标文件夹已存在名为",
+    "without a chapter-trail marker. What should happen?": " 的无标记同名文件。如何处理？",
+    "without a chapter-trail marker.": " 的无标记同名文件。",
+    "Keep all existing frontmatter keys; the existing list and body stay": "保留全部已有 frontmatter 键；已有列表与正文",
+    "the plugin's marked block, byte-identical. The plugin only appends its keys and the marked block.": "插件标记区块之外，逐字节不变。插件只追加自己的键与标记区块。",
+    "Keep the existing file under a new name, create a fresh index page.": "原文件重命名保留，另建全新索引页。",
+    ", but its folder is inside the series domain": "，但其所在文件夹位于 series 域 ",
+    ". Choose how to resolve:": "。请选择处置方式：",
+    "has": " 含有 ",
+    "inside a series domain": "，位于 series 域内",
+    "and the marked block; the file itself is kept.": " 与标记区块；文件本身保留。",
+    "to excluded-folders; the domain ignores it.": " 加入 excluded-folders；该域将忽略它。",
+    "Mode for": "为",
+    "— one managed domain, one chain style:": " 创建一个受管域，链条风格二选一：",
+    "Creates": "将创建",
+    "with": "，附带",
+    "and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.": " 以及插件专属的标记区块。识别只看标记、不看文件名 — 之后可在设置中改名。模式存于索引页 frontmatter，可随时切换。",
+    "and a plugin-owned marked block. You can rename it later in settings; recognition is by the marker, not the file name.": " 以及插件专属的标记区块。之后可在设置中改名；识别只看标记、不看文件名。",
+    "Filter folders…": "筛选文件夹…",
+    "already managed": "已受管",
+    "· Step 1 of 2": "· 第 1 步 / 共 2 步",
+    "· Step 2 of 2": "· 第 2 步 / 共 2 步",
+    "· Step 1 of 3": "· 第 1 步 / 共 3 步",
+    "· Step {n} of 3": "· 第 {n} 步 / 共 3 步",
+    "One chain across the whole subtree; subfolders become path labels only. Best for tutorials and serials.": "整棵子树一条链；子文件夹仅作为路径前缀。适合教程与连载。",
+    "Direct notes and managed subfolders mix in one ordering. Each managed subfolder keeps its own chain. Best for loosely related notes.": "直系文件与受管子文件夹在同一顺序空间混排；每个受管子文件夹自成链条。适合松散关联的笔记。",
+    "Index file name": "索引文件名",
+    "Used when creating new index pages. Recognition is by the": "创建新索引页时使用。识别依据是",
+    "marker, not the file name — existing pages are never renamed. Preset suggestion:": " 标记而非文件名 — 已有索引页永不被重命名。预设建议：",
+    ". Changing this marks affected domains “Index outdated”.": "。修改后相关域将标黄“索引过期”。",
+    "Date display on index entries": "索引条目的日期显示",
+    "Reads each note’s": "读取每篇笔记的",
+    "property (ISO date/datetime or Obsidian date format). Entries without a parsable date simply show no date; subfolder entries never show one.": " 属性（ISO 日期/日期时间或 Obsidian 日期格式）。无法解析的条目不显示日期；子文件夹条目从不显示。",
+    "property (ISO or Obsidian date format). Entries without a parsable date simply show no date. Changing this marks affected domains “Index outdated”.": " 属性（ISO 或 Obsidian 日期格式）。无法解析的条目不显示日期。修改后相关域将标黄“索引过期”。",
+    "Off: nothing is ever written into your notes": "关闭：绝不向笔记写入任何内容",
+    "— the jump commands (previous / next / open index) still work. Turning on asks for confirmation, then writes collapsible callouts wrapped in removable markers.": " — 跳转命令（上/下一篇、打开索引）仍然可用。开启时会先请求确认，再写入由可移除标记包裹的可折叠 callout。",
+    "— jump commands (prev / next / index) still work. Turning on asks for confirmation, then writes collapsible callouts wrapped in removal markers.": " — 跳转命令（上/下一篇、总览）仍然可用。开启时会先请求确认，再写入由可移除标记包裹的可折叠 callout。",
+    "Full exit path: strip injected navigation → delete index pages (per-domain confirm) → clear order fields (per-domain confirm). Everything outside the confirmed scope is untouched.": "完整退出路径：剥离注入导航 → 删除索引页（逐域确认）→ 清除 order 字段（逐域确认）。确认范围之外的任何内容都不受影响。",
+    "Language": "语言",
+    "UI language for the panel, commands and dialogs. Defaults to": "面板、命令与弹窗的界面语言。默认为",
+    "; switching also re-labels the panel, commands and dialogs. All plugin copy goes through an i18n dictionary.": "；切换后面板、命令与弹窗文案同步更换。全部插件文案均通过 i18n 词典管理。",
+    "Folder ordering, index pages and series navigation · v1.0.0 · MIT · no telemetry": "文件夹排序、索引页与系列导航 · v1.0.0 · MIT · 无遥测",
+    "Rebuild all indexes — 3 domains · 3 index pages (1 file per domain)": "重建全部索引 — 3 个域 · 3 个索引页（每域 1 个文件）",
+    "Rebuild all injections — 3 domains · 47 notes": "重建全部注入 — 3 个域 · 47 篇笔记",
+    "First-run order assignment — 读书笔记/卡片盒笔记法 · 20 notes": "首次声明 order 赋值 — 读书笔记/卡片盒笔记法 · 20 篇笔记",
+    "Rebuilding index — 126 / 200": "正在重建索引 — 126 / 200",
+    "✓ Index rebuilt — 200 files written, 3 skipped (locked)": "✓ 索引重建完成 — 已写入 200 个文件，3 个跳过（被锁定）",
+    "skipped files were marked in the panel · 4.2s": "跳过的文件已在面板标黄 · 4.2s",
+    "files written · skipped (locked) · ": " 个文件已写入 · 跳过（被锁定） · ",
+    "Gap too tight — reordered the whole domain, then placed the entry.": "间隙过密 — 已整域重排，再落位该条目。",
+    "↑ auto-scroll": "↑ 自动滚动",
+    "… rows …": "… 行 …",
+    "…rows…": "…行…",
+    "navigate ·": "导航 ·",
+    "select ·": "下拉 ·",
+    "2025-11-09 · 3 min read": "2025-11-09 · 3 分钟阅读",
+    "chapter-trail: Start managing current folder": "chapter-trail：开始管理当前文件夹",
+    "Choose a mode for “读书笔记/卡片盒笔记法”": "为“读书笔记/卡片盒笔记法”选择模式",
+    "Add <code>进阶篇/</code> to excluded-folders; the domain ignores it.": "将 <code>进阶篇/</code> 加入 excluded-folders；该域将忽略它。",
+    "<code>进阶篇/目录.md</code> has <code>is-index: true</code> inside a series domain": "<code>进阶篇/目录.md</code> 含有 <code>is-index: true</code>，位于 series 域内",
+    "has <code>is-index: true</code>, but its folder is inside the series domain <b>Blogs/Quartz 建站教程</b>. Choose how to resolve:": "含有 <code>is-index: true</code>，但其所在文件夹位于 series 域 <b>Blogs/Quartz 建站教程</b> 内。请选择处置方式：",
+    "The target folder already has a file named <b>目录.md</b> without a chapter-trail marker. What should happen?": "目标文件夹已存在名为 <b>目录.md</b> 的无标记同名文件。如何处理？",
+    "目录.md already exists": "目录.md 已存在",
+    "fields — “旧项目/周刊” was dissolved": "个 order 字段 — “旧项目/周刊”已解散",
+    "Legacy orders — 旧项目/周刊 (dissolved)": "遗留 order — 旧项目/周刊（已解散）",
+    "12 files still carry order fields · <b>Clear all</b> after confirmation": "12 个文件仍带有 order 字段 · 确认后<b>全部清除</b>",
+    "…18 more · git sync batch — no auto-write, drag or use first-run assignment": "…还有 18 篇 · git 同步批量 — 不自动写入，请拖拽排序或使用首次声明赋值",
+    "…18 more (git sync batch — no auto-write, sort manually or drag)": "…还有 18 篇（git 同步批量 — 不自动写入，请手动排序或拖拽）",
+    "Blogs/Quartz 建站教程 · chunk 6/8 ·": "Blogs/Quartz 建站教程 · 块 6/8 ·",
+    "「读书笔记/卡片盒笔记法」 orders normalized to 10000-step · chain sequence unchanged": "「读书笔记/卡片盒笔记法」已规范化为 10000 步长 · 链条次序不变",
+    "orders normalized to 10000-step · 「随笔/数字花园周记」": "已规范化为 10000 步长 · 「随笔/数字花园周记」",
+    "writing 随笔/目录.md · is-index: true · marked block": "正在写入 随笔/目录.md · is-index: true · 标记区块",
+    "目录.md written (1 file) · existing notes got 10000-step order by filename order · review the suggested order in the panel": "已写入 目录.md（1 个文件）· 现有笔记已按文件名自然序获得 10000 步长 order · 请在面板中检查建议顺序",
+    "Vault rescanned": "vault 已重扫",
+    "3 managed domains · 0 orphan index pages · 210 markdown files · 0.4s": "3 个受管域 · 0 个孤儿索引页 · 210 个 markdown 文件 · 0.4s",
+    " domain · ": " 个域 · ",
+    " domains · ": " 个域 · ",
+    " needs attention": " 个需关注",
+    " need attention": " 个需关注",
+    "Rebuilding index — {n}/{total}": "正在重建索引 — {n}/{total}",
+    "writing the marked block of 目录.md …": "正在写入 目录.md 的标记区块 …",
+    "✓ Index rebuilt": "✓ 索引已重建",
+    " · 1 file written · entries sorted by order": " · 已写入 1 个文件 · 条目按 order 排序",
+    "1 file written · entries sorted by order · dead links removed": "已写入 1 个文件 · 条目按 order 排序 · 死链已移除",
+    "Order normalized — ": "order 已规范化 — ",
+    " notes": " 篇笔记",
+    "10000-step integers · chain sequence unchanged · Git diff limited to changed values": "10000 步长整数 · 链条次序不变 · Git diff 仅限实际变化的值",
+    "Rebuilding injection — {n}/{total}": "正在重建注入 — {n}/{total}",
+    "nav-begin / nav-end blocks · chunk 1/1": "nav-begin / nav-end 区块 · 块 1/1",
+    "✓ Injection rebuilt": "✓ 注入已重建",
+    "5 notes · top + bottom callouts · prev/next links follow the current chain": "5 篇笔记 · 顶部+底部 callout · 前后篇链接跟随当前链条",
+    "Writing navigation — {n}/{total} notes": "正在写入导航 — {n}/{total} 篇笔记",
+    "chunk of 25 · top + bottom blocks · 3 domains": "每块 25 篇 · 顶部+底部区块 · 3 个域",
+    "✓ Injection enabled": "✓ 注入已开启",
+    "47 notes written · wrapped in nav-begin/nav-end markers · removable anytime": "已写入 47 篇笔记 · 包裹于 nav-begin/nav-end 标记 · 可随时移除",
+    "✓ Existing 目录.md adopted": "✓ 已采纳原 目录.md",
+    "✓ Renamed to 目录-旧.md, fresh index created": "✓ 已重命名为 目录-旧.md，并创建新索引页",
+    "frontmatter keys & body byte-identical · plugin keys + marked block added": "frontmatter 键与正文逐字节不变 · 追加插件键与标记区块",
+    "✓ Conflict resolved — ": "✓ 冲突已解决 — ",
+    "✓ Conflict resolved": "✓ 冲突已解决",
+    "is-index and marked block removed · file kept as a normal note": "is-index 与标记区块已移除 · 文件保留为普通笔记",
+    "demoted to a normal note — is-index and the marked block removed, file kept; its notes rejoin the series chain": "已降级为普通笔记 — is-index 与标记区块已移除，文件保留；其笔记回归 series 链条",
+    "进阶篇/目录.md moved to system trash": "进阶篇/目录.md 已移入系统回收站",
+    "进阶篇/ added to excluded-folders · domain ignores it": "进阶篇/ 已加入 excluded-folders · 该域忽略它",
+    "✓ Domain dissolved": "✓ 域已解散",
+    "目录.md deleted": "目录.md 已删除",
+    "order cleared (12)": "order 已清除（12）",
+    "nav markers stripped (12)": "导航标记已剥离（12）",
+    " · order & injections kept": " · order 与注入已保留",
+    "✓ Chapter Trail data removed": "✓ Chapter Trail 数据已清除",
+    "stripped injections · deleted confirmed index pages · cleared confirmed order fields · everything else untouched": "已剥离注入 · 已删除确认的索引页 · 已清除确认的 order 字段 · 其余内容分毫未动",
+    "(": "（",
+    " notes)": " 篇笔记）",
+    "Entry moved": "条目已移动",
+    "order = 35000 (midpoint of 30000 / 40000) · 1 file written · Git diff minimal": "order = 35000（30000 / 40000 的中点）· 已写入 1 个文件 · Git diff 最小",
+    "Gap too tight — reordered the whole domain, then placed the entry": "间隙过密 — 已整域重排，再落位该条目",
+    " · 1 file written (midpoint insert, Git diff minimal)": " · 已写入 1 个文件（中点插入，Git diff 最小）",
+    "orders normalized to 10000-step · chain sequence unchanged · order = ": "已规范化为 10000 步长 · 链条次序不变 · order = ",
+    "Creating domain — {n}/{total}": "正在创建域 — {n}/{total}",
+    "✓ Domain created — ": "✓ 域已创建 — ",
+    "Settings saved": "设置已保存",
+    "affected domains marked Index outdated": "相关域已标黄“索引过期”",
+    "injection is now off — existing markers kept until you clear them": "注入已关闭 — 已有标记保留，直到你清除",
+    "Rebuilding all indexes": "正在重建全部索引",
+    "Rebuilding all injections": "正在重建全部注入",
+    "Assigning first-run orders": "正在执行首次声明 order 赋值",
+    "confirm ok · EchoLedger armed · ChunkedWriter start": "确认完成 · EchoLedger 已就绪 · ChunkedWriter 启动",
+    "chunk ": "块 ",
+    " files written · yield to UI thread": " 个文件已写入 · 让出 UI 线程",
+    " — locked by another process (collected for summary)": " — 被其他进程锁定（计入汇总）",
+    "Cancelled at ": "已取消，进度 ",
+    "written files keep their new content — nothing is rolled back": "已写入的文件保留内容 — 不做回滚",
+    "✓ done in ": "✓ 完成，用时 ",
+    " written": " 个已写入",
+    " · skipped: ": " · 跳过：",
+    " (panel marked yellow)": "（面板标黄）",
+    " — complete": " — 完成",
+    " files written": " 个文件已写入",
+    " skipped (locked)": " 个跳过（被锁定）",
+    "12 notes": "12 篇笔记",
+    "(12 notes)": "（12 篇笔记）",
+    "(12 notes)?": "（12 篇笔记）？",
+    "(12 notes, markers only)": "（12 篇笔记，仅标记内内容）",
+    "47 notes · wrapped markers only": "47 篇笔记 · 仅包裹标记内内容",
+    "1 domain · 0 need attention": "1 个域 · 0 个需关注",
+    "3 domains · 1 needs attention": "3 个域 · 1 个需关注",
+    "Add": "将",
+    "Remove": "移除",
+    "Write prev / next navigation": "写入前后篇导航",
+    "Stripping markers — {n}/{total} notes": "正在剥离标记 — {n}/{total} 篇笔记",
+    "all": "全部",
+    "outside": "位于",
+    "① Strip injected navigation ✓  ② Delete index pages ✓  ": "① 剥离注入导航 ✓  ② 删除索引页 ✓  ",
+    "① Strip injected navigation ✓  ② Delete index pages ✓": "① 剥离注入导航 ✓  ② 删除索引页 ✓",
+    "① Strip injected navigation ✓  ② Delete index pages ✓ ": "① 剥离注入导航 ✓  ② 删除索引页 ✓ ",
+  };
+
+  /* ---------- 语言状态与运行时（双向：zh↔en） ---------- */
+  /* zhStore：原文含中文的节点 → 原文；enStore：原文纯英文的节点 → 原文。
+   * en 态：zhStore 节点按 EN 词典翻译（无键保留原文）；enStore 节点还原原文。
+   * zh 态：两类节点的原文均按 ZH 词典翻译（无键保留原文）；
+   *        未收录的纯英文节点登记进 enStore 并翻译。 */
   var stored = null;
   try { stored = localStorage.getItem("ct-lang"); } catch (e) {}
   window.CT_LANG = (stored === "zh") ? "zh" : "en"; // 默认英文
 
-  window.ctT = function (zh) {
-    if (window.CT_LANG !== "en") return zh;
-    var en = window.CT_I18N_EN[zh];
-    return en !== undefined ? en : zh;
+  window.ctT = function (s) {
+    if (window.CT_LANG === "en") {
+      var e = window.CT_I18N_EN[s];
+      return e !== undefined ? e : s;
+    }
+    var z = window.CT_I18N_ZH[s];
+    return z !== undefined ? z : s;
   };
 
-  var CJK = /[\u4e00-\u9fff\u00b7\u3000-\u303f\uff00-\uffef]/;
-  var ctTextStore = new Map(); // TextNode → 原文
+  var ctZhStore = new Map();
+  var ctEnStore = new Map();
 
-  function translateTextNode(node) {
-    var v = node.nodeValue;
-    if (!v || ctTextStore.has(node) || !/[\u4e00-\u9fff]/.test(v)) return;
-    var trimmed = v.trim();
-    var en = window.CT_I18N_EN[trimmed];
-    if (en === undefined) return;
-    var i = v.indexOf(trimmed);
-    ctTextStore.set(node, v);
-    node.nodeValue = v.slice(0, i) + en + v.slice(i + trimmed.length);
+  function replaceCore(text, dict) {
+    var trimmed = text.trim();
+    var t = dict[trimmed];
+    if (t === undefined || trimmed === "") return text;
+    var i = text.indexOf(trimmed);
+    return text.slice(0, i) + t + text.slice(i + trimmed.length);
   }
 
   window.ctApplyLang = function () {
-    var en = window.CT_LANG === "en";
+    var lang = window.CT_LANG;
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: function (n) {
         var p = n.parentNode;
@@ -542,25 +810,46 @@
     });
     var nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
-    if (en) {
-      nodes.forEach(translateTextNode);
-    } else {
-      nodes.forEach(function (n) {
-        if (ctTextStore.has(n)) n.nodeValue = ctTextStore.get(n);
-      });
-      ctTextStore.clear();
-    }
+    nodes.forEach(function (n) {
+      var v = n.nodeValue;
+      if (!v) return;
+      if (lang === "en") {
+        if (ctZhStore.has(n)) {
+          n.nodeValue = replaceCore(ctZhStore.get(n), window.CT_I18N_EN);
+        } else if (ctEnStore.has(n)) {
+          n.nodeValue = ctEnStore.get(n);
+        } else if (/[\u4e00-\u9fff]/.test(v)) {
+          var key = v.trim();
+          if (window.CT_I18N_EN[key] !== undefined) {
+            ctZhStore.set(n, v);
+            n.nodeValue = replaceCore(v, window.CT_I18N_EN);
+          }
+        }
+      } else {
+        if (ctZhStore.has(n)) {
+          n.nodeValue = replaceCore(ctZhStore.get(n), window.CT_I18N_ZH);
+        } else if (ctEnStore.has(n)) {
+          n.nodeValue = replaceCore(ctEnStore.get(n), window.CT_I18N_ZH);
+        } else {
+          var key = v.trim();
+          if (window.CT_I18N_ZH[key] !== undefined) {
+            ctEnStore.set(n, v);
+            n.nodeValue = replaceCore(v, window.CT_I18N_ZH);
+          }
+        }
+      }
+    });
     /* <title> 单独处理 */
     if (document.__ctTitleOrig === undefined) document.__ctTitleOrig = document.title;
-    if (en) {
+    if (lang === "en") {
       var t = document.__ctTitleOrig.trim();
       var te = window.CT_I18N_EN[t];
       if (te !== undefined) document.title = te;
     } else {
-      document.title = document.__ctTitleOrig;
+      var tz = window.CT_I18N_ZH[document.__ctTitleOrig.trim()];
+      document.title = tz !== undefined ? tz : document.__ctTitleOrig;
     }
     updateLangButtons();
-
   };
 
   function updateLangButtons() {

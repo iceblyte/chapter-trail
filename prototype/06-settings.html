@@ -131,10 +131,10 @@
   });
 
   document.getElementById("inp-filename").addEventListener("change", function (e) {
-    ctToast("Index file name updated", "new pages will use “" + e.target.value + "” · affected domains marked “Index outdated” · nothing renamed");
+    ctToast(ctT("Index file name updated"), ctT("new pages will use “") + e.target.value + ctT("” · affected domains marked “Index outdated” · nothing renamed"));
   });
   document.getElementById("sel-date").addEventListener("change", function (e) {
-    ctToast("Date display: " + e.target.value, "3 domains marked “Index outdated” — rebuild their index pages to apply");
+    ctToast(ctT("Date display: ") + e.target.value, ctT("3 domains marked “Index outdated” — rebuild their index pages to apply"));
   });
 
   toggle.addEventListener("click", function () {
@@ -152,19 +152,19 @@
     ctCloseModal("dlg-enable");
     toggle.classList.add("is-on");
     extra.classList.remove("is-open");
-    ctProgressToast("Writing navigation — {n}/{total} notes", "chunk of 25 · top + bottom blocks · 3 domains", 47, 25, function () {
-      ctToast("✓ Injection enabled", "47 notes written · wrapped in nav-begin/nav-end markers · See 07 for the progress demo");
+    ctProgressToast(ctT("Writing navigation — {n}/{total} notes"), "chunk of 25 · top + bottom blocks · 3 domains", 47, 25, function () {
+      ctToast(ctT("✓ Injection enabled"), ctT("47 notes written · wrapped in nav-begin/nav-end markers · See 07 for the progress demo"));
     });
   });
   document.getElementById("btn-strip").addEventListener("click", function () {
     extra.classList.remove("is-open");
-    ctProgressToast("Stripping markers — {n}/{total} notes", "nav-begin / nav-end blocks only · your own callouts untouched", 47, 47, function () {
-      ctToast("✓ All injected markers removed", "zero residue in notes · user-written callouts preserved");
+    ctProgressToast(ctT("Stripping markers — {n}/{total} notes"), "nav-begin / nav-end blocks only · your own callouts untouched", 47, 47, function () {
+      ctToast(ctT("✓ All injected markers removed"), ctT("zero residue in notes · user-written callouts preserved"));
     });
   });
   document.getElementById("btn-keep").addEventListener("click", function () {
     extra.classList.remove("is-open");
-    ctToast("Kept existing markers", "they remain removable later via the Remove-all wizard");
+    ctToast(ctT("Kept existing markers"), ctT("they remain removable later via the Remove-all wizard"));
   });
 })();
 </script>

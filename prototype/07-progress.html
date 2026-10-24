@@ -93,11 +93,11 @@
     running = true;
     logEl.innerHTML = "";
     log("▶ " + title, "ok");
-    log("confirm ok · EchoLedger armed · ChunkedWriter start");
+    log(ctT("confirm ok · EchoLedger armed · ChunkedWriter start"));
 
     var el = document.createElement("div");
     el.className = "ct-toast";
-    el.innerHTML = "<div>" + title + " — 0/" + total + '<span class="ct-cancel">Cancel</span></div><div class="ct-pbar"><i></i></div><div class="ct-toast-sub">chunk 0/' + Math.ceil(total / chunk) + "</div>";
+    el.innerHTML = "<div>" + title + " — 0/" + total + '<span class="ct-cancel">Cancel</span></div><div class="ct-pbar"><i></i></div><div class="ct-toast-sub">' + ctT("chunk ") + "0/" + Math.ceil(total / chunk) + "</div>";
     document.querySelector(".ct-toast-root") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "ct-toast-root", className: "ct-toast-root" }));
     document.getElementById("ct-toast-root").appendChild(el);
     var bar = el.querySelector(".ct-pbar i");
@@ -116,27 +116,27 @@
         done++;
         if (writer && total >= 20 && (done === Math.floor(total * 0.3) || done === Math.floor(total * 0.62) || done === Math.floor(total * 0.85))) { failures.push(done); skippedTotal++; }
       }
-      log("chunk " + fmt(chunkNo) + "/" + fmt(totalChunks) + " · " + done + "/" + total + " files written · yield to UI thread", "dim");
-      failures.forEach(function (f) { log("  ⚠ skip file #" + f + " — locked by another process (collected for summary)", "warn"); });
+      log(ctT("chunk ") + fmt(chunkNo) + "/" + fmt(totalChunks) + " · " + done + "/" + total + ctT(" files written · yield to UI thread"), "dim");
+      failures.forEach(function (f) { log("  ⚠ " + ctT("skip file #") + f + ctT(" — locked by another process (collected for summary)"), "warn"); });
       bar.style.width = (done / total * 100).toFixed(1) + "%";
       el.querySelector("div").innerHTML = title + " — " + done + "/" + total + '<span class="ct-cancel">Cancel</span>';
       el.querySelector(".ct-cancel").addEventListener("click", function () { cancelled = true; });
-      sub.textContent = "chunk " + chunkNo + "/" + totalChunks + (failures.length ? " · " + failures.length + " skipped" : "");
+      sub.textContent = ctT("chunk ") + chunkNo + "/" + totalChunks + (failures.length ? " · " + failures.length + ctT(" skipped") : "");
 
       if (cancelled && done < total) {
-        log("■ cancelled by user at " + done + "/" + total + " — written files keep their new content", "warn");
-        el.querySelector("div").textContent = "Cancelled at " + done + " / " + total;
-        sub.textContent = "written files keep content · nothing rolled back";
+        log(ctT("■ cancelled by user at ") + done + "/" + total + ctT(" — written files keep their new content"), "warn");
+        el.querySelector("div").textContent = ctT("Cancelled at ") + done + " / " + total;
+        sub.textContent = ctT("written files keep content · nothing rolled back");
         setTimeout(function () { el.classList.add("is-leaving"); setTimeout(function () { el.remove(); }, 300); }, 2400);
         running = false;
         return;
       }
       if (done >= total) {
         var secs = ((performance.now() - t0) / 1000).toFixed(1);
-        var skipTxt = skippedTotal ? " · skipped: " + skippedTotal + " (panel marked yellow)" : "";
-        log("✓ done in " + secs + "s · " + done + " written" + skipTxt, "ok");
-        el.querySelector("div").textContent = "✓ " + title + " — complete";
-        sub.textContent = done + " files written" + (skippedTotal ? " · " + skippedTotal + " skipped (locked)" : "") + " · " + secs + "s";
+        var skipTxt = skippedTotal ? ctT(" · skipped: ") + skippedTotal + ctT(" (panel marked yellow)") : "";
+        log(ctT("✓ done in ") + secs + "s · " + done + ctT(" written") + skipTxt, "ok");
+        el.querySelector("div").textContent = "✓ " + title + ctT(" — complete");
+        sub.textContent = done + ctT(" files written") + (skippedTotal ? " · " + skippedTotal + ctT(" skipped (locked)") : "") + " · " + secs + "s";
         setTimeout(function () { el.classList.add("is-leaving"); setTimeout(function () { el.remove(); }, 300); }, 3400);
         running = false;
         return;
@@ -147,13 +147,13 @@
   }
 
   document.getElementById("btn-all").addEventListener("click", function () {
-    runBatch("Rebuilding all indexes", 3, 3, true);
+    runBatch(ctT("Rebuilding all indexes"), 3, 3, true);
   });
   document.getElementById("btn-inj").addEventListener("click", function () {
-    runBatch("Rebuilding all injections", 47, 25, true);
+    runBatch(ctT("Rebuilding all injections"), 47, 25, true);
   });
   document.getElementById("btn-first").addEventListener("click", function () {
-    runBatch("Assigning first-run orders", 20, 25, false);
+    runBatch(ctT("Assigning first-run orders"), 20, 25, false);
   });
 })();
 </script>

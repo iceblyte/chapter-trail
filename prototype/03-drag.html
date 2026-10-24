@@ -201,7 +201,7 @@
     badge.classList.add("is-updated");
     src.classList.add("is-flash");
     renumber(listA);
-    ctToast("Entry moved", "order = 35000 (midpoint of 30000 / 40000) · 1 file written · Git diff minimal");
+    ctToast(ctT("Entry moved"), ctT("order = 35000 (midpoint of 30000 / 40000) · 1 file written · Git diff minimal"));
     setTimeout(function () { src.classList.remove("is-flash"); badge.classList.remove("is-updated"); playingA = false; }, 1400);
   });
 
@@ -244,7 +244,7 @@
     });
     src.classList.remove("is-lifted");
     renumber(listB);
-    ctToast("Gap too tight — reordered the whole domain, then placed the entry",
+    ctToast(ctT("Gap too tight — reordered the whole domain, then placed the entry"),
       ctT("「读书笔记/卡片盒笔记法」 orders normalized to 10000-step · chain sequence unchanged"), { ms: 5600 });
     setTimeout(function () {
       finalRows.forEach(function (row) { row.classList.remove("is-flash"); });

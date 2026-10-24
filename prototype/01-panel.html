@@ -238,15 +238,15 @@
       if (chips && chips.children.length) attention++;
     });
     var el = document.getElementById("summary-text");
-    if (el) el.textContent = cards.length + " domains · " + attention + " need" + (attention === 1 ? "s" : "") + " attention";
+    if (el) el.textContent = cards.length + ctT(cards.length === 1 ? " domain · " : " domains · ") + attention + ctT(attention === 1 ? " needs attention" : " need attention");
   }
 
   /* ---------- 重扫 / 遗留 order ---------- */
   document.getElementById("btn-rescan").addEventListener("click", function () {
-    ctToast("Vault rescanned", "3 managed domains · 0 orphan index pages · 210 markdown files · 0.4s");
+    ctToast(ctT("Vault rescanned"), ctT("3 managed domains · 0 orphan index pages · 210 markdown files · 0.4s"));
   });
   document.getElementById("btn-review").addEventListener("click", function () {
-    ctToast(ctT("Legacy orders — 旧项目/周刊 (dissolved)"), "12 files still carry order fields · <b>Clear all</b> after confirmation", { ms: 5200 });
+    ctToast(ctT("Legacy orders — 旧项目/周刊 (dissolved)"), ctT("12 files still carry order fields · <b>Clear all</b> after confirmation"), { ms: 5200 });
   });
 
   /* ---------- 重建索引 ---------- */
@@ -262,11 +262,11 @@
   document.getElementById("rebuild-confirm").addEventListener("click", function () {
     ctCloseModal("ct-modal-rebuild");
     var card = pendingCard;
-    ctProgressToast("Rebuilding index — {n}/{total}", "writing the marked block of 目录.md …", 1, 1, function () {
+    ctProgressToast(ctT("Rebuilding index — {n}/{total}"), ctT("writing the marked block of 目录.md …"), 1, 1, function () {
       var chips = card.querySelector(".ct-chips");
       if (chips) chips.innerHTML = "";
       refreshSummary();
-      ctToast("✓ Index rebuilt", card.querySelector(".ct-card-path").textContent + " · 1 file written · entries sorted by order");
+      ctToast(ctT("✓ Index rebuilt"), card.querySelector(".ct-card-path").textContent + ctT(" · 1 file written · entries sorted by order"));
     });
   });
 
@@ -275,13 +275,13 @@
     btn.addEventListener("click", function () {
       var card = document.getElementById(btn.dataset.ctCard);
       var n = card ? card.querySelectorAll(".ct-row").length : 0;
-      ctToast("Order normalized — " + n + " notes", "10000-step integers · chain sequence unchanged · Git diff limited to changed values");
+      ctToast(ctT("Order normalized — ") + n + ctT(" notes"), ctT("10000-step integers · chain sequence unchanged · Git diff limited to changed values"));
     });
   });
   document.querySelectorAll("[data-ct-reinj]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      ctProgressToast("Rebuilding injection — {n}/{total}", "nav-begin / nav-end blocks · chunk 1/1", 5, 5, function () {
-        ctToast("✓ Injection rebuilt", "5 notes · top + bottom callouts · prev/next links follow the current chain");
+      ctProgressToast(ctT("Rebuilding injection — {n}/{total}"), ctT("nav-begin / nav-end blocks · chunk 1/1"), 5, 5, function () {
+        ctToast(ctT("✓ Injection rebuilt"), ctT("5 notes · top + bottom callouts · prev/next links follow the current chain"));
       });
     });
   });
@@ -301,7 +301,7 @@
     var card = stopCard; stopCard = null;
     card.classList.add("is-removing");
     setTimeout(function () { card.remove(); refreshSummary(); }, 360);
-    ctToast("Domain dissolved", "目录.md deleted · remaining order fields (if any) will surface in the vault banner");
+    ctToast(ctT("Domain dissolved"), ctT("目录.md deleted · remaining order fields (if any) will surface in the vault banner"));
   });
 
   /* ---------- 行右键菜单：Move up / Move down（中点插入 + 过密自动重排） ---------- */
@@ -357,10 +357,10 @@
     setTimeout(function () { badge.classList.remove("is-updated"); }, 1600);
     renumber(list);
     ctToast(
-      normalized ? "Gap too tight — reordered the whole domain, then placed the entry" : "Entry moved",
+      ctT(normalized ? "Gap too tight — reordered the whole domain, then placed the entry" : "Entry moved"),
       normalized
-        ? "orders normalized to 10000-step · chain sequence unchanged · order = " + newOrder
-        : "order = " + newOrder + " · 1 file written (midpoint insert, Git diff minimal)"
+        ? ctT("orders normalized to 10000-step · chain sequence unchanged · order = ") + newOrder
+        : "order = " + newOrder + ctT(" · 1 file written (midpoint insert, Git diff minimal)")
     );
   }
   ctxMenu.addEventListener("click", function (e) {

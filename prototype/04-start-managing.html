@@ -130,7 +130,7 @@
   });
   document.getElementById("btn-create").addEventListener("click", function () {
     ctCloseModal("ct-modal-mode");
-    ctProgressToast("Creating domain — {n}/{total}", ctT("writing 随笔/目录.md · is-index: true · marked block"), 1, 1, function () {
+    ctProgressToast(ctT("Creating domain — {n}/{total}"), ctT("writing 随笔/目录.md · is-index: true · marked block"), 1, 1, function () {
       var badgeClass = chosenMode === "Series" ? "is-series" : "";
       var card = document.createElement("div");
       card.className = "ct-card";
@@ -143,11 +143,11 @@
         '<div class="ct-row" data-order="20000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">02</span>' + ctT("数字花园的缓慢生长") + '</span><span class="ct-row-date">2026-08-30</span><span class="ct-row-order">20000</span></div>' +
         '<div class="ct-row" data-order="30000"><span class="ct-grip">⠿</span><span class="ct-row-title"><span class="ct-seq">03</span>' + ctT("周更的节奏") + '</span><span class="ct-row-date">2026-09-07</span><span class="ct-row-order">30000</span></div>' +
         '</div>' +
-        '<div class="ct-card-actions"><button class="ct-btn">Rebuild index</button><button class="ct-btn">Reindex order</button></div>';
+        '<div class="ct-card-actions"><button class="ct-btn">' + ctT("Rebuild index") + '</button><button class="ct-btn">' + ctT("Reindex order") + '</button></div>';
       document.getElementById("panel-body").appendChild(card);
       document.getElementById("summary-text").textContent = "2 domains · 1 needs attention";
-      ctToast("✓ Domain created — " + chosenFolder,
-        "目录.md written (1 file) · existing notes got 10000-step order by filename order · review the suggested order in the panel", { ms: 6000 });
+      ctToast(ctT("✓ Domain created — ") + chosenFolder,
+        ctT("目录.md written (1 file) · existing notes got 10000-step order by filename order · review the suggested order in the panel"), { ms: 6000 });
     });
   });
 })();
