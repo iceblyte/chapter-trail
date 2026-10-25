@@ -11,7 +11,9 @@ import {
 import type { OrderEntry } from "../../src/types";
 
 function entry(path: string, order?: number): OrderEntry {
-  return order === undefined ? { path, kind: "file", title: path } : { path, kind: "file", title: path, order };
+  return order === undefined
+    ? { path, kind: "file", title: path }
+    : { path, kind: "file", title: path, order };
 }
 
 describe("orderValue whitelist", () => {
