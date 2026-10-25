@@ -107,7 +107,11 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
             i18n={props.i18n}
           />
         ))}
-        {domains.length === 0 && <div className="ct-empty-note">{t("Not available yet")}</div>}
+        {domains.length === 0 && (
+					<div className="ct-empty-note">
+						{t("No managed folders yet — use the button below to start managing one")}
+					</div>
+				)}
       </div>
 
       <div className="ct-panel-foot">
