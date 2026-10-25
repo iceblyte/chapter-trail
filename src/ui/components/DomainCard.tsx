@@ -52,7 +52,7 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
           ⋮
         </button>
         {menuOpen && (
-          <div className="ct-menu is-open">
+          <div className="ct-menu is-open" style={{ top: "30px", right: "8px" }}>
             <button
               type="button"
               className="ct-menu-item"

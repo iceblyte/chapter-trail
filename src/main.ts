@@ -42,7 +42,20 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   private cacheResolvedUnsub: (() => void) | undefined;
   readonly panelActions: PanelActions = {
     rescan: async () => {
+      const startedAt = this.clockPort.now();
       await this.services.scan();
+      const registry = this.store.getSnapshot();
+      this.notifierPort.notice(
+        `${this.i18n.t("Vault rescanned")} — ${this.i18n.t(
+          "{n} managed domains · {n2} orphan index pages · {n3} markdown files · {s}s",
+          {
+            n: registry.domains.size,
+            n2: registry.orphans.length,
+            n3: this.vaultPort.listMarkdownFiles().length,
+            s: ((this.clockPort.now() - startedAt) / 1000).toFixed(1),
+          },
+        )}`,
+      );
     },
     openSettings: () => {
       const app = this.app as typeof this.app & {
@@ -51,16 +64,22 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
       app.setting?.open();
       if (this.settingsTab) app.setting?.openTab(this.settingsTab);
     },
-    reviewLegacyOrders: (domain) => {
+    reviewLegacyOrders: async (domain) => {
       const paths = this.store.getSnapshot().legacyOrders.get(domain) ?? [];
-      this.notifierPort.notice(
-        this.i18n.t("Legacy orders — {domain} (dissolved)", { domain }) +
-          " — " +
-          this.i18n.t("{n} files still carry order fields · <b>Clear all</b> after confirmation", {
-            n: paths.length,
-          }),
-        6000,
-      );
+      if (paths.length === 0) return;
+      const t = this.i18n.t.bind(this.i18n);
+      const choice = await this.confirmPort.confirm({
+        title: t("Clear legacy orders?"),
+        body: t(
+          "This removes the <code>order</code> field from <b>{n} files</b> outside any managed domain. This cannot be undone except by reordering.",
+          { n: paths.length },
+        ),
+        confirmLabel: t("Clear order in {n} files", { n: paths.length }),
+        cancelLabel: t("Cancel"),
+        confirmDanger: true,
+      });
+      if (!choice.confirmed) return;
+      await this.services.clearLegacyOrders(paths);
     },
     rebuildIndex: async (root) => {
       await this.services.rebuildIndex(root);
@@ -80,18 +99,33 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     resolveConflict: (root, conflictPath) => this.resolveConflictFlow(root, conflictPath),
     moveEntry: (root, path, targetIndex) => this.services.moveEntry(root, path, targetIndex),
     startManagingFlow: (folder, mode) => this.services.startManaging(folder, mode),
+    previewStartManaging: (folder) => this.services.previewStartManaging(folder),
     listFolderCandidates: () => {
       const managedRoots = new Set(this.store.getSnapshot().domains.keys());
       const files = this.vaultPort.listMarkdownFiles();
-      return this.vaultPort
-        .listFolders()
+      const folders = this.vaultPort.listFolders();
+      return folders
         .map((folder) => {
           const directPrefix = folder === "" ? "" : `${folder}/`;
-          const noteCount = files.filter(
+          const directFiles = files.filter(
             (path) =>
               path.startsWith(directPrefix) && !path.slice(directPrefix.length).includes("/"),
+          );
+          const subfolderCount = folders.filter(
+            (other) =>
+              other.startsWith(directPrefix) && !other.slice(directPrefix.length).includes("/"),
           ).length;
-          return { path: folder, noteCount, managed: managedRoots.has(folder) };
+          const orderlessCount = directFiles.filter((path) => {
+            const fm = this.vaultPort.getFrontmatter(path);
+            return fm?.order === undefined && fm?.["is-index"] !== true;
+          }).length;
+          return {
+            path: folder,
+            noteCount: directFiles.length,
+            subfolderCount,
+            orderlessCount,
+            managed: managedRoots.has(folder),
+          };
         })
         .filter((candidate) => candidate.managed || candidate.noteCount > 0)
         .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
@@ -501,6 +535,13 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
         this.i18n.t("{n} domains marked “Index outdated” — rebuild their index pages to apply", {
           n: roots.length,
         }),
+    );
+  }
+
+  async onAutoRebuildChange(enabled: boolean): Promise<void> {
+    await this.saveSettings();
+    this.notifierPort.notice(
+      this.i18n.t("Auto-rebuild is now {state}", { state: this.i18n.t(enabled ? "on" : "off") }),
     );
   }
 

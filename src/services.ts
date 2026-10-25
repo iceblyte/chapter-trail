@@ -463,10 +463,9 @@ export class PluginServices {
     this.deps.notifier.notice(
       this.deps.i18n.t("Order normalized — {n} notes", { n: domain.entries.length }),
     );
+    await this.scan();
     if (this.settings.autoRebuildIndex) {
       await this.rebuildIndex(root, { silent: true });
-    } else {
-      await this.scan();
     }
     return result.written.length;
   }
@@ -505,11 +504,12 @@ export class PluginServices {
       );
     }
 
+    // rescan first so the rebuild renders the fresh chain
+    await this.scan();
     if (this.settings.autoRebuildIndex) {
       await this.rebuildIndex(root, { silent: true });
     } else {
       this.deps.store.markStale([root]);
-      await this.scan();
     }
   }
 
@@ -574,13 +574,42 @@ export class PluginServices {
 
   async rebuildInjection(root: DomainId): Promise<number> {
     const gate = this.gate();
-    if (!gate) return 0;
+    if (!gate) {
+      // the command stays visible; tell the user why nothing happened
+      this.deps.notifier.notice(
+        this.deps.i18n.t("Navigation injection is off — turn it on in settings first"),
+      );
+      return 0;
+    }
     const registry = this.deps.store.getSnapshot();
     const domain = registry.domains.get(root);
     if (!domain) return 0;
     const written = await this.writeInjectionFor(gate, domain, registry);
     this.deps.notifier.notice(this.deps.i18n.t("✓ Injection rebuilt"));
     return written;
+  }
+
+  /** One-click cleanup of a dissolved domain's leftover orders (PRD §2.5). */
+  async clearLegacyOrders(paths: readonly VaultPath[]): Promise<number> {
+    const tasks: WriteTask[] = paths.map((path) => ({
+      path,
+      apply: (raw) => {
+        const patched = patchFrontmatter(raw, [{ op: "remove", key: PLUGIN_KEYS.order }], {
+          parseYaml: this.deps.parseYaml,
+        });
+        return patched.ok ? patched.text : raw;
+      },
+    }));
+    const result = await this.deps.writer.run(tasks);
+    await this.scan();
+    this.deps.notifier.notice(
+      this.deps.i18n.t("✓ Legacy orders cleared") +
+        " — " +
+        this.deps.i18n.t("{n} file written · entries sorted by order · dead links removed", {
+          n: result.written.length,
+        }),
+    );
+    return result.written.length;
   }
 
   private async writeInjectionFor(

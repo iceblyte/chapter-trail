@@ -4,13 +4,19 @@
  */
 import type { DomainId, DomainMode, VaultPath } from "../types";
 
+export interface StartManagingPreview {
+  missingOrderCount: number;
+  hasNameClash: boolean;
+  existingOrders: number;
+}
+
 export interface PanelActions {
   /** re-scan the whole vault (⟳ in the header) */
   rescan(): Promise<void>;
   /** open the plugin settings tab */
   openSettings(): void;
-  /** open the vault-wide legacy-order review notice */
-  reviewLegacyOrders(domain: DomainId): void;
+  /** review + clear a dissolved domain's leftover orders (confirmed) */
+  reviewLegacyOrders(domain: DomainId): void | Promise<void>;
 
   rebuildIndex(root: DomainId): Promise<void>;
   reindexOrder(root: DomainId): Promise<void>;
@@ -25,6 +31,8 @@ export interface PanelActions {
 
   /** two-step start-managing flow (prototype 04), mode picked in step 2 */
   startManagingFlow(folder: DomainId, mode: DomainMode): Promise<void>;
+  /** pre-check for the flow's confirmation copy (write counts etc.) */
+  previewStartManaging(folder: DomainId): StartManagingPreview;
   /** candidate folders for the flow, with metadata for the picker */
   listFolderCandidates(): FolderCandidate[];
 }
@@ -32,5 +40,7 @@ export interface PanelActions {
 export interface FolderCandidate {
   path: DomainId;
   noteCount: number;
+  subfolderCount: number;
+  orderlessCount: number;
   managed: boolean;
 }

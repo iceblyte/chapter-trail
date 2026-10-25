@@ -25,6 +25,7 @@ const noopActions: PanelActions = {
   resolveConflict: () => Promise.resolve(),
   moveEntry: () => Promise.resolve(),
   startManagingFlow: () => Promise.resolve(),
+  previewStartManaging: () => ({ missingOrderCount: 0, hasNameClash: false, existingOrders: 0 }),
   listFolderCandidates: () => [],
 };
 

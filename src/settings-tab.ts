@@ -13,6 +13,8 @@ export interface SettingsHooks {
   onIndexFileNameChange(name: string): Promise<string>;
   /** persist a new date display mode */
   onDateDisplayChange(mode: ChapterTrailSettings["dateDisplay"]): Promise<void>;
+  /** persist the auto-rebuild switch */
+  onAutoRebuildChange(enabled: boolean): Promise<void>;
   /** user flipped the injection gate; returns the final gate state */
   onInjectionToggle(next: boolean): Promise<boolean>;
   /** how many notes currently carry nav markers */
@@ -79,6 +81,22 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
         drop.setValue(this.host.settings.dateDisplay);
         drop.onChange(async (value) => {
           await this.hooks.onDateDisplayChange(value as ChapterTrailSettings["dateDisplay"]);
+        });
+      });
+
+    /* Auto-rebuild index after order writes (PRD §2.5, default off) */
+    new Setting(containerEl)
+      .setName(t("Auto-rebuild index after order changes"))
+      .setDesc(
+        t(
+          "When on, an order write in a domain (drag landing, reindex, first-run assignment, tight-gap auto normalize) automatically rebuilds that domain’s index — only the affected domain, never the whole vault. When off, the domain is flagged “Index outdated” for a manual rebuild.",
+        ),
+      )
+      .addToggle((toggle) => {
+        toggle.setValue(this.host.settings.autoRebuildIndex);
+        toggle.onChange(async (next) => {
+          this.host.settings.autoRebuildIndex = next;
+          await this.hooks.onAutoRebuildChange(next);
         });
       });
 

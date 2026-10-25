@@ -27,6 +27,7 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
   const filtered = candidates.filter((candidate) =>
     candidate.path.toLowerCase().includes(filter.toLowerCase()),
   );
+  const selected = candidates.find((candidate) => candidate.path === folder);
 
   const confirm = (): void => {
     if (step === 1) {
@@ -71,7 +72,7 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
                       ? t("already managed")
                       : t("{n} notes · {n2} subfolder · no index page yet", {
                           n: candidate.noteCount,
-                          n2: 0,
+                          n2: candidate.subfolderCount,
                         })
                   }
                   onClick={() => !candidate.managed && setFolder(candidate.path)}
@@ -105,10 +106,15 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
               />
             </div>
             <div className="ct-modal-warn">
-              {t(
-                "Creates <b>{indexFile}.md</b> with <code>is-index: true</code> and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.",
-                { indexFile: props.settings?.indexFileName ?? "目录" },
-              )}
+              {(selected && selected.orderlessCount > 0
+                ? `${t("{n} orderless notes will get 10000-step orders by filename order", {
+                    n: selected.orderlessCount,
+                  })}<br>`
+                : "") +
+                t(
+                  "Creates <b>{indexFile}.md</b> with <code>is-index: true</code> and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.",
+                  { indexFile: props.settings?.indexFileName ?? "目录" },
+                )}
             </div>
           </>
         )}

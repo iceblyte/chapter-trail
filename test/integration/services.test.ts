@@ -330,3 +330,50 @@ describe("startManaging — first run with pre-existing orders", () => {
     expect(h.store.getSnapshot().domains.get("随笔")?.status.legacyHint).toBe(true);
   });
 });
+
+describe("legacy-order cleanup (vault banner → Review)", () => {
+  it("clears leftover orders outside every domain after confirmation", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h);
+    h.vault.seed("旧项目/周刊/a.md", note(10000));
+    h.vault.seed("旧项目/周刊/b.md", note(20000));
+    await h.services.scan();
+
+    const paths = h.store.getSnapshot().legacyOrders.get("旧项目/周刊") ?? [];
+    expect(paths.length).toBe(2);
+
+    await h.services.clearLegacyOrders(paths);
+    expect(orderOf(h, "旧项目/周刊/a.md")).toBeUndefined();
+    expect(orderOf(h, "旧项目/周刊/b.md")).toBeUndefined();
+    // domain notes keep their orders; the banner is gone after rescan
+    expect(orderOf(h, "Blogs/01 为什么选择 Quartz.md")).toBe(10000);
+    expect(h.store.getSnapshot().legacyOrders.size).toBe(0);
+  });
+});
+
+describe("auto-rebuild after order writes (PRD §2.5)", () => {
+  it("a drag landing rebuilds the index automatically when enabled", async () => {
+    const h = makeHarness({ autoRebuildIndex: true });
+    seedSeriesVault(h);
+    await h.services.scan();
+    await h.services.rebuildIndex("Blogs");
+    const before = h.vault.readContent("Blogs/目录.md");
+    expect(before).toContain("[01 为什么选择 Quartz](./01 为什么选择 Quartz.md)");
+
+    // drag 01 below 02 — chain becomes 02,01,03,04,05
+    await h.services.moveEntry("Blogs", "Blogs/01 为什么选择 Quartz.md", 1);
+
+    const after = h.vault.readContent("Blogs/目录.md");
+    expect(after).not.toBe(before);
+    expect(after.indexOf("02 环境搭建与部署")).toBeLessThan(after.indexOf("01 为什么选择 Quartz"));
+    expect(h.store.getSnapshot().domains.get("Blogs")?.status.stale).toBe(false);
+  });
+
+  it("with auto-rebuild off, the domain is flagged stale instead", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h);
+    await h.services.scan();
+    await h.services.moveEntry("Blogs", "Blogs/01 为什么选择 Quartz.md", 1);
+    expect(h.store.getSnapshot().domains.get("Blogs")?.status.stale).toBe(true);
+  });
+});

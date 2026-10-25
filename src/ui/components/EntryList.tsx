@@ -206,6 +206,21 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
   const dragState = props.onDragState;
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
+  /* the context menu closes on any outside click or Escape */
+  useEffect(() => {
+    if (!menu) return;
+    const close = (): void => setMenu(null);
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setMenu(null);
+    };
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
   useEffect(() => {
     const element = rowRef.current;
     const grip = gripRef.current;
