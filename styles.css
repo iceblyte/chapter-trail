@@ -597,3 +597,38 @@ body {
 .ct-row .ct-caret:hover {
   color: var(--text-normal);
 }
+
+/* ---------- panel: header row / card collapse ---------- */
+.ct-head-row {
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-faint);
+  font-size: 10.5px;
+  user-select: none;
+}
+.ct-head-row .ct-row-date {
+  width: 60px;
+}
+.ct-row .ct-row-date {
+  min-width: 60px;
+  text-align: right;
+}
+.ct-row .ct-caret {
+  cursor: pointer;
+}
+.ct-card-head .ct-caret {
+  width: 16px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 10px;
+  flex: none;
+}
+.ct-card-head .ct-caret:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+  border-radius: 4px;
+}

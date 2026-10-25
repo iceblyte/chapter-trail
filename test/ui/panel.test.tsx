@@ -20,6 +20,8 @@ const noopActions: PanelActions = {
   reindexOrder: () => Promise.resolve(),
   rebuildInjection: () => Promise.resolve(),
   openIndexPage: () => {},
+
+  openFile: () => {},
   copyDomainPath: () => {},
   stopManaging: () => Promise.resolve(),
   resolveConflict: () => Promise.resolve(),

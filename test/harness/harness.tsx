@@ -96,6 +96,7 @@ async function main(): Promise<void> {
       await services.rebuildInjection(root);
     },
     openIndexPage: (path) => opened.push(path),
+    openFile: (path) => opened.push(path),
     copyDomainPath: (root) => notices.push(`[copy] ${root}`),
     stopManaging: async (root) => {
       await services.stopManaging(root, { clearOrder: false, stripNav: false });
@@ -149,6 +150,7 @@ async function main(): Promise<void> {
   root.render(<PanelRoot store={store} i18n={i18n} settings={settings} actions={actions} />);
 
   (window as unknown as Record<string, unknown>).__ct = { vault, services, store, notices };
+  (window as unknown as Record<string, unknown>).__ctOpened = opened;
   (window as unknown as Record<string, unknown>).__ctReady = true;
 }
 

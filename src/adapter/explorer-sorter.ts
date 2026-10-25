@@ -71,6 +71,15 @@ export class ExplorerSorter {
 
   /** re-apply the current registry to every visible explorer tree */
   apply(): void {
+    try {
+      this.applyInner();
+    } catch (error) {
+      // ordering must NEVER break the explorer or file opening
+      console.error("[chapter-trail] explorer sort failed", error);
+    }
+  }
+
+  private applyInner(): void {
     const registry = this.store.getSnapshot();
     if (registry.domains.size === 0) return;
     const files = this.listFiles();
@@ -92,6 +101,8 @@ export class ExplorerSorter {
   private applyDomain(domain: ManagedDomain, files: ExplorerFileLike[]): void {
     // chain rank for every entry (files and managed subfolders)
     const rank = new Map<VaultPath, number>();
+    // the index page pins to the very front of the domain root folder
+    rank.set(domain.indexPath, -1);
     domain.entries.forEach((entry, index) => {
       rank.set(entry.path, index);
     });

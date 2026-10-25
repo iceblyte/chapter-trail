@@ -40,9 +40,17 @@ interface DragData {
 }
 
 type Row =
-  | { kind: "folder"; path: string; name: string; depth: number; chainIndex: number }
+  | {
+      kind: "folder";
+      path: string;
+      name: string;
+      depth: number;
+      chainIndex: number;
+      firstFilePath: string;
+    }
   | { kind: "file"; entry: OrderEntry; chainIndex: number; depth: number }
   | { kind: "pending"; entry: OrderEntry }
+  | { kind: "unmanaged"; path: string; name: string }
   | { kind: "more"; count: number }
   | { kind: "broken"; path: string };
 
@@ -92,6 +100,7 @@ function buildSeriesRows(
         name: folderPath.slice(folderPath.lastIndexOf("/") + 1),
         depth,
         chainIndex: first?.chainIndex ?? ordered.length,
+        firstFilePath: first?.entry.path ?? "",
       });
       if (expanded.has(folderPath)) emit(child, depth + 1);
     }
@@ -214,6 +223,13 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
         </span>
         <span className="ct-moc-badge">MOC</span>
       </button>
+      <div className="ct-row ct-head-row" aria-hidden="true">
+        <span className="ct-grip" style={{ visibility: "hidden" }} />
+        <span className="ct-row-title">{t("File name")}</span>
+        <span className="ct-row-date ct-col-created">{t("Created")}</span>
+        <span className="ct-row-date ct-col-updated">{t("Updated")}</span>
+        <span className="ct-row-order">{t("Order")}</span>
+      </div>
       <div ref={scrollRef} className="ct-rows-scroll">
         <div style={{ position: "relative", height: `${virtualizer.getTotalSize()}px` }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -256,6 +272,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
                   <span className="ct-dot is-blue" style={{ marginRight: 1 }} />
                   <span className="ct-row-title">{entry.title}</span>
                   <span className="ct-row-date">—</span>
+                  <span className="ct-row-date">—</span>
                   <span className="ct-row-order">—</span>
                 </div>
               );
@@ -266,26 +283,31 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
             if (row.kind === "folder") {
               const isOpen = expanded.has(row.path);
               return (
-                <div key={virtualRow.key} className="ct-row is-folder-row" style={absoluteStyle}>
-                  <FolderDropTarget chainIndex={row.chainIndex} domainRoot={domain.root}>
-                    <span
-                      className="ct-caret"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleFolder(row.path);
-                      }}
-                    >
-                      {isOpen ? "▾" : "▸"}
-                    </span>
-                    <span
-                      className="ct-row-title is-folder"
-                      style={{ paddingLeft: row.depth * 14 }}
-                    >
-                      {row.name}
-                    </span>
-                    <span className="ct-row-date">—</span>
-                    <span className="ct-row-order">—</span>
-                  </FolderDropTarget>
+                <FolderRow
+                  key={virtualRow.key}
+                  path={row.path}
+                  name={row.name}
+                  depth={row.depth}
+                  chainIndex={row.chainIndex}
+                  firstFilePath={row.firstFilePath}
+                  isOpen={isOpen}
+                  domainRoot={domain.root}
+                  isDragging={dragging === row.firstFilePath}
+                  onDragState={setDragging}
+                  onToggle={toggleFolder}
+                  style={absoluteStyle}
+                />
+              );
+            }
+            if (row.kind === "unmanaged") {
+              return (
+                <div key={virtualRow.key} className="ct-row is-dim" style={absoluteStyle}>
+                  <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
+                    {row.name}
+                  </span>
+                  <span className="ct-row-date">—</span>
+                  <span className="ct-row-date">—</span>
+                  <span className="ct-row-order">—</span>
                 </div>
               );
             }
@@ -301,7 +323,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
                 isDragging={dragging === row.entry.path}
                 onDragState={setDragging}
                 onMove={onMove}
-                dateDisplay={props.settings.dateDisplay}
+                onOpen={props.actions.openFile}
                 style={absoluteStyle}
                 i18n={props.i18n}
               />
@@ -316,14 +338,46 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
   );
 }
 
-function FolderDropTarget(props: {
+interface FolderRowProps {
+  path: string;
+  name: string;
+  depth: number;
   chainIndex: number;
+  firstFilePath: string;
+  isOpen: boolean;
   domainRoot: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  const ref = useRef<HTMLDivElement>(null);
+  isDragging: boolean;
+  onDragState(path: string | null): void;
+  onToggle(path: string): void;
+  style: React.CSSProperties;
+}
+
+/** series folder node: caret toggles children; dragging moves the
+ *  folder's first file (the tree position follows the chain). */
+const FolderRow = (props: FolderRowProps): React.JSX.Element => {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const gripRef = useRef<HTMLSpanElement>(null);
+  const dragState = props.onDragState;
+
   useEffect(() => {
-    const element = ref.current;
+    const element = rowRef.current;
+    const grip = gripRef.current;
+    if (!element || !grip || props.firstFilePath === "") return;
+    return draggable({
+      element,
+      dragHandle: grip,
+      getInitialData: (): Record<string, unknown> => ({
+        type: DRAG_TYPE,
+        domainRoot: props.domainRoot,
+        entryPath: props.firstFilePath,
+      }),
+      onDragStart: () => dragState(props.firstFilePath),
+      onDrop: () => dragState(null),
+    });
+  }, [props.domainRoot, props.firstFilePath, dragState]);
+
+  useEffect(() => {
+    const element = rowRef.current;
     if (!element) return;
     return dropTargetForElements({
       element,
@@ -334,20 +388,35 @@ function FolderDropTarget(props: {
       getData: ({ element: el, input }) =>
         attachClosestEdge(
           { chainIndex: props.chainIndex },
-          {
-            element: el,
-            input,
-            allowedEdges: ["top", "bottom"],
-          },
+          { element: el, input, allowedEdges: ["top", "bottom"] },
         ),
     });
   }, [props.chainIndex, props.domainRoot]);
+
   return (
-    <div ref={ref} style={{ display: "contents" }}>
-      {props.children}
+    <div
+      ref={rowRef}
+      className={`ct-row is-folder-row${props.isDragging ? " is-lifted" : ""}`}
+      style={props.style}
+    >
+      <span className="ct-grip" ref={gripRef}>
+        ⠿
+      </span>
+      <span className="ct-caret" onClick={() => props.onToggle(props.path)}>
+        {props.isOpen ? "▾" : "▸"}
+      </span>
+      <span
+        className="ct-row-title is-folder"
+        style={props.depth > 0 ? { paddingLeft: props.depth * 14 } : undefined}
+      >
+        {props.name}
+      </span>
+      <span className="ct-row-date">—</span>
+      <span className="ct-row-date">—</span>
+      <span className="ct-row-order">—</span>
     </div>
   );
-}
+};
 
 interface ChainRowProps {
   entry: OrderEntry;
@@ -358,7 +427,7 @@ interface ChainRowProps {
   isDragging: boolean;
   onDragState(path: string | null): void;
   onMove(path: string, delta: -1 | 1): void;
-  dateDisplay: ChapterTrailSettings["dateDisplay"];
+  onOpen(path: string): void;
   style: React.CSSProperties;
   i18n: I18nService;
 }
@@ -424,8 +493,6 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
     });
   }, [props.chainIndex, props.domainRoot]);
 
-  const date = formatDate(entry, props.dateDisplay);
-
   return (
     <div
       ref={rowRef}
@@ -442,6 +509,8 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       <span
         className={`ct-row-title${props.isFolder ? " is-folder" : ""}`}
         style={props.depth > 0 ? { paddingLeft: props.depth * 14 } : undefined}
+        onClick={props.isFolder ? undefined : () => props.onOpen(entry.path)}
+        title={props.isFolder ? undefined : entry.path}
       >
         <span className="ct-seq">{String(props.chainIndex + 1).padStart(2, "0")}</span>
         {entry.prefix !== undefined && props.isFolder === false && (
@@ -449,7 +518,8 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
         )}
         {entry.title}
       </span>
-      <span className="ct-row-date">{date ?? "—"}</span>
+      <span className="ct-row-date">{entry.dates?.created ?? "—"}</span>
+      <span className="ct-row-date">{entry.dates?.updated ?? "—"}</span>
       <span className="ct-row-order">{entry.order ?? "—"}</span>
       {menu && (
         <div
@@ -479,12 +549,3 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
     </div>
   );
 };
-
-function formatDate(entry: OrderEntry, mode: ChapterTrailSettings["dateDisplay"]): string | null {
-  const dates = entry.dates;
-  if (!dates) return null;
-  if (mode === "created") return dates.created ?? null;
-  if (mode === "updated") return dates.updated ?? null;
-  const parts = [dates.created, dates.updated].filter((part): part is string => part !== undefined);
-  return parts.length === 2 ? parts.join(" → ") : (parts[0] ?? null);
-}

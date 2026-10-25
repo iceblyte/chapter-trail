@@ -22,6 +22,8 @@ export interface PanelActions {
   reindexOrder(root: DomainId): Promise<void>;
   rebuildInjection(root: DomainId): Promise<void>;
   openIndexPage(indexPath: VaultPath): void;
+  /** open a note in the editor (panel row click) */
+  openFile(path: VaultPath): void;
   copyDomainPath(root: DomainId): void;
   stopManaging(root: DomainId): Promise<void>;
   resolveConflict(root: DomainId, conflictPath: VaultPath): Promise<void>;

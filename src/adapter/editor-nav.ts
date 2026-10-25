@@ -77,6 +77,16 @@ function computeDecorations(view: EditorView, deps: NavDeps, store: RegistryStor
   ]);
 }
 
+/** a broken decoration must never break the editor / file opening */
+function safeDecorations(view: EditorView, deps: NavDeps, store: RegistryStore): DecorationSet {
+  try {
+    return computeDecorations(view, deps, store);
+  } catch (error) {
+    console.error("[chapter-trail] editor nav failed", error);
+    return Decoration.none;
+  }
+}
+
 /** Editor extension: display-only nav in Source mode & Live Preview. */
 export function editorNavExtension(deps: NavDeps, store: RegistryStore): Extension {
   return ViewPlugin.fromClass(
@@ -84,11 +94,11 @@ export function editorNavExtension(deps: NavDeps, store: RegistryStore): Extensi
       decorations: DecorationSet;
 
       constructor(view: EditorView) {
-        this.decorations = computeDecorations(view, deps, store);
+        this.decorations = safeDecorations(view, deps, store);
       }
 
       update(update: ViewUpdate): void {
-        this.decorations = computeDecorations(update.view, deps, store);
+        this.decorations = safeDecorations(update.view, deps, store);
       }
     },
     { decorations: (value) => value.decorations },

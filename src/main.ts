@@ -96,6 +96,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
       await this.services.rebuildInjection(root);
     },
     openIndexPage: (path) => this.openFileInEditor(path),
+    openFile: (path) => this.openFileInEditor(path),
     copyDomainPath: (root) => {
       void navigator.clipboard?.writeText(root);
       this.notifierPort.notice(`${this.i18n.t("Domain path copied")} — ${root}`);

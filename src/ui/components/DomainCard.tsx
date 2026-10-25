@@ -22,6 +22,7 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
   const { domain, settings, actions } = props;
   const { t } = useI18n(props.i18n);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,6 +40,14 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
   return (
     <div className="ct-card" ref={cardRef}>
       <div className="ct-card-head">
+        <button
+          type="button"
+          className="ct-caret"
+          title={t(cardOpen ? "Collapse" : "Expand")}
+          onClick={() => setCardOpen((open) => !open)}
+        >
+          {cardOpen ? "▾" : "▸"}
+        </button>
         <span className="ct-card-path">{domain.root}</span>
         <span className={`ct-mode-badge${domain.mode === "series" ? " is-series" : ""}`}>
           {t(domain.mode === "series" ? "Series" : "Independent")}
@@ -88,85 +97,89 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
         )}
       </div>
 
-      <div className="ct-chips">
-        {status.broken.length > 0 && (
-          <Chip tone="is-red" label={t("{n} broken links", { n: status.broken.length })} />
-        )}
-        {conflictMode && <Chip tone="is-red" label={t("Nested index conflict")} />}
-        {status.pending.length > 0 && (
-          <Chip tone="is-blue" label={t("{n} need ordering", { n: status.pending.length })} />
-        )}
-        {status.stale && <Chip tone="is-yellow" label={t("Index outdated")} />}
-        {status.tightGap && <Chip tone="is-yellow" label={t("Gaps too tight")} />}
-        {status.ties.length > 0 && (
-          <Chip tone="is-yellow" label={t("{n} tied orders", { n: status.ties.length })} />
-        )}
-        {status.legacyHint && (
-          <Chip tone="is-yellow" label={t("First run: review suggested order")} />
-        )}
-      </div>
-
-      {conflictMode ? (
-        <div className="ct-rows">
-          {status.conflicts.map((conflict) => (
-            <div key={conflict.path} className="ct-row is-dim">
-              <span className="ct-row-title">
-                <code>{conflict.path}</code> — {t("Nested index page detected")}
-              </span>
-            </div>
-          ))}
-          <div className="ct-row is-dim">
-            <span className="ct-row-title">
-              {t("resolve: demote to note / delete / exclude folder")}
-            </span>
+      {cardOpen && (
+        <>
+          <div className="ct-chips">
+            {status.broken.length > 0 && (
+              <Chip tone="is-red" label={t("{n} broken links", { n: status.broken.length })} />
+            )}
+            {conflictMode && <Chip tone="is-red" label={t("Nested index conflict")} />}
+            {status.pending.length > 0 && (
+              <Chip tone="is-blue" label={t("{n} need ordering", { n: status.pending.length })} />
+            )}
+            {status.stale && <Chip tone="is-yellow" label={t("Index outdated")} />}
+            {status.tightGap && <Chip tone="is-yellow" label={t("Gaps too tight")} />}
+            {status.ties.length > 0 && (
+              <Chip tone="is-yellow" label={t("{n} tied orders", { n: status.ties.length })} />
+            )}
+            {status.legacyHint && (
+              <Chip tone="is-yellow" label={t("First run: review suggested order")} />
+            )}
           </div>
-        </div>
-      ) : (
-        <EntryList domain={domain} settings={settings} actions={actions} i18n={props.i18n} />
-      )}
 
-      <div className="ct-card-actions">
-        {conflictMode ? (
-          <button
-            type="button"
-            className="ct-btn is-accent"
-            onClick={() =>
-              void actions.resolveConflict(
-                domain.root,
-                status.conflicts[0]?.path ?? domain.indexPath,
-              )
-            }
-          >
-            {t("Resolve…")}
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="ct-btn"
-              onClick={() => void actions.rebuildIndex(domain.root)}
-            >
-              {t("Rebuild index")}
-            </button>
-            <button
-              type="button"
-              className="ct-btn"
-              onClick={() => void actions.reindexOrder(domain.root)}
-            >
-              {t("Reindex order")}
-            </button>
-            {settings.injectNavEnabled && (
+          {conflictMode ? (
+            <div className="ct-rows">
+              {status.conflicts.map((conflict) => (
+                <div key={conflict.path} className="ct-row is-dim">
+                  <span className="ct-row-title">
+                    <code>{conflict.path}</code> — {t("Nested index page detected")}
+                  </span>
+                </div>
+              ))}
+              <div className="ct-row is-dim">
+                <span className="ct-row-title">
+                  {t("resolve: demote to note / delete / exclude folder")}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <EntryList domain={domain} settings={settings} actions={actions} i18n={props.i18n} />
+          )}
+
+          <div className="ct-card-actions">
+            {conflictMode ? (
               <button
                 type="button"
-                className="ct-btn"
-                onClick={() => void actions.rebuildInjection(domain.root)}
+                className="ct-btn is-accent"
+                onClick={() =>
+                  void actions.resolveConflict(
+                    domain.root,
+                    status.conflicts[0]?.path ?? domain.indexPath,
+                  )
+                }
               >
-                {t("Rebuild injection")}
+                {t("Resolve…")}
               </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="ct-btn"
+                  onClick={() => void actions.rebuildIndex(domain.root)}
+                >
+                  {t("Rebuild index")}
+                </button>
+                <button
+                  type="button"
+                  className="ct-btn"
+                  onClick={() => void actions.reindexOrder(domain.root)}
+                >
+                  {t("Reindex order")}
+                </button>
+                {settings.injectNavEnabled && (
+                  <button
+                    type="button"
+                    className="ct-btn"
+                    onClick={() => void actions.rebuildInjection(domain.root)}
+                  >
+                    {t("Rebuild injection")}
+                  </button>
+                )}
+              </>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
