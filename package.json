@@ -12,6 +12,7 @@
     "lint:fix": "biome check --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "gate": "node scripts/gate.mjs",
     "check:core-purity": "node scripts/check-core-purity.mjs"
   },
   "keywords": [

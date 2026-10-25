@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { hasNavBlocks } from "../../src/core/block-codec";
 import { calloutLine, calloutLines } from "../../src/core/nav-template";
-import { buildInjectionPlan, buildStripPlan, InjectionSession } from "../../src/core/nav-writer";
+import type { InjectionGate } from "../../src/core/nav-writer";
+import { buildInjectionPlan, buildStripPlan, openInjectionGate } from "../../src/core/nav-writer";
 import type { OrderEntry } from "../../src/types";
+
+function openGate(): InjectionGate {
+  const gate = openInjectionGate(true);
+  if (!gate) throw new Error("gate must mint when enabled");
+  return gate;
+}
+
+function opAt(ops: { path: string; apply: (raw: string) => string }[], index: number) {
+  const op = ops[index];
+  if (!op) throw new Error(`missing op at ${index}`);
+  return op;
+}
 
 function entry(path: string, order: number): OrderEntry {
   const base = path.slice(path.lastIndexOf("/") + 1);
@@ -54,18 +67,18 @@ describe("calloutLine matrix (PRD 2.6)", () => {
 
 describe("InjectionGate — the hard invariant (A3)", () => {
   it("a closed setting cannot mint a gate", () => {
-    expect(InjectionSession.open(false)).toBeNull();
+    expect(openInjectionGate(false)).toBeNull();
   });
 
   it("an open setting mints exactly one kind of gate", () => {
-    const gate = InjectionSession.open(true);
+    const gate = openGate();
     expect(gate).not.toBeNull();
   });
 });
 
 describe("buildInjectionPlan", () => {
   const ctx = { indexPath: "Blogs/目录.md" };
-  const gate = InjectionSession.open(true)!;
+  const gate = openGate();
 
   it("writes wrappers for chain members and strips others in scope", () => {
     const plan = buildInjectionPlan(
@@ -76,29 +89,29 @@ describe("buildInjectionPlan", () => {
     );
     expect(plan.ops.length).toBe(2);
 
-    const injected = plan.ops[0]!.apply("---\norder: 20000\n---\n正文\n");
+    const injected = opAt(plan.ops, 0).apply("---\norder: 20000\n---\n正文\n");
     expect(hasNavBlocks(injected)).toBe(true);
     expect(injected).toContain("上一篇：[01 为什么选择 Quartz](./01 为什么选择 Quartz.md)");
     expect(injected).toContain("下一篇：[03 配置详解](./进阶篇/03 配置详解.md)");
 
     const stale =
       "<!-- chapter-trail:nav-begin -->\n> [!chapter-trail]- 旧的\n<!-- chapter-trail:nav-end -->\n正文\n";
-    const stripped = plan.ops[1]!.apply(stale);
+    const stripped = opAt(plan.ops, 1).apply(stale);
     expect(hasNavBlocks(stripped)).toBe(false);
   });
 
   it("re-running a plan on already-injected text is a no-op", () => {
     const plan = buildInjectionPlan(gate, CHAIN, ["Blogs/02 环境搭建与部署.md"], ctx);
-    const once = plan.ops[0]!.apply("---\norder: 20000\n---\n正文\n");
-    expect(plan.ops[0]!.apply(once)).toBe(once);
+    const once = opAt(plan.ops, 0).apply("---\norder: 20000\n---\n正文\n");
+    expect(opAt(plan.ops, 0).apply(once)).toBe(once);
   });
 });
 
 describe("buildStripPlan", () => {
   it("returns raw text for files without markers (writer skips them)", () => {
-    const gate = InjectionSession.open(true)!;
+    const gate = openGate();
     const plan = buildStripPlan(gate, ["plain.md"]);
     const raw = "没有任何标记的笔记\n";
-    expect(plan.ops[0]!.apply(raw)).toBe(raw);
+    expect(opAt(plan.ops, 0).apply(raw)).toBe(raw);
   });
 });
