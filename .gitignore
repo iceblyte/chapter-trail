@@ -17,3 +17,9 @@ Thumbs.db
 ### CUSTOM ###
 .zcodeignore
 .zcode
+# Browser verification harness build output (source is tracked)
+test/harness/harness.js
+test/harness/styles.css
+
+# Playwright session artifacts
+.playwright-mcp/

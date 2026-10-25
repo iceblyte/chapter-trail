@@ -377,3 +377,42 @@ describe("auto-rebuild after order writes (PRD §2.5)", () => {
     expect(h.store.getSnapshot().domains.get("Blogs")?.status.stale).toBe(true);
   });
 });
+
+describe("dragging managed-folder entries (bugfix regression)", () => {
+  it("writes the subfolder's order to its index page, not the folder", async () => {
+    const h = makeHarness();
+    h.vault.seed("读书/目录.md", indexPageContent("independent"));
+    h.vault.seed("读书/01 引言.md", note(10000));
+    h.vault.seed("读书/第一部分/目录.md", indexPageContent("independent", { order: 20000 }));
+    h.vault.seed("读书/第一部分/a.md", note(10000));
+    h.vault.seed("读书/03 文献.md", note(30000));
+    await h.services.scan();
+
+    // drag the managed subfolder to the head of the chain
+    await h.services.moveEntry("读书", "读书/第一部分", 0);
+
+    // the write landed on the subdomain's index page
+    expect(orderOf(h, "读书/第一部分/目录.md")).toBe(5000);
+    expect(h.notices.some((n) => n.includes("Entry moved") || n.includes("Gap too tight"))).toBe(
+      true,
+    );
+
+    await h.services.scan();
+    const domain = h.store.getSnapshot().domains.get("读书");
+    expect(domain?.entries[0]?.title).toBe("第一部分");
+  });
+
+  it("reindexOrder also writes folder entries to their index pages", async () => {
+    const h = makeHarness();
+    h.vault.seed("读书/目录.md", indexPageContent("independent"));
+    h.vault.seed("读书/01.md", note(7000));
+    h.vault.seed("读书/第一部分/目录.md", indexPageContent("independent", { order: 12000 }));
+    h.vault.seed("读书/第一部分/a.md", note(10000));
+    await h.services.scan();
+
+    await h.services.reindexOrder("读书");
+    expect(orderOf(h, "读书/01.md")).toBe(10000);
+    expect(orderOf(h, "读书/第一部分/目录.md")).toBe(20000);
+    expect(h.notices.some((n) => n.includes("Write failed"))).toBe(false);
+  });
+});

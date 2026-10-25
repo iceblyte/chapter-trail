@@ -118,14 +118,16 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
         <button type="button" className="ct-btn is-accent" onClick={() => setFlowOpen(true)}>
           {t("＋ Start managing a folder")}
         </button>
-        {flowOpen && (
-          <AddDomainFlow
-            actions={props.actions}
-            i18n={props.i18n}
-            onClose={() => setFlowOpen(false)}
-          />
-        )}
       </div>
+
+      {flowOpen && (
+        <AddDomainFlow
+          actions={props.actions}
+          i18n={props.i18n}
+          settings={props.settings}
+          onClose={() => setFlowOpen(false)}
+        />
+      )}
     </div>
   );
 }

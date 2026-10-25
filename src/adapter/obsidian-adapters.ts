@@ -3,7 +3,8 @@
  * This file is part of the adapter layer — the only layer allowed to
  * `import "obsidian"`.
  */
-import { type App, type EventRef, Modal, Notice, TFolder } from "obsidian";
+import { type App, type EventRef, Modal, Notice, parseYaml, TFolder } from "obsidian";
+import { frontmatterText } from "../core/text-util";
 import type {
   ClockPort,
   ConfirmOption,
@@ -15,10 +16,20 @@ import type {
   VaultPort,
 } from "./ports";
 
+/** how long a self-written file bypasses the metadata cache */
+const FRESH_TTL_MS = 30_000;
+
 export class ObsidianVaultAdapter implements VaultPort {
   private handlers = new Set<(event: RawVaultEvent) => void>();
   private eventRefs: EventRef[] = [];
   private wired = false;
+  /**
+   * Files this process just wrote, keyed to their post-write content.
+   * The metadata cache re-parses asynchronously, so reads immediately
+   * after our own writes (e.g. the post-drag rescan) would otherwise
+   * see stale frontmatter and the panel would not reorder.
+   */
+  private freshWrites = new Map<string, { content: string; at: number }>();
 
   constructor(private readonly app: App) {}
 
@@ -53,13 +64,16 @@ export class ObsidianVaultAdapter implements VaultPort {
   async process(path: string, fn: (data: string) => string): Promise<string> {
     const file = this.app.vault.getFileByPath(path);
     if (!file) throw new Error(`process: file not found: ${path}`);
-    return this.app.vault.process(file, fn);
+    const result = await this.app.vault.process(file, fn);
+    this.freshWrites.set(path, { content: result, at: Date.now() });
+    return result;
   }
 
   async create(path: string, content: string): Promise<void> {
     const already = this.app.vault.getAbstractFileByPath(path);
     if (already) throw new Error(`create: already exists: ${path}`);
     await this.app.vault.create(path, content);
+    this.freshWrites.set(path, { content, at: Date.now() });
   }
 
   async rename(path: string, newPath: string): Promise<void> {
@@ -75,6 +89,14 @@ export class ObsidianVaultAdapter implements VaultPort {
   }
 
   getFrontmatter(path: string): Record<string, unknown> | null | undefined {
+    // our own recent writes win over the (eventually consistent) cache
+    const fresh = this.freshWrites.get(path);
+    if (fresh) {
+      if (Date.now() - fresh.at <= FRESH_TTL_MS) {
+        return parseWrittenFrontmatter(fresh.content);
+      }
+      this.freshWrites.delete(path);
+    }
     const file = this.app.vault.getFileByPath(path);
     if (!file) return undefined;
     return this.app.metadataCache.getFileCache(file)?.frontmatter ?? null;
@@ -266,5 +288,22 @@ class SpecModal extends Modal {
         checked: [...this.checked],
       });
     });
+  }
+}
+
+/**
+ * Parse the frontmatter of content this process just wrote. Any parse
+ * failure falls back to null (treated as "no frontmatter") — the same
+ * semantics as a cache miss, never an exception.
+ */
+function parseWrittenFrontmatter(content: string): Record<string, unknown> | null {
+  const yaml = frontmatterText(content);
+  if (yaml === null || yaml.trim() === "") return null;
+  try {
+    const parsed = parseYaml(yaml);
+    if (parsed === null || parsed === undefined) return null;
+    return typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
   }
 }

@@ -223,6 +223,20 @@ export class PluginServices {
     await this.scan();
   }
 
+  /** failed writes must never disappear silently (locked files etc.) */
+  private reportFailures(
+    stage: string,
+    failed: readonly { path: VaultPath; error: string }[],
+  ): void {
+    if (failed.length === 0) return;
+    console.error(`[chapter-trail] ${stage}: ${failed.length} writes failed`, failed);
+    this.deps.notifier.notice(
+      this.deps.i18n.t("Write failed for {n} files — see developer console", {
+        n: failed.length,
+      }),
+    );
+  }
+
   private orderWrite(path: VaultPath, value: number): WriteTask {
     return {
       path,
@@ -460,6 +474,7 @@ export class PluginServices {
     if (!domain) return 0;
     const tasks = this.normalizeTasks(domain);
     const result = await this.deps.writer.run(tasks);
+    this.reportFailures("reindexOrder", result.failed);
     this.deps.notifier.notice(
       this.deps.i18n.t("Order normalized — {n} notes", { n: domain.entries.length }),
     );
@@ -472,12 +487,22 @@ export class PluginServices {
 
   private normalizeTasks(domain: ManagedDomain): WriteTask[] {
     const tasks: WriteTask[] = [];
+    const registry = this.deps.store.getSnapshot();
     domain.entries.forEach((entry, index) => {
       const target = normalizedOrder(index);
       if (entry.order === target) return;
-      tasks.push(this.orderWrite(entry.path, target));
+      tasks.push(this.orderWrite(this.writableTarget(registry, entry.path), target));
     });
     return tasks;
+  }
+
+  /**
+   * Managed-folder entries carry the folder path, but orders are written
+   * to the subdomain's index page — translate before any write.
+   */
+  private writableTarget(registry: Registry, entryPath: VaultPath): VaultPath {
+    const domain = registry.domains.get(entryPath);
+    return domain?.indexPath ?? entryPath;
   }
 
   /** drag / move up / move down — the single everyday write path */
@@ -486,8 +511,13 @@ export class PluginServices {
     const domain = registry.domains.get(root);
     if (!domain) return;
     const plan = planInsert(domain.entries, path, targetIndex);
-    const tasks: WriteTask[] = [...plan.writes].map(([p, value]) => this.orderWrite(p, value));
-    if (tasks.length > 0) await this.deps.writer.run(tasks);
+    const tasks: WriteTask[] = [...plan.writes].map(([p, value]) =>
+      this.orderWrite(this.writableTarget(registry, p), value),
+    );
+    if (tasks.length > 0) {
+      const result = await this.deps.writer.run(tasks);
+      this.reportFailures("moveEntry", result.failed);
+    }
 
     const t = this.deps.i18n.t.bind(this.deps.i18n);
     if (plan.normalized) {

@@ -31,3 +31,25 @@ export function frontmatterBodyOffset(text: string): number {
   }
   return 0;
 }
+
+/**
+ * The raw YAML text between the frontmatter fences (no `---` lines),
+ * or null when the content has no (or an unterminated) frontmatter
+ * block.
+ */
+export function frontmatterText(content: string): string | null {
+  const open = OPEN_FENCE.exec(content);
+  if (!open) return null;
+  let search = open[0].length;
+  const lines: string[] = [];
+  while (search <= content.length) {
+    const nl = content.indexOf("\n", search);
+    const lineEnd = nl === -1 ? content.length : nl;
+    const line = content.slice(search, lineEnd).replace(/\r$/, "");
+    if (FENCE_LINE.test(line)) return lines.join("\n");
+    if (nl === -1) return null; // unterminated frontmatter
+    lines.push(line);
+    search = nl + 1;
+  }
+  return null;
+}

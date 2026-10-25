@@ -15,6 +15,7 @@ export class EventSource {
   private timer: number | null = null;
   private windowStart = 0;
   private flushing = false;
+  private onEchoDropped: (() => void) | undefined;
 
   constructor(
     private readonly vault: VaultPort,
@@ -24,7 +25,11 @@ export class EventSource {
     private readonly maxWindowMs: number = DEBOUNCE_MS * 4,
   ) {}
 
-  start(onBatch: (events: RawVaultEvent[]) => void | Promise<void>): void {
+  start(
+    onBatch: (events: RawVaultEvent[]) => void | Promise<void>,
+    onEchoDropped?: () => void,
+  ): void {
+    this.onEchoDropped = onEchoDropped;
     this.unsubscribe = this.vault.onRawEvent((event) => {
       this.push(event);
       this.schedule(onBatch);
@@ -67,10 +72,15 @@ export class EventSource {
     this.pending.clear();
     try {
       const filtered: RawVaultEvent[] = [];
+      let echoSeen = false;
       for (const event of batch) {
-        if (await this.isEcho(event)) continue;
+        if (await this.isEcho(event)) {
+          echoSeen = true;
+          continue;
+        }
         filtered.push(event);
       }
+      if (echoSeen) this.onEchoDropped?.();
       if (filtered.length > 0) await onBatch(filtered);
     } finally {
       this.flushing = false;

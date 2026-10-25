@@ -205,7 +205,16 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     });
 
     this.eventSource = new EventSource(this.vaultPort, this.clockPort, ledger);
-    this.eventSource.start((events) => this.services.handleExternalBatch(events));
+    this.eventSource.start(
+      (events) => this.services.handleExternalBatch(events),
+      // double cover for cache lag: when our own writes echo back the
+      // metadata cache has caught up — refresh once, debounced
+      () => {
+        this.clockPort.setTimeout(() => {
+          void this.services.scan();
+        }, 200);
+      },
+    );
   }
 
   onunload(): void {
@@ -301,7 +310,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   ): Promise<DomainMode | null> {
     const t = this.i18n.t.bind(this.i18n);
     const result = await this.confirmPort.confirm({
-      title: `${t("Choose a mode")} · ${t("· Step 2 of 2")}`,
+      title: `${t("Choose a mode")} ${t("· Step 2 of 2")}`,
       body: t("Mode for <b>{folder}</b> — one managed domain, one chain style:", { folder }),
       options: [
         {
@@ -398,7 +407,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     for (;;) {
       if (step === 1) {
         const result = await this.confirmPort.confirm({
-          title: `${t("Remove all Chapter Trail data")} · ${t("· Step 1 of 3")}`,
+          title: `${t("Remove all Chapter Trail data")} ${t("· Step 1 of 3")}`,
           body: t(
             "① Strip injected navigation — removes everything inside <code>chapter-trail:nav-begin/end</code> markers across {n} domains. Your own callouts are never touched.",
             { n: roots.length },
@@ -411,7 +420,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
         step = 2;
       } else if (step === 2) {
         const result = await this.confirmPort.confirm({
-          title: `${t("Remove all Chapter Trail data")} · ${t("· Step 2 of 3")}`,
+          title: `${t("Remove all Chapter Trail data")} ${t("· Step 2 of 3")}`,
           body: t(
             "② Delete index pages — confirm per domain. Dissolved domains lose their auto-maintained index; the pages are plain Markdown and stay readable otherwise.",
           ),

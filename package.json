@@ -15,7 +15,8 @@
     "bench": "vitest bench --run",
     "gate": "node scripts/gate.mjs",
     "gen-vault": "node scripts/gen-synthetic-vault.mjs",
-    "check:core-purity": "node scripts/check-core-purity.mjs"
+    "check:core-purity": "node scripts/check-core-purity.mjs",
+    "build:harness": "node scripts/build-harness.mjs"
   },
   "keywords": [
     "obsidian",

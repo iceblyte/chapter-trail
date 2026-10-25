@@ -48,7 +48,7 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
       <div className="ct-modal">
         <div className="ct-modal-title">
           {t("Start managing a folder")}{" "}
-          <span className="ct-note">· {t(step === 1 ? "· Step 1 of 2" : "· Step 2 of 2")}</span>
+          <span className="ct-note">{t(step === 1 ? "· Step 1 of 2" : "· Step 2 of 2")}</span>
         </div>
 
         {step === 1 ? (
@@ -105,17 +105,21 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
                 onClick={() => setMode("series")}
               />
             </div>
-            <div className="ct-modal-warn">
-              {(selected && selected.orderlessCount > 0
-                ? `${t("{n} orderless notes will get 10000-step orders by filename order", {
-                    n: selected.orderlessCount,
-                  })}<br>`
-                : "") +
-                t(
-                  "Creates <b>{indexFile}.md</b> with <code>is-index: true</code> and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.",
-                  { indexFile: props.settings?.indexFileName ?? "目录" },
-                )}
-            </div>
+            <div
+              className="ct-modal-warn"
+              dangerouslySetInnerHTML={{
+                __html:
+                  (selected && selected.orderlessCount > 0
+                    ? `${t("{n} orderless notes will get 10000-step orders by filename order", {
+                        n: selected.orderlessCount,
+                      })}<br>`
+                    : "") +
+                  t(
+                    "Creates <b>{indexFile}.md</b> with <code>is-index: true</code> and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.",
+                    { indexFile: props.settings?.indexFileName ?? "目录" },
+                  ),
+              }}
+            />
           </>
         )}
 

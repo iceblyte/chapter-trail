@@ -114,3 +114,15 @@ describe("nav wrappers", () => {
     expect(second).toBe(writeNavBlocks("---\n---\nbody\n", secondCallout));
   });
 });
+
+describe("frontmatterText helper", () => {
+  it("extracts the YAML between the fences", async () => {
+    const { frontmatterText } = await import("../../src/core/text-util");
+    expect(frontmatterText("---\norder: 10000\ntitle: t\n---\nbody\n")).toBe(
+      "order: 10000\ntitle: t",
+    );
+    expect(frontmatterText("---\r\norder: 1\r\n---\r\nbody\r\n")).toBe("order: 1");
+    expect(frontmatterText("no frontmatter\n")).toBeNull();
+    expect(frontmatterText("---\n---\nbody\n")).toBe("");
+  });
+});

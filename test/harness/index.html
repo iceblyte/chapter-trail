@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chapter Trail harness</title>
+<style>
+  /* Obsidian theme-variable polyfill (light values from the prototype)
+     so the panel renders standalone; the real host provides these. */
+  :root {
+    --background-primary: #ffffff;
+    --background-primary-alt: #f2f3f3;
+    --background-secondary: #f6f6f6;
+    --background-secondary-alt: #f0f1f1;
+    --background-modifier-border: rgba(0, 0, 0, 0.12);
+    --background-modifier-border-hover: rgba(0, 0, 0, 0.2);
+    --background-modifier-hover: rgba(0, 0, 0, 0.045);
+    --background-modifier-cover: rgba(0, 0, 0, 0.4);
+    --text-normal: #232323;
+    --text-muted: #5c5c5c;
+    --text-faint: #999999;
+    --text-error: #b3261e;
+    --text-on-accent: #ffffff;
+    --interactive-normal: #ffffff;
+    --interactive-hover: #f0f0f0;
+    --interactive-accent: #7d5be3;
+    --interactive-accent-hover: #6d49d2;
+    --font-ui-small: 13px;
+    --font-ui-medium: 14px;
+    --font-monospace: Consolas, monospace;
+    --font-bold: 700;
+    --font-semibold: 600;
+    --font-medium: 500;
+    --font-normal: 400;
+    --radius-m: 8px;
+    --radius-l: 12px;
+    --shadow-s: 0 6px 22px rgba(0, 0, 0, 0.12);
+    --shadow-l: 0 12px 44px rgba(0, 0, 0, 0.18);
+  }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; justify-content: center; background: #e9ebef; }
+  /* mimic the right-sidebar leaf width */
+  #shell { width: 420px; height: 640px; margin-top: 24px; border: 1px solid rgba(0,0,0,.15); border-radius: 10px; overflow: hidden; }
+</style>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="shell"><div id="root" style="height:100%"></div></div>
+  <script src="harness.js"></script>
+</body>
+</html>
