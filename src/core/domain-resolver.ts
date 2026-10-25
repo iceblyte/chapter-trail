@@ -183,12 +183,14 @@ function buildDomain(page: IndexPage, ctx: BuildContext): ManagedDomain {
     if (!meta) return null;
     const rel = relativeInside(path, page.folder);
     if (rel === null || fileIsExcluded(meta, rel)) return null;
+    const order = orderValue(meta.frontmatter?.[PLUGIN_KEYS.order]);
+    const dates = readDates(meta);
     return {
       path,
       kind: "file",
       title: noteTitle(path),
-      order: orderValue(meta.frontmatter?.[PLUGIN_KEYS.order]),
-      dates: readDates(meta),
+      ...(order === undefined ? {} : { order }),
+      ...(dates === undefined ? {} : { dates }),
     };
   };
 
@@ -219,11 +221,12 @@ function buildDomain(page: IndexPage, ctx: BuildContext): ManagedDomain {
       const rel = relativeInside(root, page.folder);
       if (rel === null || isInsideExcluded(rel, excluded)) continue;
       const indexMeta = ctx.metaByPath.get(ctx.indexPathByRoot.get(root) ?? "");
+      const order = orderValue(indexMeta?.frontmatter?.[PLUGIN_KEYS.order]);
       entries.push({
         path: root,
         kind: "managed-folder",
         title: folderName(root),
-        order: orderValue(indexMeta?.frontmatter?.[PLUGIN_KEYS.order]),
+        ...(order === undefined ? {} : { order }),
       });
     }
   }
