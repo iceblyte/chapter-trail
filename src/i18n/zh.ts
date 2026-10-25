@@ -268,4 +268,21 @@ export const zh: Dict = {
 
   /* ---------- misc ---------- */
   "Not available yet": "暂不可用",
+  "Clear legacy orders?": "清除遗留 order？",
+  "This removes the <code>order</code> field from <b>{n} files</b> outside any managed domain. This cannot be undone except by reordering.":
+    "将从 <b>{n} 个不属于任何受管域的文件</b>中移除 <code>order</code> 字段。除重新排序外无法撤销。",
+  "Clear order in {n} files": "清除 {n} 个文件的 order",
+  "· Step 1 of 3": "· 第 1 步 / 共 3 步",
+  "1 file will be written": "将写入 1 个文件",
+  "Auto-rebuild index after order changes": "order 变更后自动重建当前域索引",
+  "When on, an order write in a domain (drag landing, reindex, first-run assignment, tight-gap auto normalize) automatically rebuilds that domain’s index — only the affected domain, never the whole vault. When off, the domain is flagged “Index outdated” for a manual rebuild.":
+    "开启时，域内 order 写入（拖拽落位、重排、首次声明赋值、过密间隙自动重排）完成后自动重建该域索引 — 只重建受影响域，不级联全库。关闭时该域标黄“索引过期”等待手动重建。",
+  "{n} orderless notes will get 10000-step orders by filename order":
+    "将按文件名自然序为 {n} 篇无 order 笔记赋 10000 步长 order",
+  "Resolve…": "解决…",
+  "“{folder}” is inside the series domain “{domain}” — its whole subtree is already managed; only independent domains allow managing subfolders":
+    "“{folder}”位于 series 域“{domain}”内 — 整个子树已被统一管理；只有 Independent 域才允许对子文件夹单独管理",
+  "inside a series domain": "位于 series 域内",
+  "No managed folders yet — use the button below to start managing one":
+    "还没有受管文件夹 — 点击下方按钮开始管理一个",
 };

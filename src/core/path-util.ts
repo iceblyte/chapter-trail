@@ -46,9 +46,25 @@ export function normalizeFolderRef(ref: string): string {
 }
 
 /**
- * Relative markdown link from a folder to a file: "./x.md" inside the
- * folder, "../x.md" one level up (DESIGN.md 5.6 — notes in subfolders
- * point at the index page with ../ forms).
+ * Characters that break markdown links or URI parsing when they appear
+ * raw in a link target. Everything else — CJK included — stays as-is,
+ * matching the user-confirmed format (spaces → %20 etc.).
+ */
+const LINK_UNSAFE = /[\s()<>[\]{}"'#%&+,;=\\^`|?:@]/g;
+
+/** Percent-encode a vault path for use inside a markdown link. */
+export function encodeLinkPath(path: VaultPath): string {
+  return path.replace(LINK_UNSAFE, (char) =>
+    [...new TextEncoder().encode(char)]
+      .map((byte) => `%${byte.toString(16).toUpperCase()}`)
+      .join(""),
+  );
+}
+
+/**
+ * Relative markdown link from a folder to a file: a bare relative path
+ * ("x.md", "sub/x.md") inside the folder and "../x.md" forms upward
+ * (DESIGN.md 5.6). No "./" prefix; unsafe characters percent-encoded.
  */
 export function relativeLink(fromFolder: VaultPath, toFile: VaultPath): string {
   const fromParts = fromFolder === "" ? [] : fromFolder.split("/");
@@ -62,6 +78,6 @@ export function relativeLink(fromFolder: VaultPath, toFile: VaultPath): string {
     common += 1;
   }
   const ups = fromParts.length - common;
-  const prefix = ups === 0 ? ["."] : Array<string>(ups).fill("..");
-  return [...prefix, ...toParts.slice(common)].join("/");
+  const prefix = Array<string>(ups).fill("..");
+  return encodeLinkPath([...prefix, ...toParts.slice(common)].join("/"));
 }

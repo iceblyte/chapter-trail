@@ -82,10 +82,10 @@ describe("renderIndexInner — date display variants", () => {
     );
     const domain = getDomain(registry, "随笔");
     expect(renderIndexInner(domain, registry, { dateDisplay: "updated" })).toBe(
-      "- [01](./01.md) 2026-01-12\n",
+      "- [01](01.md) 2026-01-12\n",
     );
     expect(renderIndexInner(domain, registry, { dateDisplay: "both" })).toBe(
-      "- [01](./01.md) 2025-11-09 → 2026-01-12\n",
+      "- [01](01.md) 2025-11-09 → 2026-01-12\n",
     );
   });
 
@@ -97,8 +97,6 @@ describe("renderIndexInner — date display variants", () => {
       }),
     );
     const domain = getDomain(registry, "随笔");
-    expect(renderIndexInner(domain, registry, { dateDisplay: "created" })).toBe(
-      "- [01](./01.md)\n",
-    );
+    expect(renderIndexInner(domain, registry, { dateDisplay: "created" })).toBe("- [01](01.md)\n");
   });
 });

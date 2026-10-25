@@ -65,17 +65,21 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
                 <OptionRow
                   key={candidate.path}
                   selected={folder === candidate.path}
-                  disabled={candidate.managed}
+                  disabled={candidate.managed || candidate.blocked === true}
                   title={candidate.path}
                   description={
                     candidate.managed
                       ? t("already managed")
-                      : t("{n} notes · {n2} subfolder · no index page yet", {
-                          n: candidate.noteCount,
-                          n2: candidate.subfolderCount,
-                        })
+                      : candidate.blocked === true
+                        ? t("inside a series domain")
+                        : t("{n} notes · {n2} subfolder · no index page yet", {
+                            n: candidate.noteCount,
+                            n2: candidate.subfolderCount,
+                          })
                   }
-                  onClick={() => !candidate.managed && setFolder(candidate.path)}
+                  onClick={() =>
+                    !candidate.managed && candidate.blocked !== true && setFolder(candidate.path)
+                  }
                 />
               ))}
             </div>

@@ -6,11 +6,11 @@
 
 ## 0. 安装与启动
 
-- [ ] **0.1 安装**：把 `main.js`、`manifest.json`、`styles.css` 三个文件拷入 `<vault>/.obsidian/plugins/chapter-trail/`，在设置 → 第三方插件中启用
+- [x] **0.1 安装**：把 `main.js`、`manifest.json`、`styles.css` 三个文件拷入 `<vault>/.obsidian/plugins/chapter-trail/`，在设置 → 第三方插件中启用
   - 预期：无报错；左侧丝栏出现 list-ordered（三横线加数字）图标
-- [ ] **0.2 打开面板**：点击丝栏图标
+- [x] **0.2 打开面板**：点击丝栏图标
   - 预期：右侧边栏出现 "Chapter Trail" 面板；空 vault 时显示"还没有受管文件夹"提示 + 底部"＋ 开始管理文件夹"按钮；顶部汇总行显示 `0 个域 · 0 个需关注`（英文界面为 `0 domains · 0 need attention`）与红/黄/蓝三色图例
-- [ ] **0.3 设置页**：面板 ⚙ 或 设置 → Chapter Trail
+- [x] **0.3 设置页**：面板 ⚙ 或 设置 → Chapter Trail
   - 预期：五项设置齐全——索引文件名（默认 `目录`）、日期显示（created/updated/both）、**写入上下篇导航（默认关）**、**order 变更后自动重建当前域索引（默认关）**、语言（English/中文）；底部有"清除全部 Chapter Trail 数据"入口
 
 ---

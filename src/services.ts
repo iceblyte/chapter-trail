@@ -279,6 +279,18 @@ export class PluginServices {
    *  has already walked the two-step dialog (prototype 04). */
   async startManaging(folder: DomainId, mode: DomainMode): Promise<void> {
     if (folder === "") throw new Error("vault root cannot be managed");
+    // a series domain absorbs its whole subtree — no nested management
+    // inside one (only independent domains allow managed subfolders)
+    const enclosingSeries = this.findEnclosingSeries(folder);
+    if (enclosingSeries !== null) {
+      this.deps.notifier.notice(
+        this.deps.i18n.t(
+          "“{folder}” is inside the series domain “{domain}” — its whole subtree is already managed; only independent domains allow managing subfolders",
+          { folder, domain: enclosingSeries },
+        ),
+      );
+      return;
+    }
     const indexPath = this.indexPathFor(folder);
     const t = this.deps.i18n.t.bind(this.deps.i18n);
 
@@ -775,6 +787,18 @@ export class PluginServices {
     const result = await this.deps.writer.run(tasks);
     await this.scan();
     return result.written.length;
+  }
+
+  /** nearest series domain strictly containing the path, if any */
+  private findEnclosingSeries(path: VaultPath): DomainId | null {
+    const registry = this.deps.store.getSnapshot();
+    let best: DomainId | null = null;
+    for (const [root, domain] of registry.domains) {
+      if (domain.mode !== "series" || root === path) continue;
+      if (!isUnder(path, root)) continue;
+      if (best === null || root.length > best.length) best = root;
+    }
+    return best;
   }
 
   /* ---------------- jumps ---------------- */

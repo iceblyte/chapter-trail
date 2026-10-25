@@ -199,12 +199,11 @@ class SpecModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl, modalEl } = this;
-    this.titleEl.setText(this.spec.title);
-    this.renderBody(contentEl);
-    this.renderControls(contentEl);
-    modalEl.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") this.finish({ confirmed: false });
+    this.titleEl.textContent = this.spec.title;
+    this.renderBody(this.contentEl);
+    this.renderControls(this.contentEl);
+    this.modalEl.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") this.finish({ confirmed: false });
     });
   }
 
@@ -216,71 +215,85 @@ class SpecModal extends Modal {
     if (this.resolved) return;
     this.resolved = true;
     this.resolve(result);
+    // resolving alone left the modal on screen — always close it
+    this.close();
+  }
+
+  private el(parent: HTMLElement, className: string, tag = "div"): HTMLElement {
+    const node = document.createElement(tag);
+    node.className = className;
+    parent.appendChild(node);
+    return node;
   }
 
   private renderBody(el: HTMLElement): void {
     if (this.spec.body) {
-      el.createEl("div", { cls: "ct-modal-body" }).innerHTML = this.spec.body;
+      this.el(el, "ct-modal-body").innerHTML = this.spec.body;
     }
     if (this.spec.options && this.spec.options.length > 0) {
-      const group = el.createEl("div", { cls: "ct-options" });
+      const group = this.el(el, "ct-options");
       for (const option of this.spec.options) {
         this.renderOptionRow(group, option, false);
       }
     }
     if (this.spec.checkboxes && this.spec.checkboxes.length > 0) {
-      const group = el.createEl("div", { cls: "ct-options" });
+      const group = this.el(el, "ct-options");
       for (const box of this.spec.checkboxes) {
         this.renderOptionRow(group, box, true);
       }
     }
     if (this.spec.count) {
-      el.createEl("div", { cls: "ct-modal-count" }).setText(this.spec.count);
+      this.el(el, "ct-modal-count").textContent = this.spec.count;
     }
     if (this.spec.warn) {
-      el.createEl("div", { cls: "ct-modal-warn" }).innerHTML = this.spec.warn;
+      this.el(el, "ct-modal-warn").innerHTML = this.spec.warn;
     }
     if (this.spec.danger) {
-      el.createEl("div", { cls: "ct-modal-danger" }).innerHTML = this.spec.danger;
+      this.el(el, "ct-modal-danger").innerHTML = this.spec.danger;
     }
   }
 
   private renderOptionRow(group: HTMLElement, option: ConfirmOption, checkbox: boolean): void {
     const selected = checkbox ? this.checked.has(option.id) : this.selected === option.id;
-    const row = group.createEl("div", { cls: `ct-option${selected ? " is-selected" : ""}` });
-    row.createEl("span", { cls: `ct-radio${checkbox ? " is-square" : ""}` });
-    const text = row.createEl("div");
-    text.createEl("div", { cls: "ct-option-tt" }).innerHTML = option.label;
+    const row = this.el(group, `ct-option${selected ? " is-selected" : ""}`);
+    this.el(row, `ct-radio${checkbox ? " is-square" : ""}`, "span");
+    const text = this.el(row, "");
+    this.el(text, "ct-option-tt").innerHTML = option.label;
     if (option.description) {
-      text.createEl("div", { cls: "ct-option-d" }).innerHTML = option.description;
+      this.el(text, "ct-option-d").innerHTML = option.description;
     }
     row.addEventListener("click", () => {
       if (checkbox) {
         if (this.checked.has(option.id)) {
           this.checked.delete(option.id);
-          row.removeClass("is-selected");
+          row.classList.remove("is-selected");
         } else {
           this.checked.add(option.id);
-          row.addClass("is-selected");
+          row.classList.add("is-selected");
         }
       } else {
         this.selected = option.id;
-        for (const sibling of Array.from(group.children)) sibling.removeClass("is-selected");
-        row.addClass("is-selected");
+        for (const sibling of Array.from(group.children)) {
+          sibling.classList.remove("is-selected");
+        }
+        row.classList.add("is-selected");
       }
     });
   }
 
   private renderControls(el: HTMLElement): void {
-    const actions = el.createEl("div", { cls: "ct-modal-actions" });
-    const cancel = actions.createEl("button", {
-      text: this.spec.cancelLabel ?? "Cancel",
-    });
+    const actions = this.el(el, "ct-modal-actions");
+    const cancel = this.el(actions, "", "button") as HTMLButtonElement;
+    cancel.type = "button";
+    cancel.textContent = this.spec.cancelLabel ?? "Cancel";
     cancel.addEventListener("click", () => this.finish({ confirmed: false }));
-    const ok = actions.createEl("button", {
-      cls: this.spec.confirmDanger ? "mod-warning" : "mod-cta",
-      text: this.spec.confirmLabel,
-    });
+    const ok = this.el(
+      actions,
+      this.spec.confirmDanger ? "mod-warning" : "mod-cta",
+      "button",
+    ) as HTMLButtonElement;
+    ok.type = "button";
+    ok.textContent = this.spec.confirmLabel;
     ok.addEventListener("click", () => {
       this.finish({
         confirmed: true,

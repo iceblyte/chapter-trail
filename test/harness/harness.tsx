@@ -107,9 +107,17 @@ async function main(): Promise<void> {
     startManagingFlow: (folder: DomainId, mode: DomainMode) => services.startManaging(folder, mode),
     previewStartManaging: (folder) => services.previewStartManaging(folder),
     listFolderCandidates: () => {
-      const managedRoots = new Set(store.getSnapshot().domains.keys());
+      const registry = store.getSnapshot();
+      const managedRoots = new Set(registry.domains.keys());
       const files = vault.listMarkdownFiles();
       const folders = vault.listFolders();
+      const insideSeries = (folder: string): boolean => {
+        for (const [root, domain] of registry.domains) {
+          if (domain.mode !== "series") continue;
+          if (folder !== root && folder.startsWith(root + "/")) return true;
+        }
+        return false;
+      };
       return folders
         .map((folder) => {
           const prefix = folder === "" ? "" : `${folder}/`;
@@ -126,6 +134,7 @@ async function main(): Promise<void> {
               (path) => vault.getFrontmatter(path)?.order === undefined,
             ).length,
             managed: managedRoots.has(folder),
+            blocked: !managedRoots.has(folder) && insideSeries(folder),
           };
         })
         .filter((candidate) => candidate.managed || candidate.noteCount > 0)

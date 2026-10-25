@@ -5,7 +5,7 @@
  * confirmed prototype baseline).
  */
 import type { DateDisplay, ManagedDomain, OrderEntry, Registry, VaultPath } from "../types";
-import { relativeInside } from "./path-util";
+import { encodeLinkPath, relativeInside } from "./path-util";
 
 export interface RenderOptions {
   dateDisplay: DateDisplay;
@@ -26,7 +26,7 @@ export function renderIndexInner(
     if (entry.kind === "managed-folder") {
       const child = registry.domains.get(entry.path);
       const linkPath = child ? relativeInside(child.indexPath, domain.root) : null;
-      lines.push(linkPath ? `- [${entry.title}](./${linkPath})` : `- ${entry.title}`);
+      lines.push(linkPath ? `- [${entry.title}](${encodeLinkPath(linkPath)})` : `- ${entry.title}`);
       continue;
     }
     lines.push(renderLeaf(entry, domain.root, opts));
@@ -40,8 +40,9 @@ export function renderIndexInner(
 
 function renderLeaf(entry: OrderEntry, root: VaultPath, opts: RenderOptions): string {
   const rel = relativeInside(entry.path, root);
+  if (rel === null) return `- ${entry.title}`;
   const date = formatDates(entry, opts.dateDisplay);
-  return `- [${entry.title}](./${rel})${date ? ` ${date}` : ""}`;
+  return `- [${entry.title}](${encodeLinkPath(rel)})${date ? ` ${date}` : ""}`;
 }
 
 function formatDates(entry: OrderEntry, mode: DateDisplay): string {

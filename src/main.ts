@@ -7,6 +7,7 @@
 import { parseYaml as obsidianParseYaml, Plugin } from "obsidian";
 import { ChunkedWriter } from "./adapter/chunked-writer";
 import { EventSource } from "./adapter/event-source";
+import { ExplorerSorter } from "./adapter/explorer-sorter";
 import {
   ObsidianConfirmPort,
   ObsidianNotifierPort,
@@ -39,6 +40,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   services!: PluginServices;
   private settingsTab: ChapterTrailSettingTab | null = null;
   private eventSource: EventSource | null = null;
+  private explorerSorter: ExplorerSorter | null = null;
   private cacheResolvedUnsub: (() => void) | undefined;
   readonly panelActions: PanelActions = {
     rescan: async () => {
@@ -101,9 +103,17 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     startManagingFlow: (folder, mode) => this.services.startManaging(folder, mode),
     previewStartManaging: (folder) => this.services.previewStartManaging(folder),
     listFolderCandidates: () => {
-      const managedRoots = new Set(this.store.getSnapshot().domains.keys());
+      const registry = this.store.getSnapshot();
+      const managedRoots = new Set(registry.domains.keys());
       const files = this.vaultPort.listMarkdownFiles();
       const folders = this.vaultPort.listFolders();
+      const insideSeries = (folder: string): boolean => {
+        for (const [root, domain] of registry.domains) {
+          if (domain.mode !== "series") continue;
+          if (folder !== root && folder.startsWith(`${root}/`)) return true;
+        }
+        return false;
+      };
       return folders
         .map((folder) => {
           const directPrefix = folder === "" ? "" : `${folder}/`;
@@ -125,6 +135,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
             subfolderCount,
             orderlessCount,
             managed: managedRoots.has(folder),
+            blocked: !managedRoots.has(folder) && insideSeries(folder),
           };
         })
         .filter((candidate) => candidate.managed || candidate.noteCount > 0)
@@ -215,11 +226,17 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
         }, 200);
       },
     );
+
+    // mirror the chain order into Obsidian's native file explorer
+    this.explorerSorter = new ExplorerSorter(this.app, this.store);
+    this.explorerSorter.start();
   }
 
   onunload(): void {
     this.eventSource?.stop();
     this.eventSource = null;
+    this.explorerSorter?.stop();
+    this.explorerSorter = null;
     this.cacheResolvedUnsub?.();
     this.vaultAdapter.dispose();
     this.store.clear();

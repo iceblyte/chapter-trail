@@ -35,9 +35,9 @@ describe("A1 — independent index rebuild", () => {
         "---",
         "",
         INDEX_BLOCK_BEGIN,
-        "- [引言：卢曼的盒子](./引言：卢曼的盒子.md) 2025-09-14",
-        "- [第一部分](./第一部分/目录.md)",
-        "- [卡片的三种类型](./卡片的三种类型.md) 2025-09-28",
+        "- [引言：卢曼的盒子](引言：卢曼的盒子.md) 2025-09-14",
+        "- [第一部分](第一部分/目录.md)",
+        "- [卡片的三种类型](卡片的三种类型.md) 2025-09-28",
         "- 参考资料",
         INDEX_BLOCK_END,
         "",
@@ -56,14 +56,14 @@ describe("A2 — series chain and navigation", () => {
     const first = h.vault.readContent("Blogs/01 为什么选择 Quartz.md");
     expect(first).toContain(`${NAV_BLOCK_BEGIN}`);
     expect(first).toContain(
-      "> [!chapter-trail]- 总览：[目录](./目录.md) | 下一篇：[02 环境搭建与部署](./02 环境搭建与部署.md)",
+      "> [!chapter-trail]- 总览：[目录](目录.md) | 下一篇：[02 环境搭建与部署](02%20环境搭建与部署.md)",
     );
     expect(first).not.toContain("上一篇：");
 
     const middle = h.vault.readContent("Blogs/进阶篇/03 配置详解.md");
-    expect(middle).toContain("上一篇：[02 环境搭建与部署](../02 环境搭建与部署.md)");
+    expect(middle).toContain("上一篇：[02 环境搭建与部署](../02%20环境搭建与部署.md)");
     expect(middle).toContain("总览：[目录](../目录.md)");
-    expect(middle).toContain("下一篇：[04 插件机制](./04 插件机制.md)");
+    expect(middle).toContain("下一篇：[04 插件机制](04%20插件机制.md)");
 
     const last = h.vault.readContent("Blogs/进阶篇/05 主题定制.md");
     expect(last).not.toContain("下一篇：");
@@ -122,7 +122,7 @@ describe("A4 — delete a chain member", () => {
     await h.services.scan();
     await h.services.rebuildIndex("Blogs");
     expect(h.vault.readContent("Blogs/目录.md")).toContain(
-      "[04 插件机制](./进阶篇/04 插件机制.md)",
+      "[04 插件机制](进阶篇/04%20插件机制.md)",
     );
 
     h.vault.trashFile("Blogs/进阶篇/04 插件机制.md");
@@ -139,7 +139,7 @@ describe("A4 — delete a chain member", () => {
     h.settings.injectNavEnabled = true;
     await h.services.rebuildInjection("Blogs");
     const neighbor = h.vault.readContent("Blogs/进阶篇/03 配置详解.md");
-    expect(neighbor).toContain("下一篇：[05 主题定制](./05 主题定制.md)");
+    expect(neighbor).toContain("下一篇：[05 主题定制](05%20主题定制.md)");
   });
 });
 
@@ -358,7 +358,7 @@ describe("auto-rebuild after order writes (PRD §2.5)", () => {
     await h.services.scan();
     await h.services.rebuildIndex("Blogs");
     const before = h.vault.readContent("Blogs/目录.md");
-    expect(before).toContain("[01 为什么选择 Quartz](./01 为什么选择 Quartz.md)");
+    expect(before).toContain("[01 为什么选择 Quartz](01%20为什么选择%20Quartz.md)");
 
     // drag 01 below 02 — chain becomes 02,01,03,04,05
     await h.services.moveEntry("Blogs", "Blogs/01 为什么选择 Quartz.md", 1);
@@ -414,5 +414,30 @@ describe("dragging managed-folder entries (bugfix regression)", () => {
     expect(orderOf(h, "读书/01.md")).toBe(10000);
     expect(orderOf(h, "读书/第一部分/目录.md")).toBe(20000);
     expect(h.notices.some((n) => n.includes("Write failed"))).toBe(false);
+  });
+});
+
+describe("series guard (nested management not allowed)", () => {
+  it("refuses to manage a folder inside a series domain and says why", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h); // Blogs is a series domain with 进阶篇 inside
+    await h.services.scan();
+
+    const before = h.store.getSnapshot().domains.size;
+    await h.services.startManaging("Blogs/进阶篇", "independent");
+
+    expect(h.store.getSnapshot().domains.size).toBe(before);
+    expect(h.vault.exists("Blogs/进阶篇/目录.md")).toBe(false);
+    expect(h.notices.some((n) => n.includes("series domain"))).toBe(true);
+  });
+
+  it("still allows managing inside an independent domain", async () => {
+    const h = makeHarness();
+    h.vault.seed("读书/目录.md", indexPageContent("independent"));
+    h.vault.seed("读书/01.md", note(10000));
+    h.vault.seed("读书/第一部分/a.md", note());
+    await h.services.scan();
+    await h.services.startManaging("读书/第一部分", "series");
+    expect(h.store.getSnapshot().domains.has("读书/第一部分")).toBe(true);
   });
 });

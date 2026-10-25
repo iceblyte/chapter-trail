@@ -35,27 +35,27 @@ describe("calloutLine matrix (PRD 2.6)", () => {
 
   it("middle entry carries all three slots with ../ links for subfolders", () => {
     expect(calloutLine(CHAIN, 2, ctx)).toBe(
-      "> [!chapter-trail]- 上一篇：[02 环境搭建与部署](../02 环境搭建与部署.md) | 总览：[目录](../目录.md) | 下一篇：[04 插件机制](./04 插件机制.md)",
+      "> [!chapter-trail]- 上一篇：[02 环境搭建与部署](../02%20环境搭建与部署.md) | 总览：[目录](../目录.md) | 下一篇：[04 插件机制](04%20插件机制.md)",
     );
   });
 
   it("first entry omits 上一篇", () => {
     const line = calloutLine(CHAIN, 0, ctx);
     expect(line).toBe(
-      "> [!chapter-trail]- 总览：[目录](./目录.md) | 下一篇：[02 环境搭建与部署](./02 环境搭建与部署.md)",
+      "> [!chapter-trail]- 总览：[目录](目录.md) | 下一篇：[02 环境搭建与部署](02%20环境搭建与部署.md)",
     );
   });
 
   it("last entry omits 下一篇", () => {
     const line = calloutLine(CHAIN, 4, ctx);
     expect(line).toBe(
-      "> [!chapter-trail]- 上一篇：[04 插件机制](./04 插件机制.md) | 总览：[目录](../目录.md)",
+      "> [!chapter-trail]- 上一篇：[04 插件机制](04%20插件机制.md) | 总览：[目录](../目录.md)",
     );
   });
 
   it("single-entry chain keeps only 总览", () => {
     const line = calloutLine([entry("A/独.md", 10000)], 0, { indexPath: "A/目录.md" });
-    expect(line).toBe("> [!chapter-trail]- 总览：[目录](./目录.md)");
+    expect(line).toBe("> [!chapter-trail]- 总览：[目录](目录.md)");
   });
 
   it("covers every chain file exactly once", () => {
@@ -91,8 +91,8 @@ describe("buildInjectionPlan", () => {
 
     const injected = opAt(plan.ops, 0).apply("---\norder: 20000\n---\n正文\n");
     expect(hasNavBlocks(injected)).toBe(true);
-    expect(injected).toContain("上一篇：[01 为什么选择 Quartz](./01 为什么选择 Quartz.md)");
-    expect(injected).toContain("下一篇：[03 配置详解](./进阶篇/03 配置详解.md)");
+    expect(injected).toContain("上一篇：[01 为什么选择 Quartz](01%20为什么选择%20Quartz.md)");
+    expect(injected).toContain("下一篇：[03 配置详解](进阶篇/03%20配置详解.md)");
 
     const stale =
       "<!-- chapter-trail:nav-begin -->\n> [!chapter-trail]- 旧的\n<!-- chapter-trail:nav-end -->\n正文\n";

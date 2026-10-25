@@ -43,4 +43,6 @@ export interface FolderCandidate {
   subfolderCount: number;
   orderlessCount: number;
   managed: boolean;
+  /** inside a series domain — nested management is not allowed */
+  blocked?: boolean;
 }

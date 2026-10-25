@@ -1,7 +1,16 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "files": {
-    "includes": ["src/**", "test/**", "!test/golden", "scripts/**", "*.ts", "*.mjs"]
+    "includes": [
+      "src/**",
+      "test/**",
+      "!test/golden",
+      "!test/harness/harness.js",
+      "!test/harness/styles.css",
+      "scripts/**",
+      "*.ts",
+      "*.mjs"
+    ]
   },
   "formatter": {
     "enabled": true,
