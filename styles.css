@@ -1,0 +1,6 @@
+/* Chapter Trail plugin styles.
+ * The management panel is rendered by React inside an ItemView; classes are
+ * ct- prefixed and consume Obsidian theme CSS variables so light/dark and
+ * third-party themes keep working (DESIGN.md §3.3). Populated with the panel
+ * implementation; kept as an empty valid stylesheet until then.
+ */

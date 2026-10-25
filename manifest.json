@@ -1,0 +1,10 @@
+{
+  "id": "chapter-trail",
+  "name": "Chapter Trail",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Folder-level ordering, auto-maintained index pages and statically publishable series navigation. State lives in your notes — git-friendly and publish-ready.",
+  "author": "iceblyte",
+  "authorUrl": "https://github.com/iceblyte",
+  "isDesktopOnly": true
+}
