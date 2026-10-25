@@ -44,3 +44,24 @@ export function relativeInside(path: VaultPath, root: VaultPath): string | null 
 export function normalizeFolderRef(ref: string): string {
   return ref.replace(/^\/+|\/+$/g, "").trim();
 }
+
+/**
+ * Relative markdown link from a folder to a file: "./x.md" inside the
+ * folder, "../x.md" one level up (DESIGN.md 5.6 — notes in subfolders
+ * point at the index page with ../ forms).
+ */
+export function relativeLink(fromFolder: VaultPath, toFile: VaultPath): string {
+  const fromParts = fromFolder === "" ? [] : fromFolder.split("/");
+  const toParts = toFile.split("/");
+  let common = 0;
+  while (
+    common < fromParts.length &&
+    common < toParts.length - 1 &&
+    fromParts[common] === toParts[common]
+  ) {
+    common += 1;
+  }
+  const ups = fromParts.length - common;
+  const prefix = ups === 0 ? ["."] : Array<string>(ups).fill("..");
+  return [...prefix, ...toParts.slice(common)].join("/");
+}
