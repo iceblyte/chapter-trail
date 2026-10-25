@@ -114,7 +114,7 @@ async function main(): Promise<void> {
       const insideSeries = (folder: string): boolean => {
         for (const [root, domain] of registry.domains) {
           if (domain.mode !== "series") continue;
-          if (folder !== root && folder.startsWith(root + "/")) return true;
+          if (folder !== root && folder.startsWith(`${root}/`)) return true;
         }
         return false;
       };
@@ -134,10 +134,12 @@ async function main(): Promise<void> {
               (path) => vault.getFrontmatter(path)?.order === undefined,
             ).length,
             managed: managedRoots.has(folder),
-            blocked: !managedRoots.has(folder) && insideSeries(folder),
           };
         })
-        .filter((candidate) => candidate.managed || candidate.noteCount > 0)
+        .filter(
+          (candidate) =>
+            !insideSeries(candidate.path) && (candidate.managed || candidate.noteCount > 0),
+        )
         .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
     },
   };

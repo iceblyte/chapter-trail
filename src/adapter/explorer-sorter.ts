@@ -10,6 +10,7 @@
  * drag-sorting its explorer; this class only mirrors the result.
  */
 import type { App } from "obsidian";
+import { isUnder, parentOf } from "../core/path-util";
 import type { ManagedDomain, VaultPath } from "../types";
 import type { RegistryStore } from "./registry-store";
 
@@ -94,6 +95,25 @@ export class ExplorerSorter {
     domain.entries.forEach((entry, index) => {
       rank.set(entry.path, index);
     });
+    if (domain.mode === "series") {
+      // series subfolders are path labels, not chain members — order each
+      // by the chain index of its FIRST file so the native tree
+      // interleaves them (进阶篇 between 03 and 04) instead of sinking
+      // every folder below the files
+      domain.entries.forEach((entry, index) => {
+        if (entry.kind !== "file") return;
+        let parent = parentOf(entry.path);
+        while (
+          parent !== null &&
+          parent !== "" &&
+          parent !== domain.root &&
+          isUnder(parent, domain.root)
+        ) {
+          if (!rank.has(parent)) rank.set(parent, index);
+          parent = parentOf(parent);
+        }
+      });
+    }
 
     const prefix = domain.root === "" ? "" : `${domain.root}/`;
     for (const file of files) {

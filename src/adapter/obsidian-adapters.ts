@@ -175,11 +175,15 @@ export class ObsidianNotifierPort implements NotifierPort {
  * prototype's visual language (prototype 05).
  */
 export class ObsidianConfirmPort implements ConfirmPort {
-  constructor(private readonly app: App) {}
+  constructor(
+    private readonly app: App,
+    /** language-aware fallback when a spec has no explicit cancelLabel */
+    private readonly defaultCancelLabel: () => string = () => "Cancel",
+  ) {}
 
   confirm(spec: ConfirmSpec): Promise<ConfirmResult> {
     return new Promise((resolve) => {
-      new SpecModal(this.app, spec, resolve).open();
+      new SpecModal(this.app, spec, resolve, this.defaultCancelLabel).open();
     });
   }
 }
@@ -193,6 +197,7 @@ class SpecModal extends Modal {
     app: App,
     private readonly spec: ConfirmSpec,
     private readonly resolve: (result: ConfirmResult) => void,
+    private readonly defaultCancelLabel: () => string,
   ) {
     super(app);
     this.selected = spec.selectedOption;
@@ -285,7 +290,7 @@ class SpecModal extends Modal {
     const actions = this.el(el, "ct-modal-actions");
     const cancel = this.el(actions, "", "button") as HTMLButtonElement;
     cancel.type = "button";
-    cancel.textContent = this.spec.cancelLabel ?? "Cancel";
+    cancel.textContent = this.spec.cancelLabel ?? this.defaultCancelLabel();
     cancel.addEventListener("click", () => this.finish({ confirmed: false }));
     const ok = this.el(
       actions,

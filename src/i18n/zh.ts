@@ -57,6 +57,9 @@ export const zh: Dict = {
   "Rebuild injection in current domain": "重建当前域注入",
   "Remove all Chapter Trail data…": "清除全部 Chapter Trail 数据…",
   "Go to previous note": "跳转到上一篇",
+  "上一篇：": "上一篇：",
+  "下一篇：": "下一篇：",
+  "总览：": "总览：",
   "Go to next note": "跳转到下一篇",
   "Open the index page of the current domain": "打开当前域索引页",
 

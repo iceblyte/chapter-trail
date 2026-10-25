@@ -117,4 +117,50 @@ describe("ExplorerSorter — native file explorer order", () => {
     const container = document.querySelector(".tree-item-children") as HTMLElement;
     expect(container.style.display).toBe("");
   });
+
+  it("series subfolders interleave by their first file (no sink to bottom)", () => {
+    document.body.innerHTML = "";
+    const store = new RegistryStore();
+    const domain = {
+      root: "Blogs",
+      mode: "series" as const,
+      indexPath: "Blogs/目录.md",
+      entries: [
+        { path: "Blogs/01.md", kind: "file" as const, title: "01" },
+        { path: "Blogs/文字教程/02.md", kind: "file" as const, title: "02" },
+        { path: "Blogs/文字教程/03.md", kind: "file" as const, title: "03" },
+        { path: "Blogs/04.md", kind: "file" as const, title: "04" },
+      ],
+      unmanagedFolders: [],
+      excludedFolders: [],
+      status: {
+        broken: [],
+        conflicts: [],
+        pending: [],
+        stale: false,
+        ties: [],
+        tightGap: false,
+        legacyHint: false,
+      },
+    };
+    store.replace({ ...emptyRegistry(), domains: new Map([["Blogs", domain]]) });
+    explorerTree(["Blogs/文字教程", "Blogs/01.md", "Blogs/04.md"]);
+
+    const sorter = new ExplorerSorter(
+      {
+        vault: { getAllLoadedFiles: () => [{ path: "Blogs", children: [] }] },
+        workspace: { on: () => ({}), offref: () => {} },
+        metadataCache: { on: () => ({}), offref: () => {} },
+      } as never,
+      store,
+    );
+    sorter.apply();
+
+    const container = document.querySelector(".tree-item-children") as HTMLElement;
+    const orders = [...container.querySelectorAll(":scope > .tree-item")].map(
+      (item) => (item as HTMLElement).style.order,
+    );
+    // 文字教程 sits where its first file (02, chain index 1) sits → order 2
+    expect(orders).toEqual(["2", "1", "4"]);
+  });
 });

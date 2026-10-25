@@ -540,3 +540,22 @@ body {
   margin-top: 1px;
   line-height: 1.5;
 }
+
+/* ---------- dynamic reading-view nav (display-only, no writes) ---------- */
+.ct-dyn-nav {
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 38%, transparent);
+  background: color-mix(in srgb, var(--interactive-accent) 7%, transparent);
+  border-radius: var(--radius-m);
+  padding: 6px 12px;
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  margin: 8px 0;
+}
+.ct-dyn-nav .ct-dyn-slot a {
+  color: var(--interactive-accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.ct-dyn-nav .ct-dyn-slot a:hover {
+  text-decoration: underline;
+}

@@ -6,6 +6,7 @@
  */
 import { parseYaml as obsidianParseYaml, Plugin } from "obsidian";
 import { ChunkedWriter } from "./adapter/chunked-writer";
+import { DynamicNav } from "./adapter/dynamic-nav";
 import { EventSource } from "./adapter/event-source";
 import { ExplorerSorter } from "./adapter/explorer-sorter";
 import {
@@ -41,6 +42,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   private settingsTab: ChapterTrailSettingTab | null = null;
   private eventSource: EventSource | null = null;
   private explorerSorter: ExplorerSorter | null = null;
+  private dynamicNav: DynamicNav | null = null;
   private cacheResolvedUnsub: (() => void) | undefined;
   readonly panelActions: PanelActions = {
     rescan: async () => {
@@ -135,10 +137,12 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
             subfolderCount,
             orderlessCount,
             managed: managedRoots.has(folder),
-            blocked: !managedRoots.has(folder) && insideSeries(folder),
           };
         })
-        .filter((candidate) => candidate.managed || candidate.noteCount > 0)
+        .filter(
+          (candidate) =>
+            !insideSeries(candidate.path) && (candidate.managed || candidate.noteCount > 0),
+        )
         .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
     },
   };
@@ -151,7 +155,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     this.vaultPort = this.vaultAdapter;
     this.clockPort = new SystemClockPort();
     this.notifierPort = new ObsidianNotifierPort();
-    this.confirmPort = new ObsidianConfirmPort(this.app);
+    this.confirmPort = new ObsidianConfirmPort(this.app, () => this.i18n.t("Cancel"));
     this.store = new RegistryStore();
 
     const ledger = new EchoLedger(this.clockPort, ECHO_TTL_MS);
@@ -230,6 +234,12 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     // mirror the chain order into Obsidian's native file explorer
     this.explorerSorter = new ExplorerSorter(this.app, this.store);
     this.explorerSorter.start();
+
+    // display-only prev/next nav in the reading view (no file writes)
+    this.dynamicNav = new DynamicNav(this.app, this.store, this.i18n, (path) =>
+      this.openFileInEditor(path),
+    );
+    this.dynamicNav.start();
   }
 
   onunload(): void {
@@ -237,6 +247,8 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     this.eventSource = null;
     this.explorerSorter?.stop();
     this.explorerSorter = null;
+    this.dynamicNav?.stop();
+    this.dynamicNav = null;
     this.cacheResolvedUnsub?.();
     this.vaultAdapter.dispose();
     this.store.clear();
