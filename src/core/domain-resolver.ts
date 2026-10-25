@@ -47,7 +47,7 @@ interface IndexPage {
   body: string;
 }
 
-const LINK_TARGET = /\]\(([^)\s]+)\)/g;
+const LINK_TARGET = /\]\(([^)]+)\)/g;
 
 const nameCollator = new Intl.Collator("zh", { numeric: true });
 

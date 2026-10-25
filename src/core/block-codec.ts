@@ -80,6 +80,13 @@ export function hasIndexBlock(text: string): boolean {
   return findMarkerLine(text, INDEX_BLOCK_BEGIN, 0) !== null;
 }
 
+/** Remove the index block entirely (demote-to-note conflict resolution). */
+export function removeIndexBlock(text: string): string {
+  const existing = findIndexBlock(text);
+  if (!existing) return text;
+  return text.slice(0, existing.start) + text.slice(existing.end);
+}
+
 /**
  * Replace the index block's inner content (or insert a fresh block right
  * after the frontmatter when absent / damaged). Content outside the

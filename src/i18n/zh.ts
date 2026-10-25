@@ -135,6 +135,7 @@ export const zh: Dict = {
   Next: "下一步",
   Back: "上一步",
   "Choose a mode": "选择模式",
+  "· Step 2 of 3": "· 第 2 步 / 共 3 步",
   "Mode for <b>{folder}</b> — one managed domain, one chain style:":
     "为 <b>{folder}</b> 创建一个受管域，链条风格二选一：",
   "Independent · default": "Independent · 默认",

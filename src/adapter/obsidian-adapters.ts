@@ -62,6 +62,12 @@ export class ObsidianVaultAdapter implements VaultPort {
     await this.app.vault.create(path, content);
   }
 
+  async rename(path: string, newPath: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!file) throw new Error(`rename: file not found: ${path}`);
+    await this.app.vault.rename(file, newPath);
+  }
+
   async trashFile(path: string): Promise<void> {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!file) return;
@@ -88,6 +94,12 @@ export class ObsidianVaultAdapter implements VaultPort {
     this.eventRefs = [];
     this.handlers.clear();
     this.wired = false;
+  }
+
+  /** fires when the metadata cache has finished resolving (startup). */
+  onCacheResolved(callback: () => void): () => void {
+    const ref = this.app.metadataCache.on("resolved", callback);
+    return () => this.app.metadataCache.offref(ref);
   }
 
   private emit(event: RawVaultEvent): void {

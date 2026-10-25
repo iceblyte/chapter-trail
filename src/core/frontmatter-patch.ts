@@ -27,7 +27,7 @@ export interface PatchOptions {
    * advanced YAML tokens are present the patch additionally
    * deep-compares both parses with plugin keys stripped.
    */
-  parseYaml?: (text: string) => unknown;
+  parseYaml?: ((text: string) => unknown) | undefined;
 }
 
 const TOP_LEVEL_KEY = /^([A-Za-z0-9_-]+):(?:[ \t].*)?$/;

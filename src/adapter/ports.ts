@@ -26,6 +26,8 @@ export interface VaultPort {
   /** atomic read → transform → write; returns the new content */
   process(path: VaultPath, fn: (data: string) => string): Promise<string>;
   create(path: VaultPath, content: string): Promise<void>;
+  /** move a file to a new path, keeping content */
+  rename(path: VaultPath, newPath: VaultPath): Promise<void>;
   /** move a file to the system trash */
   trashFile(path: VaultPath): Promise<void>;
   /** parsed frontmatter from the metadata cache; null = no frontmatter,
