@@ -6,7 +6,9 @@ const prod = process.argv[2] === "production";
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
   bundle: true,
-  external: ["obsidian"],
+  // @codemirror/* must resolve to the app's copy at runtime (peer deps
+  // pinned in package.json), never be bundled into the plugin
+  external: ["obsidian", "@codemirror/state", "@codemirror/view"],
   format: "cjs",
   target: "es2022",
   logLevel: "info",

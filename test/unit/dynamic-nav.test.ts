@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { DynamicNav, type DynNavModel, dynNavModel } from "../../src/adapter/dynamic-nav";
+import { buildNavBox, type DynNavModel, dynNavModel } from "../../src/adapter/dynamic-nav";
 import { I18nService } from "../../src/i18n/runtime";
 import type { ManagedDomain } from "../../src/types";
-import { emptyRegistry } from "../../src/types";
 
 function seriesDomain(): ManagedDomain {
   return {
@@ -48,29 +47,21 @@ describe("dynNavModel", () => {
   });
 });
 
-describe("DynamicNav.decorate (display-only)", () => {
-  it("prepends and appends the nav box; click opens the target", () => {
+describe("DynamicNav (display-only)", () => {
+  it("builds the nav box; click opens the target", () => {
     const opened: string[] = [];
-    const nav = new DynamicNav(
-      {} as never,
-      {
-        subscribe: () => (): void => {},
-        getSnapshot: () => emptyRegistry(),
-      } as never,
-      new I18nService("en"),
-      (path) => opened.push(path),
-    );
+    const deps = {
+      i18n: new I18nService("en"),
+      openFile: (path: string) => opened.push(path),
+    };
     const sizer = document.createElement("div");
     sizer.className = "markdown-preview-sizer";
     sizer.appendChild(document.createElement("p"));
     const maybeModel = dynNavModel(seriesDomain(), "Blogs/02.md");
     if (!maybeModel) throw new Error("model missing");
     const model: DynNavModel = maybeModel;
-    // exercise the private build via a public-ish cast
-    const build = (nav as unknown as { build(m: typeof model): HTMLElement }).build.bind(nav);
-    const box = build(model);
-    sizer.prepend(box);
-    sizer.append(build(model));
+    sizer.prepend(buildNavBox(model, deps));
+    sizer.append(buildNavBox(model, deps));
 
     const boxes = sizer.querySelectorAll(".ct-dyn-nav");
     expect(boxes.length).toBe(2);

@@ -1,4 +1,6 @@
 onlyBuiltDependencies:
+  - "@codemirror/view"
+  - "@codemirror/state"
   - esbuild
 minimumReleaseAgeExclude:
   - '@biomejs/biome@2.6.3'

@@ -559,3 +559,41 @@ body {
 .ct-dyn-nav .ct-dyn-slot a:hover {
   text-decoration: underline;
 }
+
+/* ---------- panel: pinned index row + series tree rows ---------- */
+.ct-index-row {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: color-mix(in srgb, var(--interactive-accent) 5%, transparent);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-muted);
+}
+.ct-index-row:hover {
+  background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
+}
+.ct-moc-badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 45%, transparent);
+  color: var(--interactive-accent);
+  flex: none;
+}
+.ct-row.is-folder-row {
+  cursor: default;
+}
+.ct-row .ct-caret {
+  width: 12px;
+  flex: none;
+  color: var(--text-faint);
+  font-size: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.ct-row .ct-caret:hover {
+  color: var(--text-normal);
+}

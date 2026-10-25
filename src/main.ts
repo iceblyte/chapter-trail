@@ -6,7 +6,8 @@
  */
 import { parseYaml as obsidianParseYaml, Plugin } from "obsidian";
 import { ChunkedWriter } from "./adapter/chunked-writer";
-import { DynamicNav } from "./adapter/dynamic-nav";
+import { DynamicNav, type NavDeps } from "./adapter/dynamic-nav";
+import { editorNavExtension } from "./adapter/editor-nav";
 import { EventSource } from "./adapter/event-source";
 import { ExplorerSorter } from "./adapter/explorer-sorter";
 import {
@@ -236,10 +237,15 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     this.explorerSorter.start();
 
     // display-only prev/next nav in the reading view (no file writes)
-    this.dynamicNav = new DynamicNav(this.app, this.store, this.i18n, (path) =>
-      this.openFileInEditor(path),
-    );
+    const navDeps: NavDeps = {
+      i18n: this.i18n,
+      openFile: (path: VaultPath) => this.openFileInEditor(path),
+    };
+    this.dynamicNav = new DynamicNav(this.app, this.store, navDeps);
     this.dynamicNav.start();
+
+    // same nav in Source mode & Live Preview via CM6 block widgets
+    this.registerEditorExtension(editorNavExtension(navDeps, this.store));
   }
 
   onunload(): void {

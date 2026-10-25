@@ -1,8 +1,15 @@
 /**
- * EntryList — the virtualized, drag-reorderable chain list
- * (prototype 01/03). @tanstack/react-virtual keeps 500-entry domains
- * smooth; pragmatic-drag-and-drop binds only to rendered rows; the
- * right-click menu (Move up / Move down) is the keyboard fallback.
+ * EntryList — the domain card's entry list (prototype 01/03).
+ *
+ * Display forms:
+ * - series: a collapsible tree — subfolder nodes (default collapsed)
+ *   interleave by chain order; files drag onto rows to reorder.
+ * - independent: the flat mixed list (direct files + managed folders).
+ *
+ * Every row carries its CHAIN index as the drop payload, so dragging
+ * always reorders the underlying chain regardless of tree depth.
+ * The domain's index page (目录.md) is pinned above the list (display
+ * only — per PRD it never chains, so it is not draggable).
  */
 
 import {
@@ -32,6 +39,13 @@ interface DragData {
   entryPath: string;
 }
 
+type Row =
+  | { kind: "folder"; path: string; name: string; depth: number; chainIndex: number }
+  | { kind: "file"; entry: OrderEntry; chainIndex: number; depth: number }
+  | { kind: "pending"; entry: OrderEntry }
+  | { kind: "more"; count: number }
+  | { kind: "broken"; path: string };
+
 export interface EntryListProps {
   domain: ManagedDomain;
   settings: ChapterTrailSettings;
@@ -39,21 +53,89 @@ export interface EntryListProps {
   i18n: I18nService;
 }
 
+/** build the series tree from the ordered chain, first-appearance order */
+function buildSeriesRows(
+  ordered: OrderEntry[],
+  expanded: ReadonlySet<string>,
+  domainRoot: string,
+): Row[] {
+  interface TreeNode {
+    folders: Map<string, TreeNode>;
+    files: { entry: OrderEntry; chainIndex: number }[];
+  }
+  const root: TreeNode = { folders: new Map(), files: [] };
+  ordered.forEach((entry, chainIndex) => {
+    // paths are relative to the domain root — the root itself is the
+    // card, not a tree node
+    const rel = domainRoot === "" ? entry.path : entry.path.slice(domainRoot.length + 1);
+    const segments = rel.split("/");
+    let node = root;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const folderPath = segments.slice(0, i + 1).join("/");
+      let child = node.folders.get(folderPath);
+      if (!child) {
+        child = { folders: new Map(), files: [] };
+        node.folders.set(folderPath, child);
+      }
+      node = child;
+    }
+    node.files.push({ entry, chainIndex });
+  });
+
+  const rows: Row[] = [];
+  const emit = (node: TreeNode, depth: number): void => {
+    for (const [folderPath, child] of node.folders) {
+      const first = child.files[0] ?? [...child.folders.values()].flatMap((f) => f.files)[0];
+      rows.push({
+        kind: "folder",
+        path: folderPath,
+        name: folderPath.slice(folderPath.lastIndexOf("/") + 1),
+        depth,
+        chainIndex: first?.chainIndex ?? ordered.length,
+      });
+      if (expanded.has(folderPath)) emit(child, depth + 1);
+    }
+    for (const file of node.files) {
+      rows.push({ kind: "file", entry: file.entry, chainIndex: file.chainIndex, depth });
+    }
+  };
+  emit(root, 0);
+  return rows;
+}
+
 export function EntryList(props: EntryListProps): React.JSX.Element {
   const { domain, actions } = props;
   const { t } = useI18n(props.i18n);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
 
   const view = useMemo(() => {
     const pending = domain.entries.filter((entry) => entry.order === undefined);
     const ordered = domain.entries.filter((entry) => entry.order !== undefined);
-    const shown: OrderEntry[] = [...ordered, ...pending.slice(0, 3)];
-    return { shown, morePending: Math.max(0, pending.length - 3) };
-  }, [domain.entries]);
+    let rows: Row[];
+    if (domain.mode === "series") {
+      rows = buildSeriesRows(ordered, expanded, domain.root);
+    } else {
+      rows = ordered.map((entry, chainIndex) => ({
+        kind: "file" as const,
+        entry,
+        chainIndex,
+        depth: 0,
+      }));
+    }
+    const shownPending = pending.slice(0, 3);
+    return {
+      rows,
+      pending,
+      shownPending,
+      morePending: Math.max(0, pending.length - 3),
+    };
+  }, [domain.entries, domain.mode, domain.root, expanded]);
 
   const broken = domain.status.broken;
-  const rowCount = view.shown.length + (view.morePending > 0 ? 1 : 0) + broken.length;
+  const rowCount =
+    view.rows.length + view.shownPending.length + (view.morePending > 0 ? 1 : 0) + broken.length;
 
   const virtualizer = useVirtualizer({
     count: rowCount,
@@ -62,7 +144,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     overscan: 8,
   });
 
-  /* card-level monitor: resolve drops into target indices */
+  /* card-level monitor: drops carry the CHAIN index directly */
   useEffect(() => {
     return monitorForElements({
       canMonitor: ({ source }) => {
@@ -72,18 +154,18 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       onDrop: ({ source, location }) => {
         setDragging(null);
         const data = source.data as Partial<DragData>;
+        if (data.entryPath === undefined) return;
         const target = location.current.dropTargets[0];
         if (!target) return;
-        const targetIndex = (target.data as { index?: number }).index;
-        if (targetIndex === undefined) return;
+        const chainIndex = (target.data as { chainIndex?: number }).chainIndex;
+        if (chainIndex === undefined) return;
         const edge = extractClosestEdge(target.data);
-        let insertAt = targetIndex + (edge === "bottom" ? 1 : 0);
+        let insertAt = chainIndex + (edge === "bottom" ? 1 : 0);
         const from = domain.entries.findIndex((entry) => entry.path === data.entryPath);
         if (from === -1) return;
         if (insertAt > from) insertAt -= 1;
         if (insertAt === from) return;
-        if (data.entryPath !== undefined)
-          void actions.moveEntry(domain.root, data.entryPath, insertAt);
+        void actions.moveEntry(domain.root, data.entryPath, insertAt);
       },
     });
   }, [actions, domain.entries, domain.root]);
@@ -109,8 +191,29 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     void actions.moveEntry(domain.root, entryPath, target);
   };
 
+  const toggleFolder = (path: string): void => {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
   return (
     <div className="ct-rows">
+      <button
+        type="button"
+        className="ct-row ct-index-row"
+        onClick={() => actions.openIndexPage(domain.indexPath)}
+        title={t("Open index page")}
+      >
+        <span className="ct-row-title">
+          <span className="ct-seq">☰</span>
+          {domain.indexPath.slice(domain.indexPath.lastIndexOf("/") + 1)}
+        </span>
+        <span className="ct-moc-badge">MOC</span>
+      </button>
       <div ref={scrollRef} className="ct-rows-scroll">
         <div style={{ position: "relative", height: `${virtualizer.getTotalSize()}px` }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -123,10 +226,9 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
               transform: `translateY(${virtualRow.start}px)`,
             };
             const rowIndex = virtualRow.index;
-
-            if (rowIndex >= view.shown.length) {
-              /* trailing info rows: …more pending, then broken links */
-              const trailing = rowIndex - view.shown.length;
+            const trailStart = view.rows.length + view.shownPending.length;
+            if (rowIndex >= trailStart) {
+              const trailing = rowIndex - trailStart;
               const brokenPath = broken[trailing - (view.morePending > 0 ? 1 : 0)];
               return (
                 <div key={virtualRow.key} className="ct-row is-dim" style={absoluteStyle}>
@@ -145,12 +247,10 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
                 </div>
               );
             }
-
-            const entry = view.shown[rowIndex];
-            if (!entry) return null;
-
-            if (entry.order === undefined) {
-              /* pending (blue) row */
+            const pendingIndex = rowIndex - view.rows.length;
+            if (pendingIndex >= 0) {
+              const entry = view.shownPending[pendingIndex];
+              if (!entry) return null;
               return (
                 <div key={virtualRow.key} className="ct-row is-pending" style={absoluteStyle}>
                   <span className="ct-dot is-blue" style={{ marginRight: 1 }} />
@@ -161,18 +261,49 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
               );
             }
 
+            const row = view.rows[rowIndex];
+            if (!row) return null;
+            if (row.kind === "folder") {
+              const isOpen = expanded.has(row.path);
+              return (
+                <div key={virtualRow.key} className="ct-row is-folder-row" style={absoluteStyle}>
+                  <FolderDropTarget chainIndex={row.chainIndex} domainRoot={domain.root}>
+                    <span
+                      className="ct-caret"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleFolder(row.path);
+                      }}
+                    >
+                      {isOpen ? "▾" : "▸"}
+                    </span>
+                    <span
+                      className="ct-row-title is-folder"
+                      style={{ paddingLeft: row.depth * 14 }}
+                    >
+                      {row.name}
+                    </span>
+                    <span className="ct-row-date">—</span>
+                    <span className="ct-row-order">—</span>
+                  </FolderDropTarget>
+                </div>
+              );
+            }
+            if (row.kind !== "file") return null;
             return (
               <ChainRow
                 key={virtualRow.key}
-                entry={entry}
-                chainIndex={domain.entries.findIndex((e) => e.path === entry.path)}
-                displayIndex={rowIndex}
+                entry={row.entry}
+                chainIndex={row.chainIndex}
+                depth={row.depth}
                 domainRoot={domain.root}
-                isFolder={entry.kind === "managed-folder"}
-                isDragging={dragging === entry.path}
+                isFolder={row.entry.kind === "managed-folder"}
+                isDragging={dragging === row.entry.path}
                 onDragState={setDragging}
                 onMove={onMove}
                 dateDisplay={props.settings.dateDisplay}
+                style={absoluteStyle}
+                i18n={props.i18n}
               />
             );
           })}
@@ -185,22 +316,56 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
   );
 }
 
+function FolderDropTarget(props: {
+  chainIndex: number;
+  domainRoot: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    return dropTargetForElements({
+      element,
+      canDrop: ({ source }) => {
+        const data = source.data as Partial<DragData>;
+        return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
+      },
+      getData: ({ element: el, input }) =>
+        attachClosestEdge(
+          { chainIndex: props.chainIndex },
+          {
+            element: el,
+            input,
+            allowedEdges: ["top", "bottom"],
+          },
+        ),
+    });
+  }, [props.chainIndex, props.domainRoot]);
+  return (
+    <div ref={ref} style={{ display: "contents" }}>
+      {props.children}
+    </div>
+  );
+}
+
 interface ChainRowProps {
   entry: OrderEntry;
-  /** index within the full chain (numbering) */
   chainIndex: number;
-  /** index within the rendered display list (drop target) */
-  displayIndex: number;
+  depth: number;
   domainRoot: string;
   isFolder: boolean;
   isDragging: boolean;
   onDragState(path: string | null): void;
   onMove(path: string, delta: -1 | 1): void;
   dateDisplay: ChapterTrailSettings["dateDisplay"];
+  style: React.CSSProperties;
+  i18n: I18nService;
 }
 
 const ChainRow = (props: ChainRowProps): React.JSX.Element => {
   const { entry } = props;
+  const { t } = useI18n(props.i18n);
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLSpanElement>(null);
   const dragState = props.onDragState;
@@ -247,17 +412,17 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
         const data = source.data as Partial<DragData>;
         return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
       },
-      getData: ({ element, input }) =>
+      getData: ({ element: el, input }) =>
         attachClosestEdge(
-          { index: props.displayIndex },
+          { chainIndex: props.chainIndex },
           {
-            element,
+            element: el,
             input,
             allowedEdges: ["top", "bottom"],
           },
         ),
     });
-  }, [props.displayIndex, props.domainRoot]);
+  }, [props.chainIndex, props.domainRoot]);
 
   const date = formatDate(entry, props.dateDisplay);
 
@@ -265,14 +430,7 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
     <div
       ref={rowRef}
       className={`ct-row${props.isDragging ? " is-lifted" : ""}${props.isFolder ? " is-managedfolder" : ""}`}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: `${ROW_HEIGHT}px`,
-        transform: `translateY(${props.displayIndex * ROW_HEIGHT}px)`,
-      }}
+      style={props.style}
       onContextMenu={(event) => {
         event.preventDefault();
         setMenu({ x: event.clientX, y: event.clientY });
@@ -281,9 +439,14 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       <span className="ct-grip" ref={gripRef}>
         ⠿
       </span>
-      <span className={`ct-row-title${props.isFolder ? " is-folder" : ""}`}>
+      <span
+        className={`ct-row-title${props.isFolder ? " is-folder" : ""}`}
+        style={props.depth > 0 ? { paddingLeft: props.depth * 14 } : undefined}
+      >
         <span className="ct-seq">{String(props.chainIndex + 1).padStart(2, "0")}</span>
-        {entry.prefix !== undefined && <span className="ct-prefix">{entry.prefix}</span>}
+        {entry.prefix !== undefined && props.isFolder === false && (
+          <span className="ct-prefix">{entry.prefix}</span>
+        )}
         {entry.title}
       </span>
       <span className="ct-row-date">{date ?? "—"}</span>
@@ -300,7 +463,7 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
               props.onMove(entry.path, -1);
             }}
           >
-            ⬆ Move up
+            ⬆ {t("Move up")}
           </div>
           <div
             className="ct-menu-item"
@@ -309,7 +472,7 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
               props.onMove(entry.path, 1);
             }}
           >
-            ⬇ Move down
+            ⬇ {t("Move down")}
           </div>
         </div>
       )}
