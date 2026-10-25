@@ -108,10 +108,10 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           />
         ))}
         {domains.length === 0 && (
-					<div className="ct-empty-note">
-						{t("No managed folders yet — use the button below to start managing one")}
-					</div>
-				)}
+          <div className="ct-empty-note">
+            {t("No managed folders yet — use the button below to start managing one")}
+          </div>
+        )}
       </div>
 
       <div className="ct-panel-foot">

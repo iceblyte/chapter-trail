@@ -274,7 +274,9 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   private async commandStartManaging(): Promise<void> {
     const folder = this.activeFolder();
     if (!folder) {
-      this.notifierPort.notice(this.i18n.t("Open a note inside a folder first — the vault root cannot be managed"));
+      this.notifierPort.notice(
+        this.i18n.t("Open a note inside a folder first — the vault root cannot be managed"),
+      );
       return;
     }
     if (this.store.getSnapshot().domains.has(folder)) {
