@@ -24,6 +24,8 @@ import { PluginServices } from "./services";
 import { type ChapterTrailSettings, coerceSettings } from "./settings";
 import { ChapterTrailSettingTab, type SettingsHooks, type SettingsTabHost } from "./settings-tab";
 import type { DomainId, DomainMode, VaultPath } from "./types";
+import type { PanelActions } from "./ui/panel-actions";
+import { ChapterTrailPanelView, VIEW_TYPE_CHAPTER_TRAIL } from "./ui/panel-view";
 
 export default class ChapterTrailPlugin extends Plugin implements SettingsTabHost, SettingsHooks {
   declare settings: ChapterTrailSettings;
@@ -35,8 +37,66 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   confirmPort!: ConfirmPort;
   store!: RegistryStore;
   services!: PluginServices;
+  private settingsTab: ChapterTrailSettingTab | null = null;
   private eventSource: EventSource | null = null;
   private cacheResolvedUnsub: (() => void) | undefined;
+  readonly panelActions: PanelActions = {
+    rescan: async () => {
+      await this.services.scan();
+    },
+    openSettings: () => {
+      const app = this.app as typeof this.app & {
+        setting?: { open(): void; openTab(tab: ChapterTrailSettingTab): void };
+      };
+      app.setting?.open();
+      if (this.settingsTab) app.setting?.openTab(this.settingsTab);
+    },
+    reviewLegacyOrders: (domain) => {
+      const paths = this.store.getSnapshot().legacyOrders.get(domain) ?? [];
+      this.notifierPort.notice(
+        this.i18n.t("Legacy orders — {domain} (dissolved)", { domain }) +
+          " — " +
+          this.i18n.t("{n} files still carry order fields · <b>Clear all</b> after confirmation", {
+            n: paths.length,
+          }),
+        6000,
+      );
+    },
+    rebuildIndex: async (root) => {
+      await this.services.rebuildIndex(root);
+    },
+    reindexOrder: async (root) => {
+      await this.services.reindexOrder(root);
+    },
+    rebuildInjection: async (root) => {
+      await this.services.rebuildInjection(root);
+    },
+    openIndexPage: (path) => this.openFileInEditor(path),
+    copyDomainPath: (root) => {
+      void navigator.clipboard?.writeText(root);
+      this.notifierPort.notice(`${this.i18n.t("Domain path copied")} — ${root}`);
+    },
+    stopManaging: (root) => this.stopManagingFlow(root),
+    resolveConflict: (root, conflictPath) => this.resolveConflictFlow(root, conflictPath),
+    moveEntry: (root, path, targetIndex) => this.services.moveEntry(root, path, targetIndex),
+    startManagingFlow: (folder, mode) => this.services.startManaging(folder, mode),
+    listFolderCandidates: () => {
+      const managedRoots = new Set(this.store.getSnapshot().domains.keys());
+      const files = this.vaultPort.listMarkdownFiles();
+      return this.vaultPort
+        .listFolders()
+        .map((folder) => {
+          const directPrefix = folder === "" ? "" : `${folder}/`;
+          const noteCount = files.filter(
+            (path) =>
+              path.startsWith(directPrefix) && !path.slice(directPrefix.length).includes("/"),
+          ).length;
+          return { path: folder, noteCount, managed: managedRoots.has(folder) };
+        })
+        .filter((candidate) => candidate.managed || candidate.noteCount > 0)
+        .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
+    },
+  };
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -70,6 +130,21 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     const tab = new ChapterTrailSettingTab(this, this.i18n, this);
     tab.attachLangListener();
     this.addSettingTab(tab);
+    this.settingsTab = tab;
+
+    this.registerView(
+      VIEW_TYPE_CHAPTER_TRAIL,
+      (leaf) =>
+        new ChapterTrailPanelView(leaf, {
+          store: this.store,
+          i18n: this.i18n,
+          settings: this.settings,
+          actions: this.panelActions,
+        }),
+    );
+    this.addRibbonIcon("list-ordered", "Chapter Trail", () => {
+      void this.activatePanel();
+    });
 
     registerCommands(this, this.i18n, {
       startManagingFolder: () => this.commandStartManaging(),
@@ -118,6 +193,15 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   private openFileInEditor(path: VaultPath): void {
     const file = this.app.vault.getFileByPath(path);
     if (file) void this.app.workspace.getLeaf(false).openFile(file);
+  }
+
+  async activatePanel(): Promise<void> {
+    const { workspace } = this.app;
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_CHAPTER_TRAIL);
+    const leaf = existing[0] ?? workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: VIEW_TYPE_CHAPTER_TRAIL, active: true });
+    workspace.revealLeaf(leaf);
   }
 
   private activeFilePath(): VaultPath | null {
