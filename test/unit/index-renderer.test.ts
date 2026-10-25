@@ -4,12 +4,19 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildRegistry } from "../../src/core/domain-resolver";
 import { renderIndexInner } from "../../src/core/index-renderer";
+import type { Registry } from "../../src/types";
 import { indexPageSpec, makeSnapshot } from "../helpers";
 
 const goldenDir = fileURLToPath(new URL("../golden", import.meta.url));
 
 function golden(name: string): string {
   return readFileSync(join(goldenDir, name), "utf8");
+}
+
+function getDomain(registry: Registry, root: string) {
+  const domain = registry.domains.get(root);
+  if (!domain) throw new Error(`domain missing: ${root}`);
+  return domain;
 }
 
 describe("renderIndexInner — golden files", () => {
@@ -34,9 +41,8 @@ describe("renderIndexInner — golden files", () => {
         },
       }),
     );
-    const domain = registry.domains.get("Blogs");
-    expect(domain).toBeDefined();
-    const output = renderIndexInner(domain!, registry, { dateDisplay: "created" });
+    const domain = getDomain(registry, "Blogs");
+    const output = renderIndexInner(domain, registry, { dateDisplay: "created" });
     expect(output).toBe(golden("series-index.md"));
   });
 
@@ -58,9 +64,8 @@ describe("renderIndexInner — golden files", () => {
         "读书/参考资料/note.md": {},
       }),
     );
-    const domain = registry.domains.get("读书");
-    expect(domain).toBeDefined();
-    const output = renderIndexInner(domain!, registry, { dateDisplay: "created" });
+    const domain = getDomain(registry, "读书");
+    const output = renderIndexInner(domain, registry, { dateDisplay: "created" });
     expect(output).toBe(golden("independent-index.md"));
   });
 });
@@ -75,7 +80,7 @@ describe("renderIndexInner — date display variants", () => {
         },
       }),
     );
-    const domain = registry.domains.get("随笔")!;
+    const domain = getDomain(registry, "随笔");
     expect(renderIndexInner(domain, registry, { dateDisplay: "updated" })).toBe(
       "- [01](./01.md) 2026-01-12\n",
     );
@@ -91,7 +96,7 @@ describe("renderIndexInner — date display variants", () => {
         "随笔/01.md": { frontmatter: { order: 10000, created: "不知何时" } },
       }),
     );
-    const domain = registry.domains.get("随笔")!;
+    const domain = getDomain(registry, "随笔");
     expect(renderIndexInner(domain, registry, { dateDisplay: "created" })).toBe(
       "- [01](./01.md)\n",
     );
