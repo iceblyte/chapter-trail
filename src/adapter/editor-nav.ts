@@ -3,19 +3,18 @@
  * Source mode & Live Preview, as CodeMirror 6 block widgets at the top
  * and bottom of the document. Never touches the document text.
  *
+ * IMPORTANT: block decorations may only come from a StateField — a
+ * ViewPlugin provider throws "Block decorations may not be specified
+ * via plugins" at EditorState creation, which aborts file opening.
+ * The field recomputes on every transaction (cheap: two ranges); the
+ * widget's eq() keeps the DOM from churning.
+ *
  * @codemirror/* resolve to the app's copy (peer deps, esbuild
- * external) so the extension facets match the host editor.
+ * external) so the facet identities match the host editor.
  */
 
-import type { Extension } from "@codemirror/state";
-import {
-  Decoration,
-  type DecorationSet,
-  type EditorView,
-  ViewPlugin,
-  type ViewUpdate,
-  WidgetType,
-} from "@codemirror/view";
+import { type EditorState, type Extension, StateField } from "@codemirror/state";
+import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { editorInfoField } from "obsidian";
 import { isUnder } from "../core/path-util";
 import type { ManagedDomain } from "../types";
@@ -49,8 +48,12 @@ class NavWidget extends WidgetType {
   }
 }
 
-function computeDecorations(view: EditorView, deps: NavDeps, store: RegistryStore): DecorationSet {
-  const info = view.state.field(editorInfoField, false);
+function computeDecorations(
+  state: EditorState,
+  deps: NavDeps,
+  store: RegistryStore,
+): DecorationSet {
+  const info = state.field(editorInfoField, false);
   const file = info?.file;
   if (!file) return Decoration.none;
 
@@ -73,34 +76,25 @@ function computeDecorations(view: EditorView, deps: NavDeps, store: RegistryStor
       widget: new NavWidget(model, "bottom", deps),
       block: true,
       side: 100,
-    }).range(view.state.doc.length),
+    }).range(state.doc.length),
   ]);
-}
-
-/** a broken decoration must never break the editor / file opening */
-function safeDecorations(view: EditorView, deps: NavDeps, store: RegistryStore): DecorationSet {
-  try {
-    return computeDecorations(view, deps, store);
-  } catch (error) {
-    console.error("[chapter-trail] editor nav failed", error);
-    return Decoration.none;
-  }
 }
 
 /** Editor extension: display-only nav in Source mode & Live Preview. */
 export function editorNavExtension(deps: NavDeps, store: RegistryStore): Extension {
-  return ViewPlugin.fromClass(
-    class {
-      decorations: DecorationSet;
+  return StateField.define<DecorationSet>({
+    create: (state) => safeDecorations(state, deps, store),
+    update: (_value, tr) => safeDecorations(tr.state, deps, store),
+    provide: (field) => EditorView.decorations.from(field),
+  });
+}
 
-      constructor(view: EditorView) {
-        this.decorations = safeDecorations(view, deps, store);
-      }
-
-      update(update: ViewUpdate): void {
-        this.decorations = safeDecorations(update.view, deps, store);
-      }
-    },
-    { decorations: (value) => value.decorations },
-  );
+/** a broken decoration must never break the editor / file opening */
+function safeDecorations(state: EditorState, deps: NavDeps, store: RegistryStore): DecorationSet {
+  try {
+    return computeDecorations(state, deps, store);
+  } catch (error) {
+    console.error("[chapter-trail] editor nav failed", error);
+    return Decoration.none;
+  }
 }

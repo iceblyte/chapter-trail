@@ -118,3 +118,31 @@ Obsidian 官方 API 不提供文件树拖拽排序。已实现的是社区通用
 | 6 | 只含子文件夹无 md 的大文件夹 A 无法管理；independent 面板不显示 B/C/D | ①候选过滤器原来只数**直属** md 文件——改为“直属 md 或有子文件夹”即入围（services 守卫仍拦 series 嵌套）；②independent 域面板列表尾部新增**未受管子文件夹行**（灰色 ☰，与索引页纯文本条目一致，不可拖拽） | 过滤逻辑 + 行渲染实现验证 |
 
 测试规模：16 文件 / 175 项测试全绿。
+
+
+---
+
+# 第六轮修复（2026-10-25）：打开失败根因定位与修复
+
+## 根因（你提供的控制台输出一锤定音）
+
+```
+RangeError: Block decorations may not be specified via plugins
+```
+
+这是 CodeMirror 6 的硬性限制：**块级装饰（block widget）只能由 StateField 提供，不允许通过 ViewPlugin 的 decorations 提供**。上一轮的编辑模式导航用了 ViewPlugin——异常在 EditorState 创建时抛出，而打开任何 markdown 文件都要创建 EditorState，所以**所有笔记都打不开**（与受管与否无关，只是你恰好在受管文件夹里测试）。我上一轮加的 try/catch 包不住它：异常发生在 CM 消费装饰结果时，不在我们的计算函数里。
+
+## 修复
+
+editor-nav 从 ViewPlugin 重写为 **StateField**（块级装饰的唯一合法通道）：
+
+- `create` / `update` 时从当前 state 计算（editorInfoField 判定文件身份 → 域查找 → 模型 → 顶部/底部两个 block widget）；
+- `provide: (field) => EditorView.decorations.from(field)`；
+- NavWidget.eq 防止 DOM 抖动；每次事务重算的成本是两次 range 构造（微秒级）；
+- 保留 try/catch 兜底。
+
+## 验证
+
+- tsc + 175 项测试全绿；
+- 构建产物确认 `require("@codemirror/state")` / `require("@codemirror/view")` 为 external 引用（运行时用 Obsidian 宿主的 CM 副本，版本 peer 锁定 6.7.6 / 6.43.13）；
+- 真机复验由你进行：打开任意受管文件夹中的笔记（源码模式 & Live Preview 顶部/底部应出现导航条）、阅读视图跳转与滚动。
