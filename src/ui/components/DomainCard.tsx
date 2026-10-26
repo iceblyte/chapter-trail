@@ -3,6 +3,8 @@
  * badge and kebab menu, stacked status chips, the virtualized entry
  * list and the action buttons.
  */
+
+import { setIcon } from "obsidian";
 import { useEffect, useRef, useState } from "react";
 import type { I18nService } from "../../i18n/runtime";
 import type { ChapterTrailSettings } from "../../settings";
@@ -16,14 +18,23 @@ export interface DomainCardProps {
   settings: ChapterTrailSettings;
   actions: PanelActions;
   i18n: I18nService;
+  /** controlled by the panel (global expand/collapse button) */
+  open: boolean;
+  onToggleOpen(): void;
 }
 
 export function DomainCard(props: DomainCardProps): React.JSX.Element {
   const { domain, settings, actions } = props;
   const { t } = useI18n(props.i18n);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cardOpen, setCardOpen] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
+  const managedIconRef = useRef<HTMLSpanElement>(null);
+
+  /* the "managed" marker icon reflects the fold state */
+  useEffect(() => {
+    if (!managedIconRef.current) return;
+    setIcon(managedIconRef.current, props.open ? "folder-open" : "folder");
+  }, [props.open]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -39,15 +50,12 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
 
   return (
     <div className="ct-card" ref={cardRef}>
-      <div className="ct-card-head">
-        <button
-          type="button"
-          className="ct-caret"
-          title={t(cardOpen ? "Collapse" : "Expand")}
-          onClick={() => setCardOpen((open) => !open)}
-        >
-          {cardOpen ? "▾" : "▸"}
-        </button>
+      <div
+        className="ct-card-head ct-card-head-click"
+        title={t(props.open ? "Collapse" : "Expand")}
+        onClick={() => props.onToggleOpen()}
+      >
+        <span className="ct-managed-icon" ref={managedIconRef} />
         <span className="ct-card-path">{domain.root}</span>
         <span className={`ct-mode-badge${domain.mode === "series" ? " is-series" : ""}`}>
           {t(domain.mode === "series" ? "Series" : "Independent")}
@@ -56,7 +64,10 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
           type="button"
           className="ct-icon-btn"
           title={t("Copy domain path")}
-          onClick={() => setMenuOpen((open) => !open)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setMenuOpen((open) => !open);
+          }}
         >
           ⋮
         </button>
@@ -97,7 +108,7 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
         )}
       </div>
 
-      {cardOpen && (
+      {props.open && (
         <>
           <div className="ct-chips">
             {status.broken.length > 0 && (

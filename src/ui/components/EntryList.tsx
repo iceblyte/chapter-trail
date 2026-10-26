@@ -26,6 +26,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROW_HEIGHT } from "../../constants";
+import { parentOf } from "../../core/path-util";
 import type { I18nService } from "../../i18n/runtime";
 import type { ChapterTrailSettings } from "../../settings";
 import type { ManagedDomain, OrderEntry } from "../../types";
@@ -174,8 +175,14 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
         if (chainIndex === undefined) return;
         const edge = extractClosestEdge(target.data);
         const landing = chainIndex + (edge === "bottom" ? 1 : 0);
-        if (data.type === FOLDER_TYPE && data.folderPath !== undefined) {
-          void actions.moveFolder(domain.root, data.folderPath, landing);
+        if (data.type === FOLDER_TYPE) {
+          // derive from the first file's parent: immune to any tree-path
+          // construction bugs above
+          const folderPath =
+            data.folderPath ??
+            (data.entryPath !== undefined ? parentOf(data.entryPath) : undefined);
+          if (folderPath === undefined || folderPath === null) return;
+          void actions.moveFolder(domain.root, folderPath, landing);
           return;
         }
         if (data.entryPath === undefined) return;
@@ -396,6 +403,7 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
         type: FOLDER_TYPE,
         domainRoot: props.domainRoot,
         folderPath: props.path,
+        entryPath: props.firstFilePath,
       }),
       onDragStart: () => dragState(props.firstFilePath),
       onDrop: () => dragState(null),
@@ -464,6 +472,13 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
   const { entry } = props;
   const { t } = useI18n(props.i18n);
   const rowRef = useRef<HTMLDivElement>(null);
+  const folderIconRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!folderIconRef.current) return;
+    setIcon(folderIconRef.current, "folder");
+  }, []);
+
   const gripRef = useRef<HTMLSpanElement>(null);
   const dragState = props.onDragState;
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
@@ -537,6 +552,7 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       <span className="ct-grip" ref={gripRef}>
         ⠿
       </span>
+      {props.isFolder && <span className="ct-folder-icon" ref={folderIconRef} />}
       <span
         className={`ct-row-title${props.isFolder ? " is-folder" : ""}`}
         style={props.depth > 0 ? { paddingLeft: props.depth * 14 } : undefined}

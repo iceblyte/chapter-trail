@@ -39,6 +39,8 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
     () => props.settings.domainOrder ?? [],
   );
   const [draggingCard, setDraggingCard] = useState<string | null>(null);
+  /** roots whose card body is folded; empty set = all expanded */
+  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set());
 
   /* the start-managing command can open the picker remotely */
   useEffect(() => {
@@ -49,6 +51,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
 
   const domains = useMemo(() => [...registry.domains.values()], [registry]);
   const sortedDomains = useMemo(() => orderedDomains(domains, cardOrder), [domains, cardOrder]);
+  const sortedRoots = useMemo(() => sortedDomains.map((domain) => domain.root), [sortedDomains]);
   const attention = domains.filter((domain) => hasChips(domain)).length;
   const legacyTotal = useMemo(
     () => [...registry.legacyOrders.values()].reduce((sum, paths) => sum + paths.length, 0),
@@ -56,10 +59,70 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   );
   const legacyDomain = registry.legacyOrders.keys().next().value;
 
+  /* single card monitor — resolves against the DISPLAYED root list
+   * (the persisted cardOrder may be empty before the first drag) */
+  const sortedRootsRef = useRef(sortedRoots);
+  sortedRootsRef.current = sortedRoots;
+  useEffect(() => {
+    return monitorForElements({
+      canMonitor: ({ source }) => {
+        const data = source.data as Partial<CardDragData>;
+        return data.type === CARD_TYPE;
+      },
+      onDrop: ({ source, location }) => {
+        try {
+          const data = source.data as Partial<CardDragData>;
+          if (data.domainRoot === undefined) return;
+          const target = location.current.dropTargets[0];
+          if (!target) return;
+          const targetData = target.data as Partial<CardDragData>;
+          if (targetData.domainRoot === undefined || targetData.domainRoot === data.domainRoot) {
+            return;
+          }
+          const edge = extractClosestEdge(target.data);
+          const current = [...sortedRootsRef.current];
+          const from = current.indexOf(data.domainRoot);
+          const to = current.indexOf(targetData.domainRoot);
+          if (from === -1 || to === -1) return;
+          current.splice(from, 1);
+          let insertAt = to > from ? to - 1 : to;
+          if (edge === "bottom") insertAt += 1;
+          insertAt = Math.max(0, Math.min(insertAt, current.length));
+          if (current[insertAt] === data.domainRoot) return;
+          current.splice(insertAt, 0, data.domainRoot);
+          setCardOrder(current);
+          void props.actions.reorderDomains(current);
+        } catch (error) {
+          console.error("[chapter-trail] card reorder failed", error);
+        }
+      },
+    });
+  }, [props.actions]);
+
+  const toggleCard = (root: string): void => {
+    setFolded((current) => {
+      const next = new Set(current);
+      if (next.has(root)) next.delete(root);
+      else next.add(root);
+      return next;
+    });
+  };
+  const toggleAllCards = (): void => {
+    setFolded((current) => (current.size > 0 ? new Set() : new Set(domains.map((d) => d.root))));
+  };
+
   return (
     <div className="ct-panel">
       <div className="ct-panel-head">
         <span className="ct-panel-title">{t("Chapter Trail")}</span>
+        <button
+          type="button"
+          className="ct-icon-btn"
+          title={t(folded.size > 0 ? "Expand all" : "Collapse all")}
+          onClick={toggleAllCards}
+        >
+          {folded.size > 0 ? "⏶" : "⏷"}
+        </button>
         <button
           type="button"
           className="ct-icon-btn"
@@ -125,11 +188,6 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           <SortableCard
             key={domain.root}
             domainRoot={domain.root}
-            cardOrder={cardOrder}
-            onOrderChange={(order) => {
-              setCardOrder(order);
-              void props.actions.reorderDomains(order);
-            }}
             onDragState={setDraggingCard}
             dragging={draggingCard === domain.root}
           >
@@ -138,6 +196,8 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
               settings={props.settings}
               actions={props.actions}
               i18n={props.i18n}
+              open={!folded.has(domain.root)}
+              onToggleOpen={() => toggleCard(domain.root)}
             />
           </SortableCard>
         ))}
@@ -186,18 +246,20 @@ interface CardDragData {
   domainRoot: string;
 }
 
-/** draggable + drop-target wrapper that reorders the domain cards */
+/**
+ * Card drag: draggable/drop-target wrappers per card, but ONE monitor
+ * at the panel level. The monitor resolves the new order against the
+ * DISPLAYED root list (not the persisted cardOrder, which may be
+ * empty on first use — that was the "drags but never swaps" bug).
+ */
 function SortableCard(props: {
   domainRoot: string;
-  cardOrder: readonly string[];
-  onOrderChange(order: readonly string[]): void;
   onDragState(root: string | null): void;
   dragging: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLDivElement>(null);
-  const order = props.cardOrder;
 
   useEffect(() => {
     const element = ref.current;
@@ -226,7 +288,7 @@ function SortableCard(props: {
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(
-          { index: order.indexOf(props.domainRoot) },
+          { domainRoot: props.domainRoot },
           {
             element: el,
             input,
@@ -234,40 +296,7 @@ function SortableCard(props: {
           },
         ),
     });
-  }, [props.domainRoot, order]);
-
-  /* card-level monitor resolves card reordering */
-  useEffect(() => {
-    return monitorForElements({
-      canMonitor: ({ source }) => {
-        const data = source.data as Partial<CardDragData>;
-        return data.type === CARD_TYPE;
-      },
-      onDrop: ({ source, location }) => {
-        const data = source.data as Partial<CardDragData>;
-        if (data.domainRoot === undefined) return;
-        const target = location.current.dropTargets[0];
-        if (!target) return;
-        const targetData = target.data as Partial<CardDragData> & { index?: number };
-        if (targetData.domainRoot === undefined || targetData.index === undefined) return;
-        const edge = extractClosestEdge(target.data);
-        const current = [...order];
-        const from = current.indexOf(data.domainRoot);
-        if (from === -1) return;
-        current.splice(from, 1);
-        let insertAt = targetData.index > from ? targetData.index - 1 : targetData.index;
-        insertAt = Math.max(0, Math.min(insertAt, current.length));
-        if (edge === "bottom") insertAt += 1;
-        if (insertAt >= current.length) {
-          current.push(data.domainRoot);
-        } else {
-          current.splice(insertAt, 0, data.domainRoot);
-        }
-        if (current.join("\u0000") === order.join("\u0000")) return;
-        props.onOrderChange(current);
-      },
-    });
-  }, [order, props]);
+  }, [props.domainRoot]);
 
   return (
     <div

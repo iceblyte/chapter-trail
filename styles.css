@@ -275,12 +275,6 @@ body {
   color: var(--interactive-accent);
   font-size: 11px;
 }
-.ct-row-title.is-folder::before {
-  content: "☰";
-  color: var(--text-faint);
-  font-size: 11px;
-  margin-right: 5px;
-}
 .ct-row.is-managedfolder .ct-row-title {
   color: var(--text-normal);
 }
@@ -695,4 +689,25 @@ body {
 }
 .ct-index-row .ct-row-title {
   font-weight: var(--font-semibold);
+}
+
+.ct-row .ct-managed-icon,
+.ct-card-head .ct-managed-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--interactive-accent);
+}
+.ct-card-head .ct-managed-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.ct-card-head-click {
+  cursor: pointer;
+}
+.ct-card-head-click .ct-mode-badge,
+.ct-card-head-click .ct-icon-btn {
+  cursor: pointer;
 }
