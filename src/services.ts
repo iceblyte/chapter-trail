@@ -547,26 +547,59 @@ export class PluginServices {
 
     const ordered = domain.entries;
     const tree = buildSeriesTree(ordered, root);
+
+    // resolve the drop target span BEFORE detaching — the target may be
+    // a row of the folder being moved itself
+    let targetPos: number | null = null;
+    if (target.isFolder) {
+      const node = findSeriesNode(tree, root, target.path);
+      const subtree = node ? flattenSeriesTree(node) : [];
+      const firsts = subtree.map((entry) =>
+        ordered.findIndex((candidate) => candidate.path === entry.path),
+      );
+      const valid = firsts.filter((index) => index !== -1);
+      if (valid.length > 0) {
+        const first = Math.min(...valid);
+        const last = Math.max(...valid);
+        targetPos = target.edge === "bottom" ? last + 1 : first;
+      }
+    } else {
+      const at = ordered.findIndex((entry) => entry.path === target.path);
+      if (at !== -1) targetPos = target.edge === "bottom" ? at + 1 : at;
+    }
+    if (targetPos === null) {
+      // target unresolvable (e.g. dropped onto the folder's own row)
+      this.deps.notifier.notice(
+        this.deps.i18n.t("Nothing to move — the drop position is unchanged"),
+      );
+      return;
+    }
+
     const detached = detachSeriesNode(tree, root, folderPath);
     if (!detached) return;
     const block = flattenSeriesTree(detached);
     if (block.length === 0) return;
 
     const rest = flattenSeriesTree(tree);
-    // locate the drop target inside the flattened rest
-    let pos = rest.length;
-    if (target.isFolder) {
-      const node = findSeriesNode(tree, root, target.path);
-      const subtree = node ? flattenSeriesTree(node) : [];
-      const first = rest.findIndex((entry) => entry.path === subtree[0]?.path);
-      const last = rest.findIndex((entry) => entry.path === subtree.at(-1)?.path);
-      if (first !== -1) pos = target.edge === "bottom" ? last + 1 : first;
-    } else {
-      const at = rest.findIndex((entry) => entry.path === target.path);
-      if (at !== -1) pos = target.edge === "bottom" ? at + 1 : at;
-    }
-    pos = Math.max(0, Math.min(pos, rest.length));
+    // targetPos is a FULL-CHAIN index; the block's own members before it
+    // must be subtracted to get the insertion point within rest
+    const chainIndexOf = new Map(ordered.map((entry, index) => [entry.path, index]));
+    const blockBefore = block.filter(
+      (entry) => (chainIndexOf.get(entry.path) ?? 0) < targetPos,
+    ).length;
+    const pos = Math.max(0, Math.min(targetPos - blockBefore, rest.length));
     const simulated = [...rest.slice(0, pos), ...block, ...rest.slice(pos)];
+
+    // path sequence unchanged (e.g. dropped onto its own row) → no-op
+    const sameSequence =
+      simulated.length === ordered.length &&
+      simulated.every((entry, index) => entry.path === ordered[index]?.path);
+    if (sameSequence) {
+      this.deps.notifier.notice(
+        this.deps.i18n.t("Nothing to move — the drop position is unchanged"),
+      );
+      return;
+    }
 
     const tasks: WriteTask[] = [];
     simulated.forEach((entry, index) => {
@@ -582,7 +615,12 @@ export class PluginServices {
     this.deps.notifier.notice(
       this.deps.i18n.t("Folder moved — {n} notes reordered as one block", {
         n: block.length,
-      }),
+      }) +
+        " → " +
+        simulated
+          .slice(0, 4)
+          .map((entry) => entry.title)
+          .join(" / "),
     );
     await this.scan();
     if (this.settings.autoRebuildIndex) {
@@ -609,6 +647,7 @@ export class PluginServices {
       newPath = joinPath(targetFolder, base.replace(/(\.md)?$/, ` ${n}.md`));
     }
     await this.deps.vault.rename(filePath, newPath);
+    this.deps.vault.noteRenamed(filePath, newPath);
     this.deps.notifier.notice(
       this.deps.i18n.t("✓ File moved to {folder}", { folder: targetFolder }),
     );

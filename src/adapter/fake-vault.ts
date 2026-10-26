@@ -164,6 +164,10 @@ export class FakeVault implements VaultPort {
     }
   }
 
+  noteRenamed(_oldPath: VaultPath, _newPath: VaultPath): void {
+    // the in-memory model is already consistent
+  }
+
   getFrontmatter(path: VaultPath): Record<string, unknown> | null | undefined {
     if (this.frontmatterOverrides.has(path)) {
       return this.frontmatterOverrides.get(path) ?? null;

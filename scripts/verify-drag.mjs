@@ -125,6 +125,45 @@ const results = [];
   });
 }
 
+/* ---------- scenario 1b: folder drop onto ITS OWN row (no-op) ---------- */
+{
+  const outcome = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const ct = window.__ct;
+    const noticesBefore = ct.notices.length;
+    const card = [...document.querySelectorAll(".ct-card")].find(
+      (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
+    );
+    const folderRow = card.querySelector(".ct-row.is-folder-row");
+    const grip = folderRow.querySelector(".ct-grip");
+    grip.style.visibility = "visible";
+    const gs = grip.getBoundingClientRect();
+    const dt = new DataTransfer();
+    const fire = (el, type, x, y) =>
+      el.dispatchEvent(
+        new DragEvent(type, {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+    fire(folderRow, "dragstart", gs.x + 6, gs.y + 6);
+    fire(folderRow, "dragover", gs.x + 60, gs.y + 16);
+    fire(folderRow, "drop", gs.x + 60, gs.y + 16);
+    window.dispatchEvent(new DragEvent("dragend", { dataTransfer: dt, bubbles: true }));
+    grip.style.visibility = "";
+    await sleep(500);
+    return { notice: ct.notices.slice(noticesBefore).at(-1) ?? null };
+  });
+  results.push({
+    name: "folder self-drop is a safe no-op",
+    ...outcome,
+    pass: outcome.notice !== null && outcome.notice.includes("unchanged"),
+  });
+}
+
 /* ---------- scenario 2: file drag (regression) ---------- */
 {
   const outcome = await page.evaluate(async () => {

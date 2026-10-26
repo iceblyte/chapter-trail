@@ -28,6 +28,9 @@ export interface VaultPort {
   create(path: VaultPath, content: string): Promise<void>;
   /** move a file to a new path, keeping content */
   rename(path: VaultPath, newPath: VaultPath): Promise<void>;
+  /** inform the port of a rename it did not perform, so freshness
+   *  overrides stay correct (no-op for in-memory vaults) */
+  noteRenamed(oldPath: VaultPath, newPath: VaultPath): void;
   /** move a file to the system trash */
   trashFile(path: VaultPath): Promise<void>;
   /** parsed frontmatter from the metadata cache; null = no frontmatter,

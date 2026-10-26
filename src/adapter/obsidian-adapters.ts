@@ -80,6 +80,18 @@ export class ObsidianVaultAdapter implements VaultPort {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!file) throw new Error(`rename: file not found: ${path}`);
     await this.app.vault.rename(file, newPath);
+    this.noteRenamed(path, newPath);
+  }
+
+  /** rename performed elsewhere (e.g. vault.rename via services):
+   *  transfer the freshness override so reads of the new path are
+   *  correct even before the metadata cache reindexes. */
+  noteRenamed(oldPath: string, newPath: string): void {
+    const fresh = this.freshWrites.get(oldPath);
+    if (fresh) {
+      this.freshWrites.delete(oldPath);
+      this.freshWrites.set(newPath, { ...fresh, at: Date.now() });
+    }
   }
 
   async trashFile(path: string): Promise<void> {
