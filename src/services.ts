@@ -35,6 +35,12 @@ import {
   openInjectionGate,
 } from "./core/nav-writer";
 import { isUnder, joinPath, noteTitle, parentOf, relativeInside } from "./core/path-util";
+import {
+  buildSeriesTree,
+  detachSeriesNode,
+  findSeriesNode,
+  flattenSeriesTree,
+} from "./core/series-tree";
 import { normalizedOrder, orderValue, planInsert, tailOrder } from "./core/sort-core";
 import type { I18nService } from "./i18n/runtime";
 import type { ChapterTrailSettings } from "./settings";
@@ -523,26 +529,43 @@ export class PluginServices {
    * to 10000 steps. Block-moving keeps the panel tree and the native
    * explorer in sync — both place a folder at its first file.
    */
-  async moveFolder(root: DomainId, folderPath: VaultPath, targetChainIndex: number): Promise<void> {
+  /**
+   * Move a whole series subfolder. The new chain is derived FROM THE
+   * TREE: the folder node is detached and re-inserted relative to the
+   * drop target (a folder target spans its whole subtree), then the
+   * tree is flattened back — so the panel tree, the native explorer
+   * and the chain stay identical after every move.
+   */
+  async moveFolder(
+    root: DomainId,
+    folderPath: VaultPath,
+    target: { path: VaultPath; isFolder: boolean; edge: "top" | "bottom" },
+  ): Promise<void> {
     const registry = this.deps.store.getSnapshot();
     const domain = registry.domains.get(root);
     if (!domain) return;
-    const prefix = `${folderPath}/`;
-    const inBlock = domain.entries.filter(
-      (entry) => entry.kind === "file" && entry.path.startsWith(prefix),
-    );
-    if (inBlock.length === 0) return;
-    const blockPaths = new Set(inBlock.map((entry) => entry.path));
 
-    const chain = domain.entries;
-    const block = chain.filter((entry) => blockPaths.has(entry.path));
-    const rest = chain.filter((entry) => !blockPaths.has(entry.path));
-    // translate the full-chain target index into rest coordinates:
-    // every block member before the target shifts the insertion point
-    const blockBefore = chain.filter(
-      (entry, index) => blockPaths.has(entry.path) && index < targetChainIndex,
-    ).length;
-    const pos = Math.max(0, Math.min(targetChainIndex - blockBefore, rest.length));
+    const ordered = domain.entries;
+    const tree = buildSeriesTree(ordered, root);
+    const detached = detachSeriesNode(tree, root, folderPath);
+    if (!detached) return;
+    const block = flattenSeriesTree(detached);
+    if (block.length === 0) return;
+
+    const rest = flattenSeriesTree(tree);
+    // locate the drop target inside the flattened rest
+    let pos = rest.length;
+    if (target.isFolder) {
+      const node = findSeriesNode(tree, root, target.path);
+      const subtree = node ? flattenSeriesTree(node) : [];
+      const first = rest.findIndex((entry) => entry.path === subtree[0]?.path);
+      const last = rest.findIndex((entry) => entry.path === subtree.at(-1)?.path);
+      if (first !== -1) pos = target.edge === "bottom" ? last + 1 : first;
+    } else {
+      const at = rest.findIndex((entry) => entry.path === target.path);
+      if (at !== -1) pos = target.edge === "bottom" ? at + 1 : at;
+    }
+    pos = Math.max(0, Math.min(pos, rest.length));
     const simulated = [...rest.slice(0, pos), ...block, ...rest.slice(pos)];
 
     const tasks: WriteTask[] = [];
@@ -558,7 +581,7 @@ export class PluginServices {
 
     this.deps.notifier.notice(
       this.deps.i18n.t("Folder moved — {n} notes reordered as one block", {
-        n: inBlock.length,
+        n: block.length,
       }),
     );
     await this.scan();
@@ -566,6 +589,32 @@ export class PluginServices {
       await this.rebuildIndex(root, { silent: true });
     } else {
       this.deps.store.markStale([root]);
+    }
+  }
+
+  /**
+   * Physically move a note into another folder of the same domain
+   * (drag a file row onto a different folder row / out of a subfolder).
+   * The vault rename is the source of truth; the order field travels
+   * with the file and the domain is normalized afterwards.
+   */
+  async moveFileToFolder(
+    root: DomainId,
+    filePath: VaultPath,
+    targetFolder: VaultPath,
+  ): Promise<void> {
+    const base = filePath.slice(filePath.lastIndexOf("/") + 1);
+    let newPath = joinPath(targetFolder, base);
+    for (let n = 1; this.deps.vault.exists(newPath); n++) {
+      newPath = joinPath(targetFolder, base.replace(/(\.md)?$/, ` ${n}.md`));
+    }
+    await this.deps.vault.rename(filePath, newPath);
+    this.deps.notifier.notice(
+      this.deps.i18n.t("✓ File moved to {folder}", { folder: targetFolder }),
+    );
+    await this.scan();
+    if (this.settings.autoRebuildIndex) {
+      await this.rebuildIndex(root, { silent: true });
     }
   }
 

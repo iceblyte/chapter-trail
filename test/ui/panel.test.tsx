@@ -27,6 +27,7 @@ const noopActions: PanelActions = {
   resolveConflict: () => Promise.resolve(),
   moveEntry: () => Promise.resolve(),
   moveFolder: () => Promise.resolve(),
+  moveFileToFolder: () => Promise.resolve(),
   startManagingWithModePicker: () => Promise.resolve(),
   reorderDomains: () => Promise.resolve(),
   startManagingFlow: () => Promise.resolve(),

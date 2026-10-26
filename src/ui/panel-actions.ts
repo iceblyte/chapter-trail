@@ -30,8 +30,14 @@ export interface PanelActions {
 
   /** move an entry to `targetIndex` within the chain (drag / menu) */
   moveEntry(root: DomainId, path: VaultPath, targetIndex: number): Promise<void>;
+  /** physically move a note into another folder of the domain */
+  moveFileToFolder(root: DomainId, filePath: VaultPath, targetFolder: VaultPath): Promise<void>;
   /** move a whole series subfolder as one block (drag) */
-  moveFolder(root: DomainId, folderPath: VaultPath, targetChainIndex: number): Promise<void>;
+  moveFolder(
+    root: DomainId,
+    folderPath: VaultPath,
+    target: { path: VaultPath; isFolder: boolean; edge: "top" | "bottom" },
+  ): Promise<void>;
 
   /** two-step start-managing flow (prototype 04), mode picked in step 2 */
   startManagingFlow(folder: DomainId, mode: DomainMode): Promise<void>;

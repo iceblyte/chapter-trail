@@ -104,8 +104,9 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     stopManaging: (root) => this.stopManagingFlow(root),
     resolveConflict: (root, conflictPath) => this.resolveConflictFlow(root, conflictPath),
     moveEntry: (root, path, targetIndex) => this.services.moveEntry(root, path, targetIndex),
-    moveFolder: (root, folderPath, targetChainIndex) =>
-      this.services.moveFolder(root, folderPath, targetChainIndex),
+    moveFolder: (root, folderPath, target) => this.services.moveFolder(root, folderPath, target),
+    moveFileToFolder: (root, filePath, targetFolder) =>
+      this.services.moveFileToFolder(root, filePath, targetFolder),
     startManagingWithModePicker: async (folder) => {
       const mode = await this.chooseModeDialog(folder, this.services.previewStartManaging(folder));
       if (!mode) return;

@@ -454,7 +454,11 @@ describe("moveFolder — block move (folder drag)", () => {
     await h.services.scan();
 
     // drag 进阶篇 above 01 → block [04,05] lands first
-    await h.services.moveFolder("Blogs", "Blogs/进阶篇", 0);
+    await h.services.moveFolder("Blogs", "Blogs/进阶篇", {
+      path: "Blogs/01.md",
+      isFolder: false,
+      edge: "top",
+    });
 
     await h.services.scan();
     const domain = h.store.getSnapshot().domains.get("Blogs");
@@ -483,7 +487,11 @@ describe("moveFolder — block move (folder drag)", () => {
     await h.services.scan();
 
     // drop onto row 02 bottom → full-chain index 2, edge already applied
-    await h.services.moveFolder("Blogs", "Blogs/进阶篇", 2);
+    await h.services.moveFolder("Blogs", "Blogs/进阶篇", {
+      path: "Blogs/02.md",
+      isFolder: false,
+      edge: "bottom",
+    });
 
     await h.services.scan();
     const domain = h.store.getSnapshot().domains.get("Blogs");
@@ -493,5 +501,43 @@ describe("moveFolder — block move (folder drag)", () => {
       "Blogs/进阶篇/04.md",
       "Blogs/进阶篇/05.md",
     ]);
+  });
+});
+
+describe("moveFileToFolder — drag a file out of a subfolder", () => {
+  it("physically renames the file into the target folder", async () => {
+    const h = makeHarness();
+    h.vault.seed("Blogs/目录.md", indexPageContent("series"));
+    h.vault.seed("Blogs/01.md", note(10000));
+    h.vault.seed("Blogs/进阶篇/04.md", note(20000));
+    h.vault.seed("Blogs/进阶篇/05.md", note(30000));
+    await h.services.scan();
+
+    await h.services.moveFileToFolder("Blogs", "Blogs/进阶篇/05.md", "Blogs");
+
+    expect(h.vault.exists("Blogs/进阶篇/05.md")).toBe(false);
+    expect(h.vault.exists("Blogs/05.md")).toBe(true);
+    // the order field travels with the file — chain position preserved
+    await h.services.scan();
+    const domain = h.store.getSnapshot().domains.get("Blogs");
+    expect(domain?.entries.map((entry) => entry.path)).toEqual([
+      "Blogs/01.md",
+      "Blogs/进阶篇/04.md",
+      "Blogs/05.md",
+    ]);
+    expect(h.notices.some((n) => n.includes("✓ File moved to Blogs"))).toBe(true);
+  });
+
+  it("resolves basename collisions with a numeric suffix", async () => {
+    const h = makeHarness();
+    h.vault.seed("Blogs/目录.md", indexPageContent("series"));
+    h.vault.seed("Blogs/笔记.md", note(10000));
+    h.vault.seed("Blogs/进阶篇/笔记.md", note(20000));
+    await h.services.scan();
+
+    await h.services.moveFileToFolder("Blogs", "Blogs/进阶篇/笔记.md", "Blogs");
+
+    expect(h.vault.exists("Blogs/笔记 1.md")).toBe(true);
+    expect(h.vault.exists("Blogs/笔记.md")).toBe(true);
   });
 });

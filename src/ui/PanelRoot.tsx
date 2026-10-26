@@ -130,7 +130,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           title={t("Re-scan vault")}
           onClick={() => void props.actions.rescan()}
         >
-          ⟳
+          <ObsidianIcon name="refresh-cw" />
         </button>
         <button
           type="button"
@@ -138,7 +138,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           title={t("Settings")}
           onClick={() => props.actions.openSettings()}
         >
-          ⚙
+          <ObsidianIcon name="settings" />
         </button>
       </div>
 

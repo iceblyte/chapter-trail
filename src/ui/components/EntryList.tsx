@@ -177,16 +177,39 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
           const data = source.data as Partial<DragData>;
           const target = location.current.dropTargets[0];
           if (!target) return;
-          const chainIndex = (target.data as { chainIndex?: number }).chainIndex;
-          if (chainIndex === undefined) return;
+          const targetData = target.data as {
+            chainIndex?: number;
+            targetPath?: string;
+            targetIsFolder?: boolean;
+          };
           const edge = extractClosestEdge(target.data);
-          const landing = chainIndex + (edge === "bottom" ? 1 : 0);
+          const targetEdge: "top" | "bottom" = edge === "bottom" ? "bottom" : "top";
           // a folderPath marker means the drag started on a folder row:
-          // block-move the whole subfolder (entryPath = its first file)
+          // block-move the whole subfolder relative to the drop target
           if (data.folderPath !== undefined && data.entryPath !== undefined) {
             const folderPath = data.folderPath !== "" ? data.folderPath : parentOf(data.entryPath);
-            if (folderPath !== null && folderPath !== "") {
-              void actions.moveFolder(domain.root, folderPath, landing);
+            if (folderPath !== null && folderPath !== "" && targetData.targetPath) {
+              void actions.moveFolder(domain.root, folderPath, {
+                path: targetData.targetPath,
+                isFolder: targetData.targetIsFolder === true,
+                edge: targetEdge,
+              });
+              return;
+            }
+          }
+          const chainIndex = targetData.chainIndex;
+          if (chainIndex === undefined) return;
+          const landing = chainIndex + (targetEdge === "bottom" ? 1 : 0);
+          // dropping a file onto a DIFFERENT folder row physically moves
+          // the file into that folder (drag to the outside)
+          if (
+            data.entryPath !== undefined &&
+            targetData.targetIsFolder === true &&
+            targetData.targetPath !== undefined
+          ) {
+            const fileFolder = parentOf(data.entryPath);
+            if (fileFolder !== null && fileFolder !== targetData.targetPath) {
+              void actions.moveFileToFolder(domain.root, data.entryPath, targetData.targetPath);
               return;
             }
           }
@@ -427,11 +450,15 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(
-          { chainIndex: props.chainIndex },
+          {
+            chainIndex: props.chainIndex,
+            targetPath: props.path,
+            targetIsFolder: true,
+          },
           { element: el, input, allowedEdges: ["top", "bottom"] },
         ),
     });
-  }, [props.chainIndex, props.domainRoot]);
+  }, [props.chainIndex, props.domainRoot, props.path]);
 
   return (
     <div
@@ -529,11 +556,15 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(
-          { chainIndex: props.chainIndex },
+          {
+            chainIndex: props.chainIndex,
+            targetPath: entry.path,
+            targetIsFolder: false,
+          },
           { element: el, input, allowedEdges: ["top", "bottom"] },
         ),
     });
-  }, [props.chainIndex, props.domainRoot]);
+  }, [props.chainIndex, props.domainRoot, entry.path]);
 
   return (
     <div

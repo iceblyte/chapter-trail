@@ -60,8 +60,8 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
             />
-            <div className="ct-options">
-              {filtered.slice(0, 8).map((candidate) => (
+            <div className="ct-options ct-options-scroll">
+              {filtered.map((candidate) => (
                 <OptionRow
                   key={candidate.path}
                   selected={folder === candidate.path}
