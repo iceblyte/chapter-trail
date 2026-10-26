@@ -711,3 +711,16 @@ body {
 .ct-card-head-click .ct-icon-btn {
   cursor: pointer;
 }
+
+.ct-options-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.ct-ob-icon {
+  display: inline-flex;
+  align-items: center;
+}
+.ct-ob-icon svg {
+  width: 14px;
+  height: 14px;
+}

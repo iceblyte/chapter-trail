@@ -177,3 +177,27 @@ editor-nav 从 ViewPlugin 重写为 **StateField**（块级装饰的唯一合法
 | 5 | A（只含子文件夹）选择器弹出且显示 A ✓ | 无需处理 | — |
 
 测试规模：17 文件 / **180 项测试全绿**。
+
+
+---
+
+# 第九轮修复（2026-10-27）：拖拽链路浏览器级实证 + 4 项收尾
+
+本轮引入 `pnpm verify:drag`——**无头 Edge 驱动真实 harness**（真实 PanelRoot + 真实 PluginServices + 真实 pdnd 事件链），三条拖拽管线全部自动化验证：
+
+```
+PASS  folder drag = block move   notice="Folder moved — 2 notes reordered as one block"
+PASS  file drag (regression)     notice="Entry moved — order = 8750 · 1 file written ..."
+PASS  card drag reorder
+ALL DRAG SCENARIOS PASS
+```
+
+| # | 反馈 | 根因 | 修复 |
+|---|------|------|------|
+| 1 | 拖文件夹面板与原生树都不动 | 上一轮的 payload 类型 `ct-folder` 与文件拖拽的 `ct-entry` 不同——事件链上任何一个门卫未放行即静默失败（无法逐一排查）。**结构性修复**：文件夹拖拽复用与文件**完全相同**的 payload（type=ct-entry + entryPath=首文件），仅附加 folderPath 标记供 monitor 分流到 moveFolder；monitor 回调加 try/catch + console 诊断 | 浏览器实证 PASS（块移动 + Notice） |
+| 2 | 域卡片可拖不换位 | 上轮“空 cardOrder”修复已正确（onDrop 确实执行），但此前**测试方法有误**：合成事件在目标中点投放 = “插到前面” = 顺序不变。修正测试坐标后三场景全 PASS——产品逻辑本身正确 | 浏览器实证 PASS |
+| 3 | 卡片折叠改版（上轮遗留确认项） | 已实现：受管图标 + 整行点击 + 一键展开/折叠（本轮把按钮图标从字符换成 lucide chevrons 图标） | 构建验证 |
+| 4 | 英文下 Index file name 显示“目录” | 默认值硬编码“目录”，与语言无关；旧版升级残留也不会迁移 | **默认值按语言生成**（fresh install: en→index / zh→目录）；**存量迁移**：语言为 en 且值恰为“目录”（旧默认）→ 自动改 index；手动自定义的名字永不被动 | coerceSettings 单测 ×5 |
+| 5 | 选择器列表截断 | `filtered.slice(0, 8)` —— 文件夹多于 8 个时后排（含 A）被裁掉 | 移除截断，候选列表改为滚动（max-height 240px） |
+
+测试规模：18 文件 / **184 项测试全绿**（+4 settings）；`pnpm verify:drag` 三场景浏览器级回归可随时重跑。

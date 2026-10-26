@@ -13,6 +13,7 @@ import {
   attachClosestEdge,
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
@@ -121,7 +122,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           title={t(folded.size > 0 ? "Expand all" : "Collapse all")}
           onClick={toggleAllCards}
         >
-          {folded.size > 0 ? "⏶" : "⏷"}
+          <ObsidianIcon name={folded.size > 0 ? "chevrons-up-down" : "chevrons-down-up"} />
         </button>
         <button
           type="button"
@@ -224,6 +225,16 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
       )}
     </div>
   );
+}
+
+/** lucide icon rendered through Obsidian's setIcon */
+function ObsidianIcon(props: { name: string }): React.JSX.Element {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    setIcon(ref.current, props.name);
+  }, [props.name]);
+  return <span ref={ref} className="ct-ob-icon" />;
 }
 
 function hasChips(domain: ManagedDomain): boolean {

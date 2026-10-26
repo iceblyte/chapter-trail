@@ -16,7 +16,8 @@
     "gate": "node scripts/gate.mjs",
     "gen-vault": "node scripts/gen-synthetic-vault.mjs",
     "check:core-purity": "node scripts/check-core-purity.mjs",
-    "build:harness": "node scripts/build-harness.mjs"
+    "build:harness": "node scripts/build-harness.mjs",
+    "verify:drag": "node scripts/verify-drag.mjs"
   },
   "keywords": [
     "obsidian",
@@ -46,6 +47,7 @@
     "esbuild": "^0.28.2",
     "jsdom": "^30.1.3",
     "obsidian": "^1.14.4",
+    "puppeteer-core": "^25.16.0",
     "typescript": "~5.9.3",
     "vitest": "^4.1.12"
   }

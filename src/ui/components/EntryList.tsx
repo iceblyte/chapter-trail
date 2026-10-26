@@ -4,12 +4,14 @@
  * Display forms:
  * - series: a collapsible tree — subfolder nodes (default collapsed)
  *   interleave by chain order; files drag onto rows to reorder.
- * - independent: the flat mixed list (direct files + managed folders).
+ * - independent: the flat mixed list (direct files + managed folders,
+ *   unmanaged folders trailing as plain rows).
  *
- * Every row carries its CHAIN index as the drop payload, so dragging
- * always reorders the underlying chain regardless of tree depth.
- * The domain's index page (目录.md) is pinned above the list (display
- * only — per PRD it never chains, so it is not draggable).
+ * Every draggable row carries the SAME payload shape (type "ct-entry"
+ * + entryPath), which is the pipeline verifiably working end to end;
+ * folder rows additionally carry a folderPath marker so the monitor
+ * routes the drop to a whole-block move (moveFolder).
+ * The domain's index page is pinned above the list (display only).
  */
 
 import {
@@ -34,13 +36,13 @@ import { useI18n } from "../bridge";
 import type { PanelActions } from "../panel-actions";
 
 const DRAG_TYPE = "ct-entry";
-const FOLDER_TYPE = "ct-folder";
 
 interface DragData {
-  type: typeof DRAG_TYPE | typeof FOLDER_TYPE;
+  type: typeof DRAG_TYPE;
   domainRoot: string;
   entryPath: string;
-  folderPath: string;
+  /** present when the drag started on a series folder row */
+  folderPath?: string | undefined;
 }
 
 type Row =
@@ -95,24 +97,25 @@ function buildSeriesRows(
   });
 
   const rows: Row[] = [];
-  const emit = (node: TreeNode, depth: number): void => {
-    for (const [folderPath, child] of node.folders) {
+  const emit = (node: TreeNode, depth: number, parentPrefix: string): void => {
+    for (const [relPath, child] of node.folders) {
+      const folderPath = parentPrefix === "" ? relPath : `${parentPrefix}/${relPath}`;
       const first = child.files[0] ?? [...child.folders.values()].flatMap((f) => f.files)[0];
       rows.push({
         kind: "folder",
         path: folderPath,
-        name: folderPath.slice(folderPath.lastIndexOf("/") + 1),
+        name: relPath,
         depth,
         chainIndex: first?.chainIndex ?? ordered.length,
         firstFilePath: first?.entry.path ?? "",
       });
-      if (expanded.has(folderPath)) emit(child, depth + 1);
+      if (expanded.has(folderPath)) emit(child, depth + 1, folderPath);
     }
     for (const file of node.files) {
       rows.push({ kind: "file", entry: file.entry, chainIndex: file.chainIndex, depth });
     }
   };
-  emit(root, 0);
+  emit(root, 0, domainRoot);
   return rows;
 }
 
@@ -136,6 +139,10 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
         chainIndex,
         depth: 0,
       }));
+      // unmanaged subfolders trail (plain rows, not draggable)
+      for (const folder of domain.unmanagedFolders) {
+        rows.push({ kind: "unmanaged", path: folder.path, name: folder.title });
+      }
     }
     const shownPending = pending.slice(0, 3);
     return {
@@ -144,7 +151,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       shownPending,
       morePending: Math.max(0, pending.length - 3),
     };
-  }, [domain.entries, domain.mode, domain.root, expanded]);
+  }, [domain.entries, domain.mode, domain.root, domain.unmanagedFolders, expanded]);
 
   const broken = domain.status.broken;
   const rowCount =
@@ -162,36 +169,37 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     return monitorForElements({
       canMonitor: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return (
-          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) && data.domainRoot === domain.root
-        );
+        return data.type === DRAG_TYPE && data.domainRoot === domain.root;
       },
       onDrop: ({ source, location }) => {
         setDragging(null);
-        const data = source.data as Partial<DragData>;
-        const target = location.current.dropTargets[0];
-        if (!target) return;
-        const chainIndex = (target.data as { chainIndex?: number }).chainIndex;
-        if (chainIndex === undefined) return;
-        const edge = extractClosestEdge(target.data);
-        const landing = chainIndex + (edge === "bottom" ? 1 : 0);
-        if (data.type === FOLDER_TYPE) {
-          // derive from the first file's parent: immune to any tree-path
-          // construction bugs above
-          const folderPath =
-            data.folderPath ??
-            (data.entryPath !== undefined ? parentOf(data.entryPath) : undefined);
-          if (folderPath === undefined || folderPath === null) return;
-          void actions.moveFolder(domain.root, folderPath, landing);
-          return;
+        try {
+          const data = source.data as Partial<DragData>;
+          const target = location.current.dropTargets[0];
+          if (!target) return;
+          const chainIndex = (target.data as { chainIndex?: number }).chainIndex;
+          if (chainIndex === undefined) return;
+          const edge = extractClosestEdge(target.data);
+          const landing = chainIndex + (edge === "bottom" ? 1 : 0);
+          // a folderPath marker means the drag started on a folder row:
+          // block-move the whole subfolder (entryPath = its first file)
+          if (data.folderPath !== undefined && data.entryPath !== undefined) {
+            const folderPath = data.folderPath !== "" ? data.folderPath : parentOf(data.entryPath);
+            if (folderPath !== null && folderPath !== "") {
+              void actions.moveFolder(domain.root, folderPath, landing);
+              return;
+            }
+          }
+          if (data.entryPath === undefined) return;
+          let insertAt = landing;
+          const from = domain.entries.findIndex((entry) => entry.path === data.entryPath);
+          if (from === -1) return;
+          if (insertAt > from) insertAt -= 1;
+          if (insertAt === from) return;
+          void actions.moveEntry(domain.root, data.entryPath, insertAt);
+        } catch (error) {
+          console.error("[chapter-trail] drag reorder failed", error);
         }
-        if (data.entryPath === undefined) return;
-        let insertAt = landing;
-        const from = domain.entries.findIndex((entry) => entry.path === data.entryPath);
-        if (from === -1) return;
-        if (insertAt > from) insertAt -= 1;
-        if (insertAt === from) return;
-        void actions.moveEntry(domain.root, data.entryPath, insertAt);
       },
     });
   }, [actions, domain.entries, domain.root]);
@@ -204,9 +212,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       element,
       canScroll: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return (
-          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) && data.domainRoot === domain.root
-        );
+        return data.type === DRAG_TYPE && data.domainRoot === domain.root;
       },
     });
   }, [domain.root]);
@@ -378,15 +384,15 @@ interface FolderRowProps {
   style: React.CSSProperties;
 }
 
-/** series folder node: caret toggles children; dragging moves the
- *  folder's first file (the tree position follows the chain). */
+/** series folder node: lucide folder icon, whole-row click toggles the
+ *  children; dragging block-moves the folder (payload = first file plus
+ *  a folderPath marker). */
 const FolderRow = (props: FolderRowProps): React.JSX.Element => {
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLSpanElement>(null);
   const iconRef = useRef<HTMLSpanElement>(null);
   const dragState = props.onDragState;
 
-  /* lucide folder icon, swapped with the open state */
   useEffect(() => {
     if (!iconRef.current) return;
     setIcon(iconRef.current, props.isOpen ? "folder-open" : "folder");
@@ -400,10 +406,10 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
       element,
       dragHandle: grip,
       getInitialData: (): Record<string, unknown> => ({
-        type: FOLDER_TYPE,
+        type: DRAG_TYPE,
         domainRoot: props.domainRoot,
-        folderPath: props.path,
         entryPath: props.firstFilePath,
+        folderPath: props.path,
       }),
       onDragStart: () => dragState(props.firstFilePath),
       onDrop: () => dragState(null),
@@ -417,10 +423,7 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
       element,
       canDrop: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return (
-          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) &&
-          data.domainRoot === props.domainRoot
-        );
+        return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(
@@ -472,16 +475,16 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
   const { entry } = props;
   const { t } = useI18n(props.i18n);
   const rowRef = useRef<HTMLDivElement>(null);
+  const gripRef = useRef<HTMLSpanElement>(null);
   const folderIconRef = useRef<HTMLSpanElement>(null);
+  const dragState = props.onDragState;
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
+  /* managed-subfolder rows show the lucide folder icon */
   useEffect(() => {
     if (!folderIconRef.current) return;
     setIcon(folderIconRef.current, "folder");
   }, []);
-
-  const gripRef = useRef<HTMLSpanElement>(null);
-  const dragState = props.onDragState;
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
   /* the context menu closes on any outside click or Escape */
   useEffect(() => {
@@ -522,19 +525,12 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       element,
       canDrop: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return (
-          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) &&
-          data.domainRoot === props.domainRoot
-        );
+        return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(
           { chainIndex: props.chainIndex },
-          {
-            element: el,
-            input,
-            allowedEdges: ["top", "bottom"],
-          },
+          { element: el, input, allowedEdges: ["top", "bottom"] },
         ),
     });
   }, [props.chainIndex, props.domainRoot]);

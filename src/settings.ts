@@ -45,14 +45,25 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
       ? source.dateDisplay
       : "created";
   const language: Lang = source.language === "zh" ? "zh" : "en";
+  // the default index name follows the UI language; a stored name that
+  // equals the OTHER language's default is a stale pre-1.x default and
+  // migrates (目录 <-> index). A manually customized name never moves.
+  let indexFileName =
+    typeof source.indexFileName === "string" && source.indexFileName.trim() !== ""
+      ? source.indexFileName.trim()
+      : defaultIndexName(language);
+  if (
+    indexFileName === defaultIndexName("zh") &&
+    language === "en" &&
+    typeof source.indexFileName === "string"
+  ) {
+    indexFileName = defaultIndexName("en");
+  }
   return {
-    indexFileName:
-      typeof source.indexFileName === "string" && source.indexFileName.trim() !== ""
-        ? source.indexFileName.trim()
-        : DEFAULT_SETTINGS.indexFileName,
     dateDisplay,
     injectNavEnabled: source.injectNavEnabled === true,
     autoRebuildIndex: source.autoRebuildIndex === true,
+    indexFileName,
     language,
     debug: source.debug === true,
     domainOrder: Array.isArray(source.domainOrder)
