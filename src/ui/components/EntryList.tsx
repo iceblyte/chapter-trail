@@ -23,6 +23,7 @@ import {
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROW_HEIGHT } from "../../constants";
 import type { I18nService } from "../../i18n/runtime";
@@ -32,11 +33,13 @@ import { useI18n } from "../bridge";
 import type { PanelActions } from "../panel-actions";
 
 const DRAG_TYPE = "ct-entry";
+const FOLDER_TYPE = "ct-folder";
 
 interface DragData {
-  type: typeof DRAG_TYPE;
+  type: typeof DRAG_TYPE | typeof FOLDER_TYPE;
   domainRoot: string;
   entryPath: string;
+  folderPath: string;
 }
 
 type Row =
@@ -158,18 +161,25 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     return monitorForElements({
       canMonitor: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return data.type === DRAG_TYPE && data.domainRoot === domain.root;
+        return (
+          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) && data.domainRoot === domain.root
+        );
       },
       onDrop: ({ source, location }) => {
         setDragging(null);
         const data = source.data as Partial<DragData>;
-        if (data.entryPath === undefined) return;
         const target = location.current.dropTargets[0];
         if (!target) return;
         const chainIndex = (target.data as { chainIndex?: number }).chainIndex;
         if (chainIndex === undefined) return;
         const edge = extractClosestEdge(target.data);
-        let insertAt = chainIndex + (edge === "bottom" ? 1 : 0);
+        const landing = chainIndex + (edge === "bottom" ? 1 : 0);
+        if (data.type === FOLDER_TYPE && data.folderPath !== undefined) {
+          void actions.moveFolder(domain.root, data.folderPath, landing);
+          return;
+        }
+        if (data.entryPath === undefined) return;
+        let insertAt = landing;
         const from = domain.entries.findIndex((entry) => entry.path === data.entryPath);
         if (from === -1) return;
         if (insertAt > from) insertAt -= 1;
@@ -187,7 +197,9 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       element,
       canScroll: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return data.type === DRAG_TYPE && data.domainRoot === domain.root;
+        return (
+          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) && data.domainRoot === domain.root
+        );
       },
     });
   }, [domain.root]);
@@ -301,14 +313,21 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
             }
             if (row.kind === "unmanaged") {
               return (
-                <div key={virtualRow.key} className="ct-row is-dim" style={absoluteStyle}>
+                <button
+                  key={virtualRow.key}
+                  type="button"
+                  className="ct-row is-dim ct-unmanaged-row"
+                  style={absoluteStyle}
+                  title={t("Click to start managing this folder")}
+                  onClick={() => void props.actions.startManagingWithModePicker(row.path)}
+                >
                   <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
                     {row.name}
                   </span>
                   <span className="ct-row-date">—</span>
                   <span className="ct-row-date">—</span>
                   <span className="ct-row-order">—</span>
-                </div>
+                </button>
               );
             }
             if (row.kind !== "file") return null;
@@ -357,7 +376,14 @@ interface FolderRowProps {
 const FolderRow = (props: FolderRowProps): React.JSX.Element => {
   const rowRef = useRef<HTMLDivElement>(null);
   const gripRef = useRef<HTMLSpanElement>(null);
+  const iconRef = useRef<HTMLSpanElement>(null);
   const dragState = props.onDragState;
+
+  /* lucide folder icon, swapped with the open state */
+  useEffect(() => {
+    if (!iconRef.current) return;
+    setIcon(iconRef.current, props.isOpen ? "folder-open" : "folder");
+  }, [props.isOpen]);
 
   useEffect(() => {
     const element = rowRef.current;
@@ -367,14 +393,14 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
       element,
       dragHandle: grip,
       getInitialData: (): Record<string, unknown> => ({
-        type: DRAG_TYPE,
+        type: FOLDER_TYPE,
         domainRoot: props.domainRoot,
-        entryPath: props.firstFilePath,
+        folderPath: props.path,
       }),
       onDragStart: () => dragState(props.firstFilePath),
       onDrop: () => dragState(null),
     });
-  }, [props.domainRoot, props.firstFilePath, dragState]);
+  }, [props.domainRoot, props.path, props.firstFilePath, dragState]);
 
   useEffect(() => {
     const element = rowRef.current;
@@ -383,7 +409,10 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
       element,
       canDrop: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
+        return (
+          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) &&
+          data.domainRoot === props.domainRoot
+        );
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(
@@ -398,13 +427,12 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
       ref={rowRef}
       className={`ct-row is-folder-row${props.isDragging ? " is-lifted" : ""}`}
       style={props.style}
+      onClick={() => props.onToggle(props.path)}
     >
       <span className="ct-grip" ref={gripRef}>
         ⠿
       </span>
-      <span className="ct-caret" onClick={() => props.onToggle(props.path)}>
-        {props.isOpen ? "▾" : "▸"}
-      </span>
+      <span className="ct-folder-icon" ref={iconRef} />
       <span
         className="ct-row-title is-folder"
         style={props.depth > 0 ? { paddingLeft: props.depth * 14 } : undefined}
@@ -479,7 +507,10 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       element,
       canDrop: ({ source }) => {
         const data = source.data as Partial<DragData>;
-        return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
+        return (
+          (data.type === DRAG_TYPE || data.type === FOLDER_TYPE) &&
+          data.domainRoot === props.domainRoot
+        );
       },
       getData: ({ element: el, input }) =>
         attachClosestEdge(

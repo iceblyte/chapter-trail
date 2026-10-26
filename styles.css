@@ -632,3 +632,67 @@ body {
   background: var(--background-modifier-hover);
   border-radius: 4px;
 }
+
+/* ---------- panel: card drag + polish ---------- */
+.ct-card-wrap {
+  position: relative;
+}
+.ct-card-wrap.is-lifted {
+  opacity: 0.4;
+}
+.ct-card-grip {
+  position: absolute;
+  top: 8px;
+  left: -4px;
+  width: 14px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  font-size: 10px;
+  cursor: grab;
+  opacity: 0;
+  border-radius: 4px;
+  z-index: 5;
+}
+.ct-card-wrap:hover .ct-card-grip {
+  opacity: 1;
+}
+.ct-card-grip:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.ct-card-head {
+  padding-left: 14px;
+}
+.ct-row .ct-folder-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+.ct-row .ct-folder-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.ct-row.is-folder-row {
+  cursor: pointer;
+}
+.ct-unmanaged-row {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.ct-unmanaged-row:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.ct-index-row .ct-row-title {
+  font-weight: var(--font-semibold);
+}

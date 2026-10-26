@@ -517,6 +517,58 @@ export class PluginServices {
     return domain?.indexPath ?? entryPath;
   }
 
+  /**
+   * Move a whole series subfolder (all its chain members) to sit at
+   * full-chain position `targetChainIndex`, then normalize the domain
+   * to 10000 steps. Block-moving keeps the panel tree and the native
+   * explorer in sync — both place a folder at its first file.
+   */
+  async moveFolder(root: DomainId, folderPath: VaultPath, targetChainIndex: number): Promise<void> {
+    const registry = this.deps.store.getSnapshot();
+    const domain = registry.domains.get(root);
+    if (!domain) return;
+    const prefix = `${folderPath}/`;
+    const inBlock = domain.entries.filter(
+      (entry) => entry.kind === "file" && entry.path.startsWith(prefix),
+    );
+    if (inBlock.length === 0) return;
+    const blockPaths = new Set(inBlock.map((entry) => entry.path));
+
+    const chain = domain.entries;
+    const block = chain.filter((entry) => blockPaths.has(entry.path));
+    const rest = chain.filter((entry) => !blockPaths.has(entry.path));
+    // translate the full-chain target index into rest coordinates:
+    // every block member before the target shifts the insertion point
+    const blockBefore = chain.filter(
+      (entry, index) => blockPaths.has(entry.path) && index < targetChainIndex,
+    ).length;
+    const pos = Math.max(0, Math.min(targetChainIndex - blockBefore, rest.length));
+    const simulated = [...rest.slice(0, pos), ...block, ...rest.slice(pos)];
+
+    const tasks: WriteTask[] = [];
+    simulated.forEach((entry, index) => {
+      const target = normalizedOrder(index);
+      if (entry.order === target) return;
+      tasks.push(this.orderWrite(this.writableTarget(registry, entry.path), target));
+    });
+    if (tasks.length > 0) {
+      const result = await this.deps.writer.run(tasks);
+      this.reportFailures("moveFolder", result.failed);
+    }
+
+    this.deps.notifier.notice(
+      this.deps.i18n.t("Folder moved — {n} notes reordered as one block", {
+        n: inBlock.length,
+      }),
+    );
+    await this.scan();
+    if (this.settings.autoRebuildIndex) {
+      await this.rebuildIndex(root, { silent: true });
+    } else {
+      this.deps.store.markStale([root]);
+    }
+  }
+
   /** drag / move up / move down — the single everyday write path */
   async moveEntry(root: DomainId, path: VaultPath, targetIndex: number): Promise<void> {
     const registry = this.deps.store.getSnapshot();

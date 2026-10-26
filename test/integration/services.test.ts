@@ -441,3 +441,57 @@ describe("series guard (nested management not allowed)", () => {
     expect(h.store.getSnapshot().domains.has("读书/第一部分")).toBe(true);
   });
 });
+
+describe("moveFolder — block move (folder drag)", () => {
+  it("moves the whole subfolder as one block and normalizes orders", async () => {
+    const h = makeHarness();
+    h.vault.seed("Blogs/目录.md", indexPageContent("series"));
+    h.vault.seed("Blogs/01.md", note(10000));
+    h.vault.seed("Blogs/02.md", note(20000));
+    h.vault.seed("Blogs/进阶篇/04.md", note(30000));
+    h.vault.seed("Blogs/进阶篇/05.md", note(40000));
+    h.vault.seed("Blogs/03.md", note(50000));
+    await h.services.scan();
+
+    // drag 进阶篇 above 01 → block [04,05] lands first
+    await h.services.moveFolder("Blogs", "Blogs/进阶篇", 0);
+
+    await h.services.scan();
+    const domain = h.store.getSnapshot().domains.get("Blogs");
+    expect(domain?.entries.map((entry) => entry.path)).toEqual([
+      "Blogs/进阶篇/04.md",
+      "Blogs/进阶篇/05.md",
+      "Blogs/01.md",
+      "Blogs/02.md",
+      "Blogs/03.md",
+    ]);
+    // block move normalizes the whole domain
+    expect(orderOf(h, "Blogs/进阶篇/04.md")).toBe(10000);
+    expect(orderOf(h, "Blogs/进阶篇/05.md")).toBe(20000);
+    expect(orderOf(h, "Blogs/01.md")).toBe(30000);
+    expect(orderOf(h, "Blogs/02.md")).toBe(40000);
+    expect(orderOf(h, "Blogs/03.md")).toBe(50000);
+  });
+
+  it("moving onto a later row keeps the block contiguous after the target", async () => {
+    const h = makeHarness();
+    h.vault.seed("Blogs/目录.md", indexPageContent("series"));
+    h.vault.seed("Blogs/进阶篇/04.md", note(30000));
+    h.vault.seed("Blogs/进阶篇/05.md", note(40000));
+    h.vault.seed("Blogs/01.md", note(10000));
+    h.vault.seed("Blogs/02.md", note(20000));
+    await h.services.scan();
+
+    // drop onto row 02 bottom → full-chain index 2, edge already applied
+    await h.services.moveFolder("Blogs", "Blogs/进阶篇", 2);
+
+    await h.services.scan();
+    const domain = h.store.getSnapshot().domains.get("Blogs");
+    expect(domain?.entries.map((entry) => entry.path)).toEqual([
+      "Blogs/01.md",
+      "Blogs/02.md",
+      "Blogs/进阶篇/04.md",
+      "Blogs/进阶篇/05.md",
+    ]);
+  });
+});

@@ -18,6 +18,8 @@ export interface ChapterTrailSettings {
   language: Lang;
   /** hidden debug switch: verbose event-classification logging */
   debug: boolean;
+  /** panel card order (domain roots), persisted from drag */
+  domainOrder?: string[] | undefined;
 }
 
 export const DEFAULT_SETTINGS: ChapterTrailSettings = {
@@ -28,6 +30,11 @@ export const DEFAULT_SETTINGS: ChapterTrailSettings = {
   language: "en",
   debug: false,
 };
+
+/** per-language default index file name (prototype baseline) */
+export function defaultIndexName(lang: Lang): string {
+  return lang === "zh" ? "目录" : "index";
+}
 
 export function coerceSettings(raw: unknown): ChapterTrailSettings {
   const source = (
@@ -48,5 +55,8 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
     autoRebuildIndex: source.autoRebuildIndex === true,
     language,
     debug: source.debug === true,
+    domainOrder: Array.isArray(source.domainOrder)
+      ? source.domainOrder.filter((item): item is string => typeof item === "string")
+      : undefined,
   };
 }

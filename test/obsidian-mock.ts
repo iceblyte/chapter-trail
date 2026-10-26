@@ -34,3 +34,7 @@ export class TFolder {}
 export function parseYaml(_text: string): unknown {
   return null;
 }
+
+export function setIcon(el: HTMLElement, name: string): void {
+  el.textContent = name;
+}

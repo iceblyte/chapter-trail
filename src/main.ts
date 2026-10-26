@@ -24,7 +24,7 @@ import { EchoLedger } from "./core/echo-ledger";
 import type { Lang } from "./i18n/index";
 import { I18nService } from "./i18n/runtime";
 import { PluginServices } from "./services";
-import { type ChapterTrailSettings, coerceSettings } from "./settings";
+import { type ChapterTrailSettings, coerceSettings, defaultIndexName } from "./settings";
 import { ChapterTrailSettingTab, type SettingsHooks, type SettingsTabHost } from "./settings-tab";
 import type { DomainId, DomainMode, VaultPath } from "./types";
 import type { PanelActions } from "./ui/panel-actions";
@@ -104,6 +104,17 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     stopManaging: (root) => this.stopManagingFlow(root),
     resolveConflict: (root, conflictPath) => this.resolveConflictFlow(root, conflictPath),
     moveEntry: (root, path, targetIndex) => this.services.moveEntry(root, path, targetIndex),
+    moveFolder: (root, folderPath, targetChainIndex) =>
+      this.services.moveFolder(root, folderPath, targetChainIndex),
+    startManagingWithModePicker: async (folder) => {
+      const mode = await this.chooseModeDialog(folder, this.services.previewStartManaging(folder));
+      if (!mode) return;
+      await this.services.startManaging(folder, mode);
+    },
+    reorderDomains: async (order) => {
+      this.settings.domainOrder = [...order];
+      await this.saveSettings();
+    },
     startManagingFlow: (folder, mode) => this.services.startManaging(folder, mode),
     previewStartManaging: (folder) => this.services.previewStartManaging(folder),
     listFolderCandidates: () => {
@@ -317,11 +328,12 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   /* ---------------- start / stop managing ---------------- */
 
   private async commandStartManaging(): Promise<void> {
+    // without an active note (e.g. the folder only holds subfolders)
+    // fall back to the panel's folder picker
     const folder = this.activeFolder();
     if (!folder) {
-      this.notifierPort.notice(
-        this.i18n.t("Open a note inside a folder first — the vault root cannot be managed"),
-      );
+      this.activatePanel();
+      document.dispatchEvent(new CustomEvent("ct:open-start-flow"));
       return;
     }
     if (this.store.getSnapshot().domains.has(folder)) {
@@ -612,7 +624,12 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   }
 
   async onLanguageChange(lang: Lang): Promise<void> {
+    const previous = this.settings.language;
     this.settings.language = lang;
+    // an untouched default index name follows the language (目录 ↔ index)
+    if (this.settings.indexFileName === defaultIndexName(previous)) {
+      this.settings.indexFileName = defaultIndexName(lang);
+    }
     await this.saveSettings();
     this.i18n.setLang(lang);
   }

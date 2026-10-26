@@ -3,12 +3,23 @@
  * VaultSummary on top, the legacy-order banner, one card per managed
  * domain, and the start-managing entry at the bottom.
  */
-import { useMemo, useState } from "react";
+
+import {
+  draggable,
+  dropTargetForElements,
+  monitorForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
+import {
+  attachClosestEdge,
+  extractClosestEdge,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
 import type { ChapterTrailSettings } from "../settings";
 import type { ManagedDomain, Registry } from "../types";
 import { useI18n, useRegistry } from "./bridge";
+import { orderedDomains } from "./card-order";
 import { AddDomainFlow } from "./components/AddDomainFlow";
 import { DomainCard } from "./components/DomainCard";
 import type { PanelActions } from "./panel-actions";
@@ -24,8 +35,20 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const registry: Registry = useRegistry(props.store);
   const { t } = useI18n(props.i18n);
   const [flowOpen, setFlowOpen] = useState(false);
+  const [cardOrder, setCardOrder] = useState<readonly string[]>(
+    () => props.settings.domainOrder ?? [],
+  );
+  const [draggingCard, setDraggingCard] = useState<string | null>(null);
+
+  /* the start-managing command can open the picker remotely */
+  useEffect(() => {
+    const open = (): void => setFlowOpen(true);
+    document.addEventListener("ct:open-start-flow", open);
+    return () => document.removeEventListener("ct:open-start-flow", open);
+  }, []);
 
   const domains = useMemo(() => [...registry.domains.values()], [registry]);
+  const sortedDomains = useMemo(() => orderedDomains(domains, cardOrder), [domains, cardOrder]);
   const attention = domains.filter((domain) => hasChips(domain)).length;
   const legacyTotal = useMemo(
     () => [...registry.legacyOrders.values()].reduce((sum, paths) => sum + paths.length, 0),
@@ -98,14 +121,25 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
       )}
 
       <div className="ct-panel-body">
-        {domains.map((domain) => (
-          <DomainCard
+        {sortedDomains.map((domain) => (
+          <SortableCard
             key={domain.root}
-            domain={domain}
-            settings={props.settings}
-            actions={props.actions}
-            i18n={props.i18n}
-          />
+            domainRoot={domain.root}
+            cardOrder={cardOrder}
+            onOrderChange={(order) => {
+              setCardOrder(order);
+              void props.actions.reorderDomains(order);
+            }}
+            onDragState={setDraggingCard}
+            dragging={draggingCard === domain.root}
+          >
+            <DomainCard
+              domain={domain}
+              settings={props.settings}
+              actions={props.actions}
+              i18n={props.i18n}
+            />
+          </SortableCard>
         ))}
         {domains.length === 0 && (
           <div className="ct-empty-note">
@@ -142,5 +176,109 @@ function hasChips(domain: ManagedDomain): boolean {
     status.ties.length > 0 ||
     status.tightGap ||
     status.legacyHint
+  );
+}
+
+const CARD_TYPE = "ct-card";
+
+interface CardDragData {
+  type: typeof CARD_TYPE;
+  domainRoot: string;
+}
+
+/** draggable + drop-target wrapper that reorders the domain cards */
+function SortableCard(props: {
+  domainRoot: string;
+  cardOrder: readonly string[];
+  onOrderChange(order: readonly string[]): void;
+  onDragState(root: string | null): void;
+  dragging: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const ref = useRef<HTMLDivElement>(null);
+  const gripRef = useRef<HTMLDivElement>(null);
+  const order = props.cardOrder;
+
+  useEffect(() => {
+    const element = ref.current;
+    const grip = gripRef.current;
+    if (!element || !grip) return;
+    return draggable({
+      element,
+      dragHandle: grip,
+      getInitialData: (): Record<string, unknown> => ({
+        type: CARD_TYPE,
+        domainRoot: props.domainRoot,
+      }),
+      onDragStart: () => props.onDragState(props.domainRoot),
+      onDrop: () => props.onDragState(null),
+    });
+  }, [props.domainRoot, props.onDragState]);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    return dropTargetForElements({
+      element,
+      canDrop: ({ source }) => {
+        const data = source.data as Partial<CardDragData>;
+        return data.type === CARD_TYPE && data.domainRoot !== props.domainRoot;
+      },
+      getData: ({ element: el, input }) =>
+        attachClosestEdge(
+          { index: order.indexOf(props.domainRoot) },
+          {
+            element: el,
+            input,
+            allowedEdges: ["top", "bottom"],
+          },
+        ),
+    });
+  }, [props.domainRoot, order]);
+
+  /* card-level monitor resolves card reordering */
+  useEffect(() => {
+    return monitorForElements({
+      canMonitor: ({ source }) => {
+        const data = source.data as Partial<CardDragData>;
+        return data.type === CARD_TYPE;
+      },
+      onDrop: ({ source, location }) => {
+        const data = source.data as Partial<CardDragData>;
+        if (data.domainRoot === undefined) return;
+        const target = location.current.dropTargets[0];
+        if (!target) return;
+        const targetData = target.data as Partial<CardDragData> & { index?: number };
+        if (targetData.domainRoot === undefined || targetData.index === undefined) return;
+        const edge = extractClosestEdge(target.data);
+        const current = [...order];
+        const from = current.indexOf(data.domainRoot);
+        if (from === -1) return;
+        current.splice(from, 1);
+        let insertAt = targetData.index > from ? targetData.index - 1 : targetData.index;
+        insertAt = Math.max(0, Math.min(insertAt, current.length));
+        if (edge === "bottom") insertAt += 1;
+        if (insertAt >= current.length) {
+          current.push(data.domainRoot);
+        } else {
+          current.splice(insertAt, 0, data.domainRoot);
+        }
+        if (current.join("\u0000") === order.join("\u0000")) return;
+        props.onOrderChange(current);
+      },
+    });
+  }, [order, props]);
+
+  return (
+    <div
+      ref={ref}
+      className={`ct-card-wrap${props.dragging ? " is-lifted" : ""}`}
+      style={props.dragging ? { opacity: 0.4 } : undefined}
+    >
+      <div ref={gripRef} className="ct-card-grip" title="Drag to reorder">
+        ⠿
+      </div>
+      {props.children}
+    </div>
   );
 }

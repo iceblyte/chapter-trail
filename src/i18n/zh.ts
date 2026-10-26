@@ -64,6 +64,8 @@ export const zh: Dict = {
   Order: "排序",
   Collapse: "折叠",
   Expand: "展开",
+  "Folder moved — {n} notes reordered as one block": "文件夹已移动 — {n} 篇笔记作为一个整体重排",
+  "Click to start managing this folder": "点击开始管理该文件夹",
   "下一篇：": "下一篇：",
   "总览：": "总览：",
   "Go to next note": "跳转到下一篇",

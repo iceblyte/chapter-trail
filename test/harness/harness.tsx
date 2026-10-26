@@ -105,6 +105,10 @@ async function main(): Promise<void> {
       await services.resolveNestedConflict(root, conflictPath, "demote");
     },
     moveEntry: (root, path, targetIndex) => services.moveEntry(root, path, targetIndex),
+    moveFolder: (root, folderPath, targetChainIndex) =>
+      services.moveFolder(root, folderPath, targetChainIndex),
+    startManagingWithModePicker: (folder) => services.startManaging(folder, "independent"),
+    reorderDomains: () => Promise.resolve(),
     startManagingFlow: (folder: DomainId, mode: DomainMode) => services.startManaging(folder, mode),
     previewStartManaging: (folder) => services.previewStartManaging(folder),
     listFolderCandidates: () => {

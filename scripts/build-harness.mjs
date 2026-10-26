@@ -19,6 +19,7 @@ await build({
   target: "es2022",
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"production"' },
+  alias: { obsidian: join(harnessDir, "..", "obsidian-mock.ts") },
   outfile: join(harnessDir, "harness.js"),
   logLevel: "info",
 });

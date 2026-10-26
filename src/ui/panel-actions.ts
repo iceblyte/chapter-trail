@@ -30,9 +30,15 @@ export interface PanelActions {
 
   /** move an entry to `targetIndex` within the chain (drag / menu) */
   moveEntry(root: DomainId, path: VaultPath, targetIndex: number): Promise<void>;
+  /** move a whole series subfolder as one block (drag) */
+  moveFolder(root: DomainId, folderPath: VaultPath, targetChainIndex: number): Promise<void>;
 
   /** two-step start-managing flow (prototype 04), mode picked in step 2 */
   startManagingFlow(folder: DomainId, mode: DomainMode): Promise<void>;
+  /** start managing with the mode-picker dialog (unmanaged folder row) */
+  startManagingWithModePicker(folder: DomainId): Promise<void>;
+  /** reorder the domain cards in the panel */
+  reorderDomains(order: readonly DomainId[]): Promise<void>;
   /** pre-check for the flow's confirmation copy (write counts etc.) */
   previewStartManaging(folder: DomainId): StartManagingPreview;
   /** candidate folders for the flow, with metadata for the picker */
