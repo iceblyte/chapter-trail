@@ -19,7 +19,7 @@ import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
 import type { ChapterTrailSettings } from "../settings";
 import type { ManagedDomain, Registry } from "../types";
-import { useI18n, useRegistry, useRegistryVersion } from "./bridge";
+import { useI18n, useRegistry } from "./bridge";
 import { orderedDomains } from "./card-order";
 import { AddDomainFlow } from "./components/AddDomainFlow";
 import { DomainCard } from "./components/DomainCard";
@@ -34,7 +34,6 @@ export interface PanelRootProps {
 
 export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const registry: Registry = useRegistry(props.store);
-  const registryVersion = useRegistryVersion(props.store);
   const { t } = useI18n(props.i18n);
   const [flowOpen, setFlowOpen] = useState(false);
   const [cardOrder, setCardOrder] = useState<readonly string[]>(
@@ -196,7 +195,6 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
             dragging={draggingCard === domain.root}
           >
             <DomainCard
-              key={`${domain.root}:${registryVersion}`}
               domain={domain}
               settings={props.settings}
               actions={props.actions}
