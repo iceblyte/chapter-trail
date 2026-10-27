@@ -23,3 +23,6 @@ test/harness/styles.css
 
 # Playwright session artifacts
 .playwright-mcp/
+
+### Scratch / verification artifacts
+v.out
