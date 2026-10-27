@@ -37,10 +37,13 @@ function seedVault(): FakeVault {
   vault.seed("Blogs/03 配置详解.md", "---\ncreated: 2025-11-16\norder: 30000\n---\n正文\n");
   vault.seed("Blogs/进阶篇/04 插件机制.md", "---\ncreated: 2025-11-23\norder: 40000\n---\n正文\n");
   vault.seed("Blogs/进阶篇/05 主题定制.md", "---\ncreated: 2025-11-30\norder: 50000\n---\n正文\n");
+  vault.seed("Blogs/番外/06 番外篇.md", "---\ncreated: 2025-12-07\norder: 60000\n---\n正文\n");
   // unmanaged folder for the start-managing flow
   vault.seed("随笔/如何写一篇短文.md", "---\n---\n正文\n");
   vault.seed("随笔/数字花园的缓慢生长.md", "---\n---\n正文\n");
   vault.seed("随笔/周更的节奏.md", "---\n---\n正文\n");
+  // replication of the user's vault: folder A holds only subfolder B
+  vault.seed("A/B/11.md", "---\n---\n正文\n");
   return vault;
 }
 
@@ -144,7 +147,8 @@ async function main(): Promise<void> {
         })
         .filter(
           (candidate) =>
-            !insideSeries(candidate.path) && (candidate.managed || candidate.noteCount > 0),
+            !insideSeries(candidate.path) &&
+            (candidate.managed || candidate.noteCount > 0 || candidate.subfolderCount > 0),
         )
         .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
     },

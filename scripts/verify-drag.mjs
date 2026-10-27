@@ -58,6 +58,9 @@ page.on("console", (message) => {
 });
 await page.goto("http://127.0.0.1:4199/", { waitUntil: "networkidle0" });
 await page.waitForFunction(() => window.__ctReady === true);
+await page.evaluate(() => {
+  window.__ctDebug = true;
+});
 
 const results = [];
 
@@ -266,6 +269,217 @@ const results = [];
     ...outcome,
     pass: outcome.before.join("|") !== outcome.after.join("|"),
   });
+  const alive = await page.evaluate(() => ({
+    panelAlive: !!document.querySelector(".ct-panel"),
+    panelCount: document.querySelectorAll(".ct-panel").length,
+    cards: [...document.querySelectorAll(".ct-card")].map(
+      (card) => card.querySelector(".ct-card-path")?.textContent,
+    ),
+  }));
+  results.push({
+    name: "post-card-drag panel alive",
+    ...alive,
+    pass: alive.panelAlive === true && alive.panelCount === 1,
+  });
+}
+
+/* ---------- scenario 4: folder onto FILE bottom edge (fresh page) ---------- */
+{
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(() => window.__ctReady === true);
+  const outcome = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    await sleep(300);
+    const ct = window.__ct;
+    const noticesBefore = ct.notices.length;
+    const cards = [...document.querySelectorAll(".ct-card")];
+    const card = cards.find((el) => el.querySelector(".ct-card-path")?.textContent === "Blogs");
+    if (!card) {
+      return {
+        notice: null,
+        titles: [
+          "card lookup failed: " +
+            cards.map((c) => c.querySelector(".ct-card-path")?.textContent).join(","),
+        ],
+      };
+    }
+    const rows = [...card.querySelectorAll(".ct-rows-scroll .ct-row")];
+    const folderRow = rows.find(
+      (row) =>
+        row.classList.contains("is-folder-row") &&
+        row.querySelector(".ct-row-title")?.textContent?.includes("番外"),
+    );
+    const fileRow = rows.find(
+      (row) =>
+        !row.classList.contains("is-folder-row") &&
+        row.querySelector(".ct-row-title")?.textContent?.includes("02 环境搭建"),
+    );
+    const grip = folderRow.querySelector(".ct-grip");
+    grip.style.visibility = "visible";
+    const gs = grip.getBoundingClientRect();
+    const ts = fileRow.getBoundingClientRect();
+    const dt = new DataTransfer();
+    const fire = (el, type, x, y) =>
+      el.dispatchEvent(
+        new DragEvent(type, {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+    fire(folderRow, "dragstart", gs.x + 6, gs.y + 6);
+    fire(fileRow, "dragover", ts.x + 100, ts.y + ts.height - 3);
+    fire(fileRow, "drop", ts.x + 100, ts.y + ts.height - 3);
+    window.dispatchEvent(new DragEvent("dragend", { dataTransfer: dt, bubbles: true }));
+    grip.style.visibility = "";
+    await sleep(700);
+    const blogsCard = [...document.querySelectorAll(".ct-card")].find(
+      (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
+    );
+    const titles = [...blogsCard.querySelectorAll(".ct-rows-scroll .ct-row")].map(
+      (row) => row.querySelector(".ct-row-title")?.textContent?.trim() ?? "",
+    );
+    const samples = [];
+    for (const delay of [0, 300, 700, 1200]) {
+      if (delay === 700) {
+        // force an extra version bump: does the panel follow?
+        await ct.services.scan();
+      }
+      if (delay > 0) await sleep(300);
+      const liveCard = [...document.querySelectorAll(".ct-card")].find(
+        (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
+      );
+      samples.push({
+        at: delay,
+        titles: [
+          ...(liveCard ?? card).querySelectorAll(".ct-rows-scroll .ct-row"),
+        ].map((row) => row.querySelector(".ct-row-title")?.textContent?.trim() ?? ""),
+        store: ct.store
+          .getSnapshot()
+          .domains.get("Blogs")
+          ?.entries.map((entry) => entry.title),
+      });
+    }
+    return {
+      notice: ct.notices.slice(noticesBefore).at(-1) ?? null,
+      samples,
+    };
+  });
+  const finalSample = outcome.samples.at(-1);
+  const domTitles = finalSample ? finalSample.titles : [];
+  const storeTitles = finalSample ? finalSample.store : [];
+  // the tree view and the store chain must agree (panel ≠ store = the bug)
+  const domAfter02 = domTitles.findIndex((t) => t.includes("02 环境搭建"));
+  const domFolder = domTitles.findIndex((t) => t.includes("番外"));
+  // the invariant: the panel tree (DOM order AND visual order) matches
+  // the store chain — the folder lands after the drop-target file
+  const storeAfter02 = storeTitles.findIndex((t) => t.includes("02 环境搭建"));
+  const storeFolder = storeTitles.findIndex((t) => t.includes("番外"));
+  results.push({
+    name: "folder onto FILE bottom edge",
+    notice: outcome.notice,
+    samples: outcome.samples,
+    domTitles,
+    storeTitles: storeTitles,
+    pass:
+      outcome.notice !== null &&
+      outcome.notice.includes("Folder moved") &&
+      domAfter02 !== -1 &&
+      domFolder !== -1 &&
+      domFolder > domAfter02 &&
+      storeFolder > storeAfter02,
+  });
+}
+
+/* ---------- scenario 5: file drag-out onto another folder row (fresh page) ---------- */
+{
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(() => window.__ctReady === true);
+  const outcome = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    await sleep(300);
+    const ct = window.__ct;
+    const noticesBefore = ct.notices.length;
+    const card = [...document.querySelectorAll(".ct-card")].find(
+      (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
+    );
+    const rows = [...card.querySelectorAll(".ct-rows-scroll .ct-row")];
+    const fileRow = rows.find((row) =>
+      row.querySelector(".ct-row-title")?.textContent?.includes("03 配置详解"),
+    );
+    // drop onto the 番外 folder row — a DIFFERENT folder than 03's own
+    const folderRow = rows.find(
+      (row) =>
+        row.classList.contains("is-folder-row") &&
+        row.querySelector(".ct-row-title")?.textContent?.includes("番外"),
+    );
+    if (!fileRow || !folderRow) {
+      return {
+        notice: null,
+        movedOut: false,
+        movedIn: false,
+        lookup: "rows missing",
+      };
+    }
+    const grip = fileRow.querySelector(".ct-grip");
+    grip.style.visibility = "visible";
+    const gs = grip.getBoundingClientRect();
+    const ts = folderRow.getBoundingClientRect();
+    const dt = new DataTransfer();
+    const fire = (el, type, x, y) =>
+      el.dispatchEvent(
+        new DragEvent(type, {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+    fire(fileRow, "dragstart", gs.x + 6, gs.y + 6);
+    fire(folderRow, "dragover", ts.x + 100, ts.y + 10);
+    fire(folderRow, "drop", ts.x + 100, ts.y + 10);
+    window.dispatchEvent(new DragEvent("dragend", { dataTransfer: dt, bubbles: true }));
+    grip.style.visibility = "";
+    await sleep(700);
+    return {
+      notice: ct.notices.slice(noticesBefore).at(-1) ?? null,
+      movedOut: ct.vault.exists("Blogs/进阶篇/03 配置详解.md"),
+      movedIn: ct.vault.exists("Blogs/番外/03 配置详解.md"),
+    };
+  });
+  results.push({
+    name: "file drag-out onto folder row",
+    ...outcome,
+    pass: outcome.movedOut === false && outcome.movedIn === true,
+  });
+}
+
+/* ---------- scenario 6: picker includes folder A (only subfolders) ---------- */
+{
+  const outcome = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const flow = [...document.querySelectorAll(".ct-panel-foot button")].find((b) =>
+      b.textContent.includes("Start managing"),
+    );
+    flow.click();
+    await sleep(200);
+    const titles = [...document.querySelectorAll(".ct-option-tt")].map((el) => el.textContent);
+    return { titles, hasA: titles.includes("A") };
+  });
+  results.push({
+    name: "picker shows folder A (only subfolders)",
+    ...outcome,
+    pass: outcome.hasA === true,
+  });
+  await page.evaluate(() => {
+    const cancel = [...document.querySelectorAll(".ct-modal-actions button")].find(
+      (b) => b.textContent === "取消" || b.textContent === "Cancel",
+    );
+    cancel?.click();
+  });
 }
 
 console.log("\n=== verify:drag results ===");
@@ -284,6 +498,7 @@ if (pageErrors.length > 0) {
   allPass = false;
   console.log("PAGE ERRORS:", pageErrors.slice(0, 5));
 }
+console.log("RESULTS_JSON:", JSON.stringify(results.find((r) => r.name === "folder onto FILE bottom edge") ?? results));
 console.log(allPass ? "ALL DRAG SCENARIOS PASS" : "SOME SCENARIOS FAILED");
 
 await browser.close();

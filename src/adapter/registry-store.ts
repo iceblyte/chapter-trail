@@ -9,6 +9,7 @@ import { emptyRegistry } from "../types";
 export class RegistryStore {
   private current: Registry = emptyRegistry();
   private listeners = new Set<() => void>();
+  private currentVersion = 0;
 
   getSnapshot(): Registry {
     return this.current;
@@ -21,7 +22,14 @@ export class RegistryStore {
 
   replace(next: Registry): void {
     this.current = next;
+    this.currentVersion += 1;
     this.emit();
+  }
+
+  /** monotonically increasing — React keys derive from it to force
+   *  remounts when the registry changes (virtualizer row reuse) */
+  getVersion(): number {
+    return this.currentVersion;
   }
 
   /** apply a status transform to the given domains (immutably) */

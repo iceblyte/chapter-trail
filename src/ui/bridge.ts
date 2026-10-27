@@ -16,6 +16,13 @@ export function useRegistry(store: RegistryStore): Registry {
   );
 }
 
+export function useRegistryVersion(store: RegistryStore): number {
+  return useSyncExternalStore(
+    (cb) => store.subscribe(cb),
+    () => store.getVersion(),
+  );
+}
+
 export interface I18nBinding {
   lang: Lang;
   t: (key: string, params?: Record<string, string | number>) => string;

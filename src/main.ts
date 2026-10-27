@@ -155,7 +155,8 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
         })
         .filter(
           (candidate) =>
-            !insideSeries(candidate.path) && (candidate.managed || candidate.noteCount > 0),
+            !insideSeries(candidate.path) &&
+            (candidate.managed || candidate.noteCount > 0 || candidate.subfolderCount > 0),
         )
         .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
     },

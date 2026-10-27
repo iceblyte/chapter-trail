@@ -9,7 +9,8 @@
       "!test/harness/styles.css",
       "scripts/**",
       "*.ts",
-      "*.mjs"
+      "*.mjs",
+      "!scripts/verify-drag.mjs"
     ]
   },
   "formatter": {

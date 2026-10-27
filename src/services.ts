@@ -131,6 +131,19 @@ export class PluginServices {
     this.eventSource = null;
   }
 
+  /**
+   * Re-scan once more after the host has settled (metadata cache
+   * reindexing is async in Obsidian). Cheap insurance: if the first
+   * scan read a partially-stale cache, this one converges the panel.
+   */
+  private scheduleSettledScan(): void {
+    this.deps.clock.setTimeout(() => {
+      void this.scan().catch((error) => {
+        console.error("[chapter-trail] settle scan failed", error);
+      });
+    }, 600);
+  }
+
   /** watcher entry point (EventSource batches land here) */
   handleExternalBatch(events: readonly RawVaultEvent[]): Promise<void> {
     return this.handleBatch(events);
@@ -623,6 +636,7 @@ export class PluginServices {
           .join(" / "),
     );
     await this.scan();
+    this.scheduleSettledScan();
     if (this.settings.autoRebuildIndex) {
       await this.rebuildIndex(root, { silent: true });
     } else {
@@ -652,6 +666,7 @@ export class PluginServices {
       this.deps.i18n.t("✓ File moved to {folder}", { folder: targetFolder }),
     );
     await this.scan();
+    this.scheduleSettledScan();
     if (this.settings.autoRebuildIndex) {
       await this.rebuildIndex(root, { silent: true });
     }
@@ -688,6 +703,7 @@ export class PluginServices {
 
     // rescan first so the rebuild renders the fresh chain
     await this.scan();
+    this.scheduleSettledScan();
     if (this.settings.autoRebuildIndex) {
       await this.rebuildIndex(root, { silent: true });
     } else {

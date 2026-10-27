@@ -21,6 +21,9 @@ export interface DomainCardProps {
   /** controlled by the panel (global expand/collapse button) */
   open: boolean;
   onToggleOpen(): void;
+  /** series tree expansion, owned by the panel (survives remounts) */
+  expandedFolders: ReadonlySet<string>;
+  onToggleFolder(path: string): void;
 }
 
 export function DomainCard(props: DomainCardProps): React.JSX.Element {
@@ -48,8 +51,16 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
   const status = domain.status;
   const conflictMode = status.conflicts.length > 0;
 
+  const cardElRef = (el: HTMLDivElement | null): void => {
+    if (el) {
+      (el as HTMLDivElement & { __ctEntries?: unknown }).__ctEntries = domain.entries.map(
+        (entry) => [entry.path, entry.order],
+      );
+    }
+  };
+  void cardElRef;
   return (
-    <div className="ct-card" ref={cardRef}>
+    <div className="ct-card" ref={cardElRef}>
       <div
         className="ct-card-head ct-card-head-click"
         title={t(props.open ? "Collapse" : "Expand")}
@@ -144,7 +155,14 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
               </div>
             </div>
           ) : (
-            <EntryList domain={domain} settings={settings} actions={actions} i18n={props.i18n} />
+            <EntryList
+              domain={domain}
+              settings={settings}
+              actions={actions}
+              i18n={props.i18n}
+              expandedFolders={props.expandedFolders}
+              onToggleFolder={props.onToggleFolder}
+            />
           )}
 
           <div className="ct-card-actions">

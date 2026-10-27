@@ -65,6 +65,8 @@ export interface EntryListProps {
   settings: ChapterTrailSettings;
   actions: PanelActions;
   i18n: I18nService;
+  expandedFolders: ReadonlySet<string>;
+  onToggleFolder(path: string): void;
 }
 
 /** build the series tree from the ordered chain, first-appearance order */
@@ -97,21 +99,56 @@ function buildSeriesRows(
   });
 
   const rows: Row[] = [];
+  const subtreeFirstIndex = (node: TreeNode): number => {
+    let min = Number.MAX_SAFE_INTEGER;
+    for (const file of node.files) min = Math.min(min, file.chainIndex);
+    for (const child of node.folders.values()) {
+      min = Math.min(min, subtreeFirstIndex(child));
+    }
+    return min;
+  };
   const emit = (node: TreeNode, depth: number, parentPrefix: string): void => {
+    // children in FIRST-APPEARANCE order — identical to the core flatten,
+    // so the panel tree, the native explorer and the chain agree
+    const children: {
+      kind: "folder" | "file";
+      relPath: string;
+      child?: TreeNode;
+      file?: { entry: OrderEntry; chainIndex: number };
+      firstIndex: number;
+    }[] = [];
     for (const [relPath, child] of node.folders) {
-      const folderPath = parentPrefix === "" ? relPath : `${parentPrefix}/${relPath}`;
-      const first = child.files[0] ?? [...child.folders.values()].flatMap((f) => f.files)[0];
-      rows.push({
+      children.push({
         kind: "folder",
-        path: folderPath,
-        name: relPath,
-        depth,
-        chainIndex: first?.chainIndex ?? ordered.length,
-        firstFilePath: first?.entry.path ?? "",
+        relPath,
+        child,
+        firstIndex: subtreeFirstIndex(child),
       });
-      if (expanded.has(folderPath)) emit(child, depth + 1, folderPath);
     }
     for (const file of node.files) {
+      children.push({ kind: "file", relPath: "", file, firstIndex: file.chainIndex });
+    }
+    children.sort((a, b) => a.firstIndex - b.firstIndex);
+    for (const child of children) {
+      if (child.kind === "folder") {
+        const relPath = child.relPath;
+        const node2 = child.child;
+        if (!node2) continue;
+        const folderPath = parentPrefix === "" ? relPath : `${parentPrefix}/${relPath}`;
+        const first = node2.files[0] ?? [...node2.folders.values()].flatMap((f) => f.files)[0];
+        rows.push({
+          kind: "folder",
+          path: folderPath,
+          name: relPath,
+          depth,
+          chainIndex: first?.chainIndex ?? ordered.length,
+          firstFilePath: first?.entry.path ?? "",
+        });
+        if (expanded.has(folderPath)) emit(node2, depth + 1, folderPath);
+        continue;
+      }
+      const file = child.file;
+      if (!file) continue;
       rows.push({ kind: "file", entry: file.entry, chainIndex: file.chainIndex, depth });
     }
   };
@@ -124,14 +161,13 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
   const { t } = useI18n(props.i18n);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
 
   const view = useMemo(() => {
     const pending = domain.entries.filter((entry) => entry.order === undefined);
     const ordered = domain.entries.filter((entry) => entry.order !== undefined);
     let rows: Row[];
     if (domain.mode === "series") {
-      rows = buildSeriesRows(ordered, expanded, domain.root);
+      rows = buildSeriesRows(ordered, props.expandedFolders, domain.root);
     } else {
       rows = ordered.map((entry, chainIndex) => ({
         kind: "file" as const,
@@ -151,7 +187,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       shownPending,
       morePending: Math.max(0, pending.length - 3),
     };
-  }, [domain.entries, domain.mode, domain.root, domain.unmanagedFolders, expanded]);
+  }, [domain.entries, domain.mode, domain.root, domain.unmanagedFolders, props.expandedFolders]);
 
   const broken = domain.status.broken;
   const rowCount =
@@ -249,12 +285,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
   };
 
   const toggleFolder = (path: string): void => {
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
+    props.onToggleFolder(path);
   };
 
   return (
@@ -329,7 +360,6 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
             const row = view.rows[rowIndex];
             if (!row) return null;
             if (row.kind === "folder") {
-              const isOpen = expanded.has(row.path);
               return (
                 <FolderRow
                   key={virtualRow.key}
@@ -338,7 +368,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
                   depth={row.depth}
                   chainIndex={row.chainIndex}
                   firstFilePath={row.firstFilePath}
-                  isOpen={isOpen}
+                  isOpen={props.expandedFolders.has(row.path)}
                   domainRoot={domain.root}
                   isDragging={dragging === row.firstFilePath}
                   onDragState={setDragging}

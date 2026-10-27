@@ -19,7 +19,7 @@ import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
 import type { ChapterTrailSettings } from "../settings";
 import type { ManagedDomain, Registry } from "../types";
-import { useI18n, useRegistry } from "./bridge";
+import { useI18n, useRegistry, useRegistryVersion } from "./bridge";
 import { orderedDomains } from "./card-order";
 import { AddDomainFlow } from "./components/AddDomainFlow";
 import { DomainCard } from "./components/DomainCard";
@@ -34,6 +34,7 @@ export interface PanelRootProps {
 
 export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const registry: Registry = useRegistry(props.store);
+  const registryVersion = useRegistryVersion(props.store);
   const { t } = useI18n(props.i18n);
   const [flowOpen, setFlowOpen] = useState(false);
   const [cardOrder, setCardOrder] = useState<readonly string[]>(
@@ -42,6 +43,8 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const [draggingCard, setDraggingCard] = useState<string | null>(null);
   /** roots whose card body is folded; empty set = all expanded */
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set());
+  /** series tree expansion, lifted so EntryList remounts keep it */
+  const [expandedFolders, setExpandedFolders] = useState<ReadonlySet<string>>(() => new Set());
 
   /* the start-managing command can open the picker remotely */
   useEffect(() => {
@@ -193,12 +196,22 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
             dragging={draggingCard === domain.root}
           >
             <DomainCard
+              key={`${domain.root}:${registryVersion}`}
               domain={domain}
               settings={props.settings}
               actions={props.actions}
               i18n={props.i18n}
               open={!folded.has(domain.root)}
               onToggleOpen={() => toggleCard(domain.root)}
+              expandedFolders={expandedFolders}
+              onToggleFolder={(path) => {
+                setExpandedFolders((current) => {
+                  const next = new Set(current);
+                  if (next.has(path)) next.delete(path);
+                  else next.add(path);
+                  return next;
+                });
+              }}
             />
           </SortableCard>
         ))}
