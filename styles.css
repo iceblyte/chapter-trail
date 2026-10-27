@@ -6,14 +6,24 @@
    ============================================================ */
 
 body {
-  /* status colors — Obsidian built-in palette with fallbacks */
-  --ct-red: var(--color-red, #e93147);
-  --ct-yellow: var(--color-yellow, #e0ac00);
-  --ct-blue: var(--color-blue, #086ddd);
-  --ct-green: var(--color-green, #08b94e);
-  --ct-chip-red-text: var(--color-red, #e93147);
-  --ct-chip-yellow-text: var(--color-yellow, #b58a00);
-  --ct-chip-blue-text: var(--color-blue, #086ddd);
+  /* status colors — macOS system palette (Apple HiDPI light/dark) */
+  --ct-red: #ff3b30;
+  --ct-yellow: #ffcc00;
+  --ct-blue: #007aff;
+  --ct-green: #34c759;
+  --ct-chip-red-text: #ff3b30;
+  --ct-chip-yellow-text: #b58a00;
+  --ct-chip-blue-text: #007aff;
+}
+
+body.theme-dark {
+  --ct-red: #ff453a;
+  --ct-yellow: #ffd60a;
+  --ct-blue: #0a84ff;
+  --ct-green: #30d158;
+  --ct-chip-red-text: #ff6961;
+  --ct-chip-yellow-text: #ffd60a;
+  --ct-chip-blue-text: #64a8ff;
 }
 
 /* ---------- settings tab ---------- */

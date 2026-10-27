@@ -236,16 +236,17 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
           const chainIndex = targetData.chainIndex;
           if (chainIndex === undefined) return;
           const landing = chainIndex + (targetEdge === "bottom" ? 1 : 0);
-          // dropping a file onto a DIFFERENT folder row physically moves
-          // the file into that folder (drag to the outside)
-          if (
-            data.entryPath !== undefined &&
-            targetData.targetIsFolder === true &&
-            targetData.targetPath !== undefined
-          ) {
+          // dropping a file onto a row in a DIFFERENT folder physically
+          // moves the file into that folder (drag to the outside) —
+          // covers both folder rows and file rows across folders
+          if (data.entryPath !== undefined && targetData.targetPath !== undefined) {
             const fileFolder = parentOf(data.entryPath);
-            if (fileFolder !== null && fileFolder !== targetData.targetPath) {
-              void actions.moveFileToFolder(domain.root, data.entryPath, targetData.targetPath);
+            const targetFolder =
+              targetData.targetIsFolder === true
+                ? targetData.targetPath
+                : parentOf(targetData.targetPath);
+            if (fileFolder !== null && targetFolder !== null && fileFolder !== targetFolder) {
+              void actions.moveFileToFolder(domain.root, data.entryPath, targetFolder);
               return;
             }
           }

@@ -393,6 +393,65 @@ const results = [];
   });
 }
 
+/* ---------- scenario 4b: nested file dragged onto a root file row ---------- */
+{
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(() => window.__ctReady === true);
+  const outcome = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    await sleep(300);
+    const ct = window.__ct;
+    const noticesBefore = ct.notices.length;
+    const filesBefore = ct.vault.listMarkdownFiles().filter((p) => p.includes("03"));
+    const card = [...document.querySelectorAll(".ct-card")].find(
+      (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
+    );
+    const rows = [...card.querySelectorAll(".ct-rows-scroll .ct-row")];
+    // 03 配置详解 lives inside 进阶篇; 01 为什么选择 Quartz is a root file
+    const nestedRow = rows.find((row) =>
+      row.querySelector(".ct-row-title")?.textContent?.includes("03 配置详解"),
+    );
+    const rootRow = rows.find((row) =>
+      row.querySelector(".ct-row-title")?.textContent?.includes("01 为什么选择 Quartz"),
+    );
+    if (!nestedRow || !rootRow) {
+      return { notice: null, movedOut: false, lookup: "rows missing" };
+    }
+    const grip = nestedRow.querySelector(".ct-grip");
+    grip.style.visibility = "visible";
+    const gs = grip.getBoundingClientRect();
+    const ts = rootRow.getBoundingClientRect();
+    const dt = new DataTransfer();
+    const fire = (el, type, x, y) =>
+      el.dispatchEvent(
+        new DragEvent(type, {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+    fire(nestedRow, "dragstart", gs.x + 6, gs.y + 6);
+    fire(rootRow, "dragover", ts.x + 100, ts.y + ts.height - 3);
+    fire(rootRow, "drop", ts.x + 100, ts.y + ts.height - 3);
+    window.dispatchEvent(new DragEvent("dragend", { dataTransfer: dt, bubbles: true }));
+    grip.style.visibility = "";
+    await sleep(900);
+    return {
+      notice: ct.notices.slice(noticesBefore).at(-1) ?? null,
+      allNotices: ct.notices.slice(noticesBefore),
+      movedOut: ct.vault.exists("Blogs/进阶篇/03 配置详解.md"),
+      movedToRoot: ct.vault.exists("Blogs/03 配置详解.md"),
+    };
+  });
+  results.push({
+    name: "nested file drag-out to root (scenario 4b)",
+    ...outcome,
+    pass: outcome.movedOut === false && outcome.movedToRoot === true,
+  });
+}
+
 /* ---------- scenario 5: file drag-out onto another folder row (fresh page) ---------- */
 {
   await page.reload({ waitUntil: "networkidle0" });
@@ -498,7 +557,7 @@ if (pageErrors.length > 0) {
   allPass = false;
   console.log("PAGE ERRORS:", pageErrors.slice(0, 5));
 }
-console.log("RESULTS_JSON:", JSON.stringify(results.find((r) => r.name === "folder onto FILE bottom edge") ?? results));
+console.log("RESULTS_JSON:", JSON.stringify(results));
 console.log(allPass ? "ALL DRAG SCENARIOS PASS" : "SOME SCENARIOS FAILED");
 
 await browser.close();
