@@ -37,6 +37,9 @@ import type { PanelActions } from "../panel-actions";
 
 const DRAG_TYPE = "ct-entry";
 
+/** per-domain list scroll positions, preserved across remounts */
+const scrollMemory = new Map<string, number>();
+
 interface DragData {
   type: typeof DRAG_TYPE;
   domainRoot: string;
@@ -161,6 +164,24 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
   const { t } = useI18n(props.i18n);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+
+  /* preserve the list scroll position across registryVersion remounts —
+   * without this the card list jumps back to its first rows after any
+   * scan-triggered re-render */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const saved = scrollMemory.get(domain.root);
+    if (saved !== undefined) el.scrollTop = saved;
+    const save = (): void => {
+      scrollMemory.set(domain.root, el.scrollTop);
+    };
+    el.addEventListener("scroll", save);
+    return () => {
+      el.removeEventListener("scroll", save);
+      scrollMemory.set(domain.root, el.scrollTop);
+    };
+  }, [domain.root]);
 
   const view = useMemo(() => {
     const pending = domain.entries.filter((entry) => entry.order === undefined);

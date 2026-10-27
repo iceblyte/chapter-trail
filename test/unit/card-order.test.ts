@@ -34,8 +34,14 @@ describe("orderedDomains (panel card drag order)", () => {
     expect(orderedDomains(domains, ["B", "C"]).map((d) => d.root)).toEqual(["B", "C", "A"]);
   });
 
-  it("empty order keeps insertion order", () => {
-    const domains = [domain("A"), domain("B")];
-    expect(orderedDomains(domains, []).map((d) => d.root)).toEqual(["A", "B"]);
+  it("empty order falls back to deterministic alphabetical order", () => {
+    // the registry's Map insertion order changes across scans (file
+    // renames resort the file list) — cards must never jump because of it
+    const domains = [domain("随笔"), domain("Blogs"), domain("AI 答题应用平台")];
+    expect(orderedDomains(domains, []).map((d) => d.root)).toEqual([
+      "AI 答题应用平台",
+      "Blogs",
+      "随笔",
+    ]);
   });
 });
