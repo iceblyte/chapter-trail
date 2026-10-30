@@ -1,7 +1,11 @@
 /**
  * Plugin settings persisted to data.json (DESIGN.md §4.9).
- * Field names created/updated/order are fixed and never configurable.
+ * The order key is fixed and never configurable; the created/updated
+ * date property names and their display format are user-configurable
+ * (compatible with the "Update modified date" community plugin).
  */
+import type { DateReadOptions } from "./core/date-value";
+import { DEFAULT_DATE_FORMAT } from "./core/date-value";
 import type { Lang } from "./i18n/index";
 import type { DateDisplay } from "./types";
 
@@ -10,6 +14,12 @@ export interface ChapterTrailSettings {
   indexFileName: string;
   /** which date index entries show */
   dateDisplay: DateDisplay;
+  /** frontmatter key read as the updated date */
+  updatedProperty: string;
+  /** frontmatter key read as the created date; "" hides created dates */
+  createdProperty: string;
+  /** moment-style display format for dates (cards + index pages) */
+  dateFormat: string;
   /** the single gate of every navigation-injection write (default off) */
   injectNavEnabled: boolean;
   /** auto-rebuild the affected domain index after order writes (v1.4) */
@@ -25,6 +35,9 @@ export interface ChapterTrailSettings {
 export const DEFAULT_SETTINGS: ChapterTrailSettings = {
   indexFileName: "目录",
   dateDisplay: "created",
+  updatedProperty: "updated",
+  createdProperty: "created",
+  dateFormat: DEFAULT_DATE_FORMAT,
   injectNavEnabled: false,
   autoRebuildIndex: false,
   language: "en",
@@ -61,6 +74,19 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
   }
   return {
     dateDisplay,
+    // the modified-date property is required to stay functional: an empty
+    // value falls back to the default; an empty created property is the
+    // documented way to hide created dates (mirrors "Update modified date")
+    updatedProperty:
+      typeof source.updatedProperty === "string" && source.updatedProperty.trim() !== ""
+        ? source.updatedProperty.trim()
+        : "updated",
+    createdProperty:
+      typeof source.createdProperty === "string" ? source.createdProperty.trim() : "created",
+    dateFormat:
+      typeof source.dateFormat === "string" && source.dateFormat.trim() !== ""
+        ? source.dateFormat.trim()
+        : DEFAULT_DATE_FORMAT,
     injectNavEnabled: source.injectNavEnabled === true,
     autoRebuildIndex: source.autoRebuildIndex === true,
     indexFileName,
@@ -69,5 +95,14 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
     domainOrder: Array.isArray(source.domainOrder)
       ? source.domainOrder.filter((item): item is string => typeof item === "string")
       : undefined,
+  };
+}
+
+/** the date-reading options the resolver should use for these settings */
+export function dateReadOptions(settings: ChapterTrailSettings): DateReadOptions {
+  return {
+    createdKey: settings.createdProperty,
+    updatedKey: settings.updatedProperty,
+    format: settings.dateFormat,
   };
 }

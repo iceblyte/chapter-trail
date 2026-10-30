@@ -204,17 +204,32 @@ describe("buildRegistry — legacy orders (vault banner)", () => {
 });
 
 describe("buildRegistry — dates", () => {
-  it("whitelist parses created/updated; failures show no date", async () => {
+  it("parses created/updated in common shapes; failures show no date", async () => {
     const snap = makeSnapshot({
       "Blogs/目录.md": indexPage("series"),
+      // datetimes keep the value's own precision (bug 5/6)
       "Blogs/01.md": { frontmatter: { order: 10000, created: "2025-11-09T10:30" } },
       "Blogs/02.md": { frontmatter: { order: 20000, created: "明天" } },
       "Blogs/03.md": { frontmatter: { order: 30000, updated: "2026-01-12" } },
     });
     const registry = await buildRegistry(snap);
     const entries = registry.domains.get("Blogs")?.entries ?? [];
-    expect(entries[0]?.dates).toEqual({ created: "2025-11-09" });
+    expect(entries[0]?.dates).toEqual({ created: "2025-11-09 10:30" });
     expect(entries[1]?.dates).toBeUndefined();
     expect(entries[2]?.dates).toEqual({ updated: "2026-01-12" });
+  });
+
+  it("space-separated datetimes and custom property names are read", async () => {
+    const snap = makeSnapshot({
+      "Blogs/目录.md": indexPage("series"),
+      "Blogs/01.md": {
+        frontmatter: { order: 10000, created: "2026-08-28", updated: "2026-09-04 23:40" },
+      },
+    });
+    const registry = await buildRegistry(snap, {
+      dates: { createdKey: "created", updatedKey: "updated", format: "YYYY-MM-DD HH:mm" },
+    });
+    const entries = registry.domains.get("Blogs")?.entries ?? [];
+    expect(entries[0]?.dates).toEqual({ created: "2026-08-28", updated: "2026-09-04 23:40" });
   });
 });

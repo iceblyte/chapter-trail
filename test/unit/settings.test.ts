@@ -23,3 +23,32 @@ describe("coerceSettings — index file name defaults", () => {
     expect(coerceSettings({ language: "zh", indexFileName: "toc" }).indexFileName).toBe("toc");
   });
 });
+
+describe("coerceSettings — date source fields (bug 5/6/8)", () => {
+  it("defaults match the 'Update modified date' plugin", () => {
+    const s = coerceSettings({});
+    expect(s.updatedProperty).toBe("updated");
+    expect(s.createdProperty).toBe("created");
+    expect(s.dateFormat).toBe("YYYY-MM-DD HH:mm");
+  });
+
+  it("a blank modified property falls back, a blank created property disables", () => {
+    expect(coerceSettings({ updatedProperty: "  " }).updatedProperty).toBe("updated");
+    expect(coerceSettings({ createdProperty: "" }).createdProperty).toBe("");
+  });
+
+  it("custom values are trimmed and kept", () => {
+    const s = coerceSettings({
+      updatedProperty: " 修改于 ",
+      createdProperty: " 建立于 ",
+      dateFormat: " YYYY/MM/DD ",
+    });
+    expect(s.updatedProperty).toBe("修改于");
+    expect(s.createdProperty).toBe("建立于");
+    expect(s.dateFormat).toBe("YYYY/MM/DD");
+  });
+
+  it("a blank date format falls back to the default", () => {
+    expect(coerceSettings({ dateFormat: "" }).dateFormat).toBe("YYYY-MM-DD HH:mm");
+  });
+});

@@ -22,7 +22,7 @@ import type {
 } from "../types";
 import { emptyRegistry, emptyStatus } from "../types";
 import { findIndexBlock } from "./block-codec";
-import { parseWhitelistedDate } from "./date-whitelist";
+import { type DateReadOptions, DEFAULT_DATE_OPTIONS, readEntryDates } from "./date-value";
 import {
   folderName,
   isUnder,
@@ -39,6 +39,13 @@ export interface VaultSnapshot {
   readFileBody(path: VaultPath): Promise<string>;
 }
 
+/** options for one registry build (date property names + display format) */
+export interface RegistryOptions {
+  dates: DateReadOptions;
+}
+
+export const DEFAULT_REGISTRY_OPTIONS: RegistryOptions = { dates: DEFAULT_DATE_OPTIONS };
+
 interface IndexPage {
   path: VaultPath;
   folder: VaultPath;
@@ -52,7 +59,10 @@ const LINK_TARGET = /\]\(([^)]+)\)/g;
 const nameCollator = new Intl.Collator("zh", { numeric: true });
 
 /** Build the complete registry (startup scan / full recompute). */
-export async function buildRegistry(snap: VaultSnapshot): Promise<Registry> {
+export async function buildRegistry(
+  snap: VaultSnapshot,
+  options: RegistryOptions = DEFAULT_REGISTRY_OPTIONS,
+): Promise<Registry> {
   const registry = emptyRegistry();
   const files = snap.files;
   const fileSet = new Set(files.map((file) => file.path));
@@ -105,13 +115,17 @@ export async function buildRegistry(snap: VaultSnapshot): Promise<Registry> {
   for (const page of domainPages) {
     registry.domains.set(
       page.folder,
-      buildDomain(page, {
-        fileSet,
-        metaByPath,
-        domainRoots,
-        indexPathByRoot,
-        allIndexPaths: new Set(verified.map((v) => v.path)),
-      }),
+      buildDomain(
+        page,
+        {
+          fileSet,
+          metaByPath,
+          domainRoots,
+          indexPathByRoot,
+          allIndexPaths: new Set(verified.map((v) => v.path)),
+        },
+        options.dates,
+      ),
     );
   }
 
@@ -169,7 +183,7 @@ interface BuildContext {
   allIndexPaths: Set<VaultPath>;
 }
 
-function buildDomain(page: IndexPage, ctx: BuildContext): ManagedDomain {
+function buildDomain(page: IndexPage, ctx: BuildContext, dates: DateReadOptions): ManagedDomain {
   const excluded = new Set(page.excludedFolders.map(normalizeFolderRef).filter(Boolean));
   const entries: OrderEntry[] = [];
 
@@ -184,13 +198,13 @@ function buildDomain(page: IndexPage, ctx: BuildContext): ManagedDomain {
     const rel = relativeInside(path, page.folder);
     if (rel === null || fileIsExcluded(meta, rel)) return null;
     const order = orderValue(meta.frontmatter?.[PLUGIN_KEYS.order]);
-    const dates = readDates(meta);
+    const entryDates = readEntryDates(meta.frontmatter, dates);
     return {
       path,
       kind: "file",
       title: noteTitle(path),
       ...(order === undefined ? {} : { order }),
-      ...(dates === undefined ? {} : { dates }),
+      ...(entryDates === undefined ? {} : { dates: entryDates }),
     };
   };
 
@@ -294,16 +308,6 @@ function folderHasNotes(folder: VaultPath, ctx: BuildContext): boolean {
     if (path.endsWith(".md") && isUnder(path, folder)) return true;
   }
   return false;
-}
-
-function readDates(meta: FileMeta): { created?: string; updated?: string } | undefined {
-  const created = parseWhitelistedDate(meta.frontmatter?.created);
-  const updated = parseWhitelistedDate(meta.frontmatter?.updated);
-  if (created === null && updated === null) return undefined;
-  const dates: { created?: string; updated?: string } = {};
-  if (created !== null) dates.created = created;
-  if (updated !== null) dates.updated = updated;
-  return dates;
 }
 
 function coerceMode(raw: unknown): DomainMode {

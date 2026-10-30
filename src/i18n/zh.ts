@@ -12,8 +12,21 @@ export const zh: Dict = {
   "Used when creating new index pages. Recognition is by the <code>is-index</code> marker, not the file name — existing pages are never renamed. Preset suggestion: <code>index</code>. Changing this marks affected domains “Index outdated”.":
     "创建新索引页时使用。识别依据是 <code>is-index</code> 标记而非文件名 — 已有索引页永不被重命名。预设建议：<code>index</code>。修改后相关域将标黄“索引过期”。",
   "Date display on index entries": "索引条目的日期显示",
-  "Reads each note’s <code>created</code> / <code>updated</code> property (ISO date/datetime or Obsidian date format). Entries without a parsable date simply show no date; subfolder entries never show one. Changing this marks affected domains “Index outdated”.":
-    "读取每篇笔记的 <code>created</code> / <code>updated</code> 属性（ISO 日期/日期时间或 Obsidian 日期格式）。无法解析的条目不显示日期；子文件夹条目从不显示。修改后相关域将标黄“索引过期”。",
+  "Reads the date properties below (any common date/datetime format). Entries without a parsable date simply show no date; subfolder entries never show one. Changing this marks affected domains “Index outdated”. Tip: the community plugin <b>Update modified date</b> can keep these properties current automatically — no manual maintenance needed.":
+    "读取下方配置的日期属性（支持常见日期/日期时间格式）。无法解析的条目不显示日期；子文件夹条目从不显示。修改后相关域将标黄“索引过期”。建议：社区插件 <b>Update modified date</b> 可自动维护这些属性，无需手动维护。",
+  "Modified date property": "更新时间属性名",
+  "The name of the YAML/frontmatter property to read as the updated date — same default as the “Update modified date” plugin.":
+    "读取为更新时间（updated）的 frontmatter 属性名 — 与“Update modified date”插件的默认值一致。",
+  "Created date property (optional)": "创建时间属性名（可选）",
+  "Optional. The property read as the created date; leave empty to hide created dates everywhere.":
+    "可选。读取为创建时间（created）的属性名；留空则所有位置不显示创建时间。",
+  "Date format": "日期格式",
+  "Momentjs-style tokens: <code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>. Values without a time part never show one. Blank = <code>YYYY-MM-DD HH:mm</code>.":
+    "momentjs 风格令牌：<code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>。没有时间部分的值不会补出时间。留空 = <code>YYYY-MM-DD HH:mm</code>。",
+  "Support the author": "支持作者",
+  "If Chapter Trail is useful to you, a sponsorship on 爱发电 (afdian) keeps development going. Thank you!":
+    "如果 Chapter Trail 对你有帮助，欢迎在爱发电（afdian）上支持开发，谢谢！",
+  "❤ Sponsor on afdian": "❤ 爱发电",
   "Write prev / next navigation": "写入上下篇导航",
   "<b>Off: nothing is ever written into your notes</b> — the jump commands (previous / next / open index) still work. Turning on asks for confirmation, then writes collapsible callouts wrapped in removable markers.":
     "<b>关闭：绝不向笔记写入任何内容</b> — 跳转命令（上一篇 / 下一篇 / 打开索引）仍然可用。开启时会先请求确认，再写入由可移除标记包裹的可折叠 callout。",
@@ -154,10 +167,10 @@ export const zh: Dict = {
   "· Step 2 of 3": "· 第 2 步 / 共 3 步",
   "Mode for <b>{folder}</b> — one managed domain, one chain style:":
     "为 <b>{folder}</b> 创建一个受管域，链条风格二选一：",
-  "Independent · default": "Independent · 默认",
+  "Independent · default": "独立 · 默认",
   "Direct notes and managed subfolders mix in one ordering. Each managed subfolder keeps its own chain. Best for loosely related notes.":
     "直系文件与受管子文件夹在同一顺序空间混排；每个受管子文件夹自成链条。适合松散关联的笔记。",
-  "Series · one chain": "Series · 一条链",
+  "Series · one chain": "系列 · 一条链",
   "One chain across the whole subtree; subfolders become path labels only. Best for tutorials and serials.":
     "整棵子树一条链；子文件夹仅作为路径前缀。适合教程与连载。",
   "Creates <b>{indexFile}.md</b> with <code>is-index: true</code> and a plugin-owned marked block. Recognition is by the marker, not the file name — you can rename the file later. Mode is stored in the index page’s frontmatter and can be switched any time.":

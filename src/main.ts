@@ -20,6 +20,7 @@ import type { ClockPort, ConfirmPort, NotifierPort, VaultPort } from "./adapter/
 import { RegistryStore } from "./adapter/registry-store";
 import { registerCommands } from "./commands";
 import { ECHO_TTL_MS } from "./constants";
+import { DEFAULT_DATE_FORMAT } from "./core/date-value";
 import { EchoLedger } from "./core/echo-ledger";
 import type { Lang } from "./i18n/index";
 import { I18nService } from "./i18n/runtime";
@@ -270,6 +271,10 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     this.dynamicNav?.stop();
     this.dynamicNav = null;
     this.cacheResolvedUnsub?.();
+    if (this.dateRescanTimer !== null) {
+      window.clearTimeout(this.dateRescanTimer);
+      this.dateRescanTimer = null;
+    }
     this.vaultAdapter.dispose();
     this.store.clear();
   }
@@ -597,6 +602,38 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
           n: roots.length,
         }),
     );
+  }
+
+  private dateRescanTimer: number | null = null;
+
+  /** date-source edits persist per keystroke, then one debounced rescan
+   *  refreshes the card dates; index pages follow after a rebuild */
+  async onDateSourceChange(
+    kind: "updatedProperty" | "createdProperty" | "dateFormat",
+    value: string,
+  ): Promise<string> {
+    const trimmed = value.trim();
+    const effective =
+      kind === "updatedProperty" && trimmed === ""
+        ? "updated"
+        : kind === "dateFormat" && trimmed === ""
+          ? DEFAULT_DATE_FORMAT
+          : trimmed;
+    if (this.settings[kind] !== effective) {
+      this.settings[kind] = effective;
+      await this.saveSettings();
+      this.store.markStale([...this.store.getSnapshot().domains.keys()]);
+      this.scheduleDateRescan();
+    }
+    return effective;
+  }
+
+  private scheduleDateRescan(): void {
+    if (this.dateRescanTimer !== null) window.clearTimeout(this.dateRescanTimer);
+    this.dateRescanTimer = window.setTimeout(() => {
+      this.dateRescanTimer = null;
+      void this.services.scan();
+    }, 600);
   }
 
   async onAutoRebuildChange(enabled: boolean): Promise<void> {

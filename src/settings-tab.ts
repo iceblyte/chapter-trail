@@ -13,6 +13,11 @@ export interface SettingsHooks {
   onIndexFileNameChange(name: string): Promise<string>;
   /** persist a new date display mode */
   onDateDisplayChange(mode: ChapterTrailSettings["dateDisplay"]): Promise<void>;
+  /** validate + persist a date-source setting; returns the effective value */
+  onDateSourceChange(
+    kind: "updatedProperty" | "createdProperty" | "dateFormat",
+    value: string,
+  ): Promise<string>;
   /** persist the auto-rebuild switch */
   onAutoRebuildChange(enabled: boolean): Promise<void>;
   /** user flipped the injection gate; returns the final gate state */
@@ -29,6 +34,9 @@ export interface SettingsTabHost {
   app: import("obsidian").App;
   settings: ChapterTrailSettings;
 }
+
+/** the author's afdian sponsorship page */
+const afdianUrl = "https://afdian.com/a/iceblyte?utm_source=copylink&utm_medium=link";
 
 export class ChapterTrailSettingTab extends PluginSettingTab {
   private unsubscribe: (() => void) | undefined;
@@ -71,7 +79,7 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
       .setName(t("Date display on index entries"))
       .setDesc(
         t(
-          "Reads each note’s <code>created</code> / <code>updated</code> property (ISO date/datetime or Obsidian date format). Entries without a parsable date simply show no date; subfolder entries never show one. Changing this marks affected domains “Index outdated”.",
+          "Reads the date properties below (any common date/datetime format). Entries without a parsable date simply show no date; subfolder entries never show one. Changing this marks affected domains “Index outdated”. Tip: the community plugin <b>Update modified date</b> can keep these properties current automatically — no manual maintenance needed.",
         ),
       )
       .addDropdown((drop) => {
@@ -81,6 +89,50 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
         drop.setValue(this.host.settings.dateDisplay);
         drop.onChange(async (value) => {
           await this.hooks.onDateDisplayChange(value as ChapterTrailSettings["dateDisplay"]);
+        });
+      });
+
+    /* Date source: property names + display format (bug 5/6/8) —
+     * mirrors the "Update modified date" plugin's settings */
+    new Setting(containerEl)
+      .setName(t("Modified date property"))
+      .setDesc(
+        t(
+          "The name of the YAML/frontmatter property to read as the updated date — same default as the “Update modified date” plugin.",
+        ),
+      )
+      .addText((text) => {
+        text.setValue(this.host.settings.updatedProperty).onChange(async (value) => {
+          const effective = await this.hooks.onDateSourceChange("updatedProperty", value);
+          text.setValue(effective);
+        });
+      });
+
+    new Setting(containerEl)
+      .setName(t("Created date property (optional)"))
+      .setDesc(
+        t(
+          "Optional. The property read as the created date; leave empty to hide created dates everywhere.",
+        ),
+      )
+      .addText((text) => {
+        text.setValue(this.host.settings.createdProperty).onChange(async (value) => {
+          const effective = await this.hooks.onDateSourceChange("createdProperty", value);
+          text.setValue(effective);
+        });
+      });
+
+    new Setting(containerEl)
+      .setName(t("Date format"))
+      .setDesc(
+        t(
+          "Momentjs-style tokens: <code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>. Values without a time part never show one. Blank = <code>YYYY-MM-DD HH:mm</code>.",
+        ),
+      )
+      .addText((text) => {
+        text.setValue(this.host.settings.dateFormat).onChange(async (value) => {
+          const effective = await this.hooks.onDateSourceChange("dateFormat", value);
+          text.setValue(effective);
         });
       });
 
@@ -149,6 +201,20 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
         drop.setValue(this.host.settings.language);
         drop.onChange(async (value) => {
           await this.hooks.onLanguageChange(value === "zh" ? "zh" : "en");
+        });
+      });
+
+    /* Sponsor (afdian) */
+    new Setting(containerEl)
+      .setName(t("Support the author"))
+      .setDesc(
+        t(
+          "If Chapter Trail is useful to you, a sponsorship on 爱发电 (afdian) keeps development going. Thank you!",
+        ),
+      )
+      .addButton((button) => {
+        button.setButtonText(t("❤ Sponsor on afdian")).onClick(() => {
+          window.open(afdianUrl, "_blank");
         });
       });
 

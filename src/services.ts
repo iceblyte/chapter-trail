@@ -43,7 +43,7 @@ import {
 } from "./core/series-tree";
 import { normalizedOrder, orderValue, planInsert, tailOrder } from "./core/sort-core";
 import type { I18nService } from "./i18n/runtime";
-import type { ChapterTrailSettings } from "./settings";
+import { type ChapterTrailSettings, dateReadOptions } from "./settings";
 import type { DomainId, DomainMode, ManagedDomain, Registry, VaultPath } from "./types";
 
 export interface ServiceDeps {
@@ -100,7 +100,7 @@ export class PluginServices {
       files,
       readFileBody: (path) => this.deps.vault.read(path),
     };
-    const next = await buildRegistry(snapshot);
+    const next = await buildRegistry(snapshot, { dates: dateReadOptions(this.settings) });
     // carry sticky flags: stale survives until a manual rebuild;
     // pending survives as long as the files still lack an order
     for (const domain of next.domains.values()) {
