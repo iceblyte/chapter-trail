@@ -531,6 +531,12 @@ export class PluginServices {
       this.deps.i18n.t("Order normalized — {n} notes", { n: domain.entries.length }),
     );
     await this.scan();
+    if (result.failed.length === 0) {
+      // the chain is now deterministic: the first-run review suggestion
+      // has been acted on — stop flagging it (the flag is sticky across
+      // scans, so clear it explicitly after the carry-over)
+      this.deps.store.patchStatus([root], (status) => ({ ...status, legacyHint: false }));
+    }
     if (this.settings.autoRebuildIndex) {
       await this.rebuildIndex(root, { silent: true });
     }

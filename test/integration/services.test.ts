@@ -629,3 +629,34 @@ describe("moveFileToFolder — drag a file out of a subfolder", () => {
     expect(h.vault.exists("Blogs/笔记.md")).toBe(true);
   });
 });
+
+describe("legacyHint — first-run review hint lifecycle", () => {
+  it("appears on first run over existing orders and clears after reindex", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    // two notes already carry orders (e.g. synced from another machine),
+    // two have none — the mixed state the review hint exists for
+    vault.seed("旧项目/a 已有.md", note(5000));
+    vault.seed("旧项目/b 已有.md", note(6000));
+    vault.seed("旧项目/c 无.md", note());
+    vault.seed("旧项目/d 无.md", note());
+
+    await h.services.startManaging("旧项目", "series");
+    const status = () => h.store.getSnapshot().domains.get("旧项目")?.status;
+    expect(status()?.legacyHint).toBe(true);
+    // first-run assignment gave the orderless notes filename-order values
+    // (10000 steps among themselves) and never touched existing orders
+    expect(orderOf(h, "旧项目/c 无.md")).toBe(10000);
+    expect(orderOf(h, "旧项目/d 无.md")).toBe(20000);
+    expect(orderOf(h, "旧项目/a 已有.md")).toBe(5000);
+    expect(orderOf(h, "旧项目/b 已有.md")).toBe(6000);
+
+    // reindex = the user acted on the suggestion → the hint must go away
+    await h.services.reindexOrder("旧项目");
+    expect(status()?.legacyHint).toBe(false);
+
+    // and it stays gone across rescans (the flag is sticky by carry-over)
+    await h.services.scan();
+    expect(status()?.legacyHint).toBe(false);
+  });
+});
