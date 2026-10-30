@@ -27,7 +27,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ROW_HEIGHT } from "../../constants";
+import { MORE_ROW_HEIGHT, ROW_HEIGHT } from "../../constants";
 import { parentOf } from "../../core/path-util";
 import type { I18nService } from "../../i18n/runtime";
 import type { ChapterTrailSettings } from "../../settings";
@@ -207,6 +207,8 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       pending,
       shownPending,
       morePending: Math.max(0, pending.length - 3),
+      /** virtual index of the two-line "…n more" row (-1 = absent) */
+      moreRowIndex: pending.length > 3 ? rows.length + shownPending.length : -1,
     };
   }, [domain.entries, domain.mode, domain.root, domain.unmanagedFolders, props.expandedFolders]);
 
@@ -217,7 +219,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: (index) => (index === view.moreRowIndex ? MORE_ROW_HEIGHT : ROW_HEIGHT),
     overscan: 8,
   });
 
@@ -312,6 +314,14 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
 
   return (
     <div className="ct-rows">
+      {/* column header row sits above the pinned index row (bug 1) */}
+      <div className="ct-row ct-head-row" aria-hidden="true">
+        <span className="ct-grip" style={{ visibility: "hidden" }} />
+        <span className="ct-row-title">{t("File name")}</span>
+        <span className="ct-row-date ct-col-created">{t("Created")}</span>
+        <span className="ct-row-date ct-col-updated">{t("Updated")}</span>
+        <span className="ct-row-order">{t("Order")}</span>
+      </div>
       <button
         type="button"
         className="ct-row ct-index-row"
@@ -324,13 +334,6 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
         </span>
         <span className="ct-moc-badge">MOC</span>
       </button>
-      <div className="ct-row ct-head-row" aria-hidden="true">
-        <span className="ct-grip" style={{ visibility: "hidden" }} />
-        <span className="ct-row-title">{t("File name")}</span>
-        <span className="ct-row-date ct-col-created">{t("Created")}</span>
-        <span className="ct-row-date ct-col-updated">{t("Updated")}</span>
-        <span className="ct-row-order">{t("Order")}</span>
-      </div>
       <div ref={scrollRef} className="ct-rows-scroll">
         <div style={{ position: "relative", height: `${virtualizer.getTotalSize()}px` }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -347,8 +350,15 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
             if (rowIndex >= trailStart) {
               const trailing = rowIndex - trailStart;
               const brokenPath = broken[trailing - (view.morePending > 0 ? 1 : 0)];
+              // the "…n more · git sync batch" row wraps to two lines so
+              // the full hint stays readable (bug 11)
+              const isMoreRow = view.morePending > 0 && trailing === 0;
               return (
-                <div key={virtualRow.key} className="ct-row is-dim" style={absoluteStyle}>
+                <div
+                  key={virtualRow.key}
+                  className={`ct-row is-dim${isMoreRow ? " ct-more-row" : ""}`}
+                  style={absoluteStyle}
+                >
                   {brokenPath ? (
                     <span className="ct-row-title is-missing">
                       {brokenPath} — {t("file not found — deleted or moved out of the vault")}

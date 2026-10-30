@@ -13,7 +13,6 @@ import {
   attachClosestEdge,
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import { setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
@@ -23,6 +22,7 @@ import { useI18n, useRegistry } from "./bridge";
 import { orderedDomains } from "./card-order";
 import { AddDomainFlow } from "./components/AddDomainFlow";
 import { DomainCard } from "./components/DomainCard";
+import { ObsidianIcon } from "./components/ObsidianIcon";
 import type { PanelActions } from "./panel-actions";
 
 export interface PanelRootProps {
@@ -44,6 +44,8 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set());
   /** series tree expansion, lifted so EntryList remounts keep it */
   const [expandedFolders, setExpandedFolders] = useState<ReadonlySet<string>>(() => new Set());
+  /** bug 13: show only the cards that need attention */
+  const [onlyAttention, setOnlyAttention] = useState(false);
 
   /* the start-managing command can open the picker remotely */
   useEffect(() => {
@@ -54,6 +56,10 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
 
   const domains = useMemo(() => [...registry.domains.values()], [registry]);
   const sortedDomains = useMemo(() => orderedDomains(domains, cardOrder), [domains, cardOrder]);
+  const visibleDomains = useMemo(
+    () => (onlyAttention ? sortedDomains.filter((domain) => hasChips(domain)) : sortedDomains),
+    [sortedDomains, onlyAttention],
+  );
   const sortedRoots = useMemo(() => sortedDomains.map((domain) => domain.root), [sortedDomains]);
   const attention = domains.filter((domain) => hasChips(domain)).length;
   const legacyTotal = useMemo(
@@ -113,11 +119,25 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const toggleAllCards = (): void => {
     setFolded((current) => (current.size > 0 ? new Set() : new Set(domains.map((d) => d.root))));
   };
+  const toggleAttentionFilter = (): void => {
+    const next = !onlyAttention;
+    setOnlyAttention(next);
+    // filtered cards should be readable: unfold them all
+    if (next) setFolded(new Set());
+  };
 
   return (
     <div className="ct-panel">
       <div className="ct-panel-head">
         <span className="ct-panel-title">{t("Chapter Trail")}</span>
+        <button
+          type="button"
+          className={`ct-icon-btn${onlyAttention ? " is-active" : ""}`}
+          title={t("Show only domains needing attention")}
+          onClick={toggleAttentionFilter}
+        >
+          <ObsidianIcon name="circle-alert" />
+        </button>
         <button
           type="button"
           className="ct-icon-btn"
@@ -187,7 +207,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
       )}
 
       <div className="ct-panel-body">
-        {sortedDomains.map((domain) => (
+        {visibleDomains.map((domain) => (
           <SortableCard
             key={domain.root}
             domainRoot={domain.root}
@@ -196,6 +216,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           >
             <DomainCard
               domain={domain}
+              attention={attentionOf(domain, !folded.has(domain.root))}
               settings={props.settings}
               actions={props.actions}
               i18n={props.i18n}
@@ -218,6 +239,9 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
             {t("No managed folders yet — use the button below to start managing one")}
           </div>
         )}
+        {domains.length > 0 && visibleDomains.length === 0 && (
+          <div className="ct-empty-note">{t("No domains need attention")}</div>
+        )}
       </div>
 
       <div className="ct-panel-foot">
@@ -238,16 +262,6 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   );
 }
 
-/** lucide icon rendered through Obsidian's setIcon */
-function ObsidianIcon(props: { name: string }): React.JSX.Element {
-  const ref = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    setIcon(ref.current, props.name);
-  }, [props.name]);
-  return <span ref={ref} className="ct-ob-icon" />;
-}
-
 function hasChips(domain: ManagedDomain): boolean {
   const status = domain.status;
   return (
@@ -259,6 +273,21 @@ function hasChips(domain: ManagedDomain): boolean {
     status.tightGap ||
     status.legacyHint
   );
+}
+
+/**
+ * Folded cards hide their status chips — show a single dot in the head
+ * instead (bug 13): red = broken/conflict, blue = pending, yellow = rest.
+ */
+function attentionOf(
+  domain: ManagedDomain,
+  open: boolean,
+): "is-red" | "is-yellow" | "is-blue" | null {
+  if (open || !hasChips(domain)) return null;
+  const status = domain.status;
+  if (status.broken.length > 0 || status.conflicts.length > 0) return "is-red";
+  if (status.pending.length > 0) return "is-blue";
+  return "is-yellow";
 }
 
 const CARD_TYPE = "ct-card";

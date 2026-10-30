@@ -98,6 +98,8 @@ export const zh: Dict = {
   red: "红",
   yellow: "黄",
   blue: "蓝",
+  "Show only domains needing attention": "只显示需关注的域",
+  "No domains need attention": "没有需要关注的域",
   "{n} legacy <code>order</code> fields — “{domain}” was dissolved":
     "{n} 个遗留 <code>order</code> 字段 — “{domain}”已解散",
   Review: "去处理",

@@ -377,7 +377,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
         },
         {
           id: "series",
-          label: "Series",
+          label: t("Series · one chain"),
           description: t(
             "One chain across the whole subtree; subfolders become path labels only. Best for tutorials and serials.",
           ),

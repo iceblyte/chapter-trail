@@ -51,3 +51,6 @@ export const CALLOUT_TYPE = "chapter-trail";
 
 /** Panel row height in px — fixed for virtualization (DESIGN §4.10). */
 export const ROW_HEIGHT = 32;
+
+/** the trailing "…n more · git sync batch" row wraps to two lines */
+export const MORE_ROW_HEIGHT = 46;

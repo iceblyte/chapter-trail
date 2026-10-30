@@ -82,6 +82,23 @@ body.theme-dark {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
+/* active filter toggle (bug 13) */
+.ct-icon-btn.is-active {
+  color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+}
+/* destructive card action (stop managing) */
+.ct-icon-btn.is-danger {
+  color: var(--text-error);
+}
+.ct-icon-btn.is-danger:hover {
+  background: color-mix(in srgb, var(--ct-red) 13%, transparent);
+}
+/* folded-card attention dot (bug 13) */
+.ct-attention-dot {
+  flex: none;
+  margin-left: 2px;
+}
 .ct-summary {
   display: flex;
   align-items: center;
@@ -305,6 +322,18 @@ body.theme-dark {
 }
 .ct-row.is-pending .ct-row-title {
   color: var(--text-faint);
+}
+/* the trailing "…n more · git sync batch" row wraps to two lines so the
+   full hint is readable in a narrow panel (bug 11) */
+.ct-row.ct-more-row {
+  height: auto;
+  min-height: 32px;
+  padding-top: 4px;
+  padding-bottom: 6px;
+}
+.ct-row.ct-more-row .ct-row-title {
+  white-space: normal;
+  line-height: 1.35;
 }
 .ct-row.is-missing .ct-row-title,
 .ct-row-title.is-missing {
@@ -610,11 +639,12 @@ body.theme-dark {
   font-size: 10.5px;
   user-select: none;
 }
+/* wide enough for "2026-09-04 23:40" (configurable Date format) */
 .ct-head-row .ct-row-date {
-  width: 60px;
+  width: 104px;
 }
 .ct-row .ct-row-date {
-  min-width: 60px;
+  min-width: 104px;
   text-align: right;
 }
 .ct-row .ct-caret {

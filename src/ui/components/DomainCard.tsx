@@ -1,22 +1,25 @@
 /**
  * DomainCard — one managed domain (prototype 01/02): header with mode
- * badge and kebab menu, stacked status chips, the virtualized entry
- * list and the action buttons.
+ * badge, copy / stop-managing buttons and a folded-state attention dot,
+ * stacked status chips, the virtualized entry list and the actions.
  */
 
 import { setIcon } from "obsidian";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { I18nService } from "../../i18n/runtime";
 import type { ChapterTrailSettings } from "../../settings";
 import type { ManagedDomain } from "../../types";
 import { useI18n } from "../bridge";
 import type { PanelActions } from "../panel-actions";
 import { EntryList } from "./EntryList";
+import { ObsidianIcon } from "./ObsidianIcon";
 
 export interface DomainCardProps {
   domain: ManagedDomain;
-  settings: ChapterTrailSettings;
+  /** set only when the card is folded and needs attention (bug 13) */
+  attention: "is-red" | "is-yellow" | "is-blue" | null;
   actions: PanelActions;
+  settings: ChapterTrailSettings;
   i18n: I18nService;
   /** controlled by the panel (global expand/collapse button) */
   open: boolean;
@@ -29,8 +32,6 @@ export interface DomainCardProps {
 export function DomainCard(props: DomainCardProps): React.JSX.Element {
   const { domain, settings, actions } = props;
   const { t } = useI18n(props.i18n);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
   const managedIconRef = useRef<HTMLSpanElement>(null);
 
   /* the "managed" marker icon reflects the fold state */
@@ -38,15 +39,6 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
     if (!managedIconRef.current) return;
     setIcon(managedIconRef.current, props.open ? "folder-open" : "folder");
   }, [props.open]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = (event: MouseEvent): void => {
-      if (!cardRef.current?.contains(event.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [menuOpen]);
 
   const status = domain.status;
   const conflictMode = status.conflicts.length > 0;
@@ -71,52 +63,31 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
         <span className={`ct-mode-badge${domain.mode === "series" ? " is-series" : ""}`}>
           {t(domain.mode === "series" ? "Series" : "Independent")}
         </span>
+        {props.attention && <span className={`ct-dot ${props.attention} ct-attention-dot`} />}
+        {/* kebab menu removed (bug 2/3): direct copy + stop buttons,
+         * icons via setIcon like the panel header buttons */}
         <button
           type="button"
           className="ct-icon-btn"
           title={t("Copy domain path")}
           onClick={(event) => {
             event.stopPropagation();
-            setMenuOpen((open) => !open);
+            actions.copyDomainPath(domain.root);
           }}
         >
-          ⋮
+          <ObsidianIcon name="copy" />
         </button>
-        {menuOpen && (
-          <div className="ct-menu is-open" style={{ top: "30px", right: "8px" }}>
-            <button
-              type="button"
-              className="ct-menu-item"
-              onClick={() => {
-                setMenuOpen(false);
-                actions.openIndexPage(domain.indexPath);
-              }}
-            >
-              {t("Open index page")}
-            </button>
-            <button
-              type="button"
-              className="ct-menu-item"
-              onClick={() => {
-                setMenuOpen(false);
-                actions.copyDomainPath(domain.root);
-              }}
-            >
-              {t("Copy domain path")}
-            </button>
-            <div className="ct-menu-sep" />
-            <button
-              type="button"
-              className="ct-menu-item is-danger"
-              onClick={() => {
-                setMenuOpen(false);
-                void actions.stopManaging(domain.root);
-              }}
-            >
-              {t("Stop managing…")}
-            </button>
-          </div>
-        )}
+        <button
+          type="button"
+          className="ct-icon-btn is-danger"
+          title={t("Stop managing…")}
+          onClick={(event) => {
+            event.stopPropagation();
+            void actions.stopManaging(domain.root);
+          }}
+        >
+          <ObsidianIcon name="folder-x" />
+        </button>
       </div>
 
       {props.open && (

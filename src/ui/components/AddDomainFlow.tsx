@@ -98,7 +98,7 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
               />
               <OptionRow
                 selected={mode === "series"}
-                title="Series"
+                title={t("Series · one chain")}
                 description={t(
                   "One chain across the whole subtree; subfolders become path labels only. Best for tutorials and serials.",
                 )}
