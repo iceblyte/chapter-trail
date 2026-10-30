@@ -34,6 +34,9 @@ export interface ChapterTrailSettings {
   debug: boolean;
   /** panel card order (domain roots), persisted from drag */
   domainOrder?: string[] | undefined;
+  /** dissolved domains whose leftover orders the user deliberately
+   *  keeps — their panel banners stay hidden until un-ignored */
+  ignoredLegacyFolders?: string[] | undefined;
 }
 
 export const DEFAULT_SETTINGS: ChapterTrailSettings = {
@@ -107,6 +110,9 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
     debug: source.debug === true,
     domainOrder: Array.isArray(source.domainOrder)
       ? source.domainOrder.filter((item): item is string => typeof item === "string")
+      : undefined,
+    ignoredLegacyFolders: Array.isArray(source.ignoredLegacyFolders)
+      ? source.ignoredLegacyFolders.filter((item): item is string => typeof item === "string")
       : undefined,
   };
 }

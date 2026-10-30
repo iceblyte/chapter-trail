@@ -85,13 +85,13 @@ describe("renderIndexInner — date display variants", () => {
     );
     const domain = getDomain(registry, "随笔");
     expect(renderIndexInner(domain, registry, { showCreated: true, showUpdated: false })).toBe(
-      "- [01](01.md) 2025-11-09\n",
+      "- [01](01.md) — 2025-11-09\n",
     );
     expect(renderIndexInner(domain, registry, { showCreated: false, showUpdated: true })).toBe(
-      "- [01](01.md) 2026-01-12\n",
+      "- [01](01.md) — 2026-01-12\n",
     );
     expect(renderIndexInner(domain, registry, { showCreated: true, showUpdated: true })).toBe(
-      "- [01](01.md) 2025-11-09 → 2026-01-12\n",
+      "- [01](01.md) — 2025-11-09 → 2026-01-12\n",
     );
     expect(renderIndexInner(domain, registry, { showCreated: false, showUpdated: false })).toBe(
       "- [01](01.md)\n",
@@ -111,16 +111,28 @@ describe("renderIndexInner — date display variants", () => {
 });
 
 describe("renderIndexInner — layout", () => {
-  it("separates every entry with a blank line", async () => {
+  it("separates top-level entries with blank lines; children hug their folder", async () => {
     const registry = await buildRegistry(
       makeSnapshot({
         "A/目录.md": indexPageSpec("series"),
         "A/1.md": { frontmatter: { order: 10000 } },
-        "A/2.md": { frontmatter: { order: 20000 } },
+        "A/子/2.md": { frontmatter: { order: 20000 } },
+        "A/子/3.md": { frontmatter: { order: 30000 } },
       }),
     );
     const domain = getDomain(registry, "A");
     const output = renderIndexInner(domain, registry, CREATED_ONLY);
-    expect(output).toBe("- [1](1.md)\n\n- [2](2.md)\n");
+    expect(output).toBe("- [1](1.md)\n\n- **子**\n    - [2](子/2.md)\n    - [3](子/3.md)\n");
+  });
+
+  it("dates are separated from the link by an em dash", async () => {
+    const registry = await buildRegistry(
+      makeSnapshot({
+        "A/目录.md": indexPageSpec("series"),
+        "A/1.md": { frontmatter: { order: 10000, created: "2025-11-02" } },
+      }),
+    );
+    const domain = getDomain(registry, "A");
+    expect(renderIndexInner(domain, registry, CREATED_ONLY)).toBe("- [1](1.md) — 2025-11-02\n");
   });
 });

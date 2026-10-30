@@ -159,7 +159,7 @@ describe("buildRegistry — independent mixing (A1)", () => {
     expect(domain?.unmanagedFolders).toEqual([]);
   });
 
-  it("lists unmanaged non-empty subfolders as plain text; empty and excluded omitted", async () => {
+  it("lists unmanaged subfolders (empty ones too); excluded omitted", async () => {
     const snap = makeSnapshot({
       "读书/目录.md": indexPage("independent", { "excluded-folders": ["私有"] }),
       "读书/01.md": { frontmatter: { order: 10000 } },
@@ -169,7 +169,22 @@ describe("buildRegistry — independent mixing (A1)", () => {
     });
     const registry = await buildRegistry(snap);
     const domain = registry.domains.get("读书");
-    expect(domain?.unmanagedFolders.map((f) => f.title)).toEqual(["参考资料"]);
+    // empty folders are listed since round 18 (panel + index visibility);
+    // folders whose only files are non-notes count as empty
+    expect(domain?.unmanagedFolders.map((f) => f.title)).toEqual(["参考资料", "空文件夹"]);
+    expect(domain?.unmanagedFolders[0]?.files).toEqual(["读书/参考资料/note.md"]);
+    expect(domain?.unmanagedFolders[1]?.files).toEqual([]);
+  });
+
+  it("an EMPTY folder (from the vault folder list) also appears", async () => {
+    const snap = makeSnapshot({
+      "读书/目录.md": indexPage("independent"),
+      "读书/01.md": { frontmatter: { order: 10000 } },
+    });
+    const registry = await buildRegistry({ ...snap, folders: ["读书", "读书/C"] });
+    const domain = registry.domains.get("读书");
+    expect(domain?.unmanagedFolders.map((f) => f.title)).toEqual(["C"]);
+    expect(domain?.unmanagedFolders[0]?.files).toEqual([]);
   });
 });
 

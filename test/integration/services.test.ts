@@ -28,7 +28,8 @@ describe("A1 — independent index rebuild", () => {
     await h.services.rebuildIndex("读书");
     const index = vault.readContent("读书/目录.md");
     // the managed subfolder nests its own entries underneath (bug 10);
-    // every entry is separated by a blank line for readability (round 17)
+    // top-level entries get blank lines, children hug their folder,
+    // dates sit after an em dash (round 18 layout)
     expect(index).toBe(
       [
         "---",
@@ -37,13 +38,12 @@ describe("A1 — independent index rebuild", () => {
         "---",
         "",
         INDEX_BLOCK_BEGIN,
-        "- [引言：卢曼的盒子](引言：卢曼的盒子.md) 2025-09-14",
+        "- [引言：卢曼的盒子](引言：卢曼的盒子.md) — 2025-09-14",
         "",
         "- [第一部分](第一部分/目录.md)",
-        "",
         "    - [01](第一部分/01.md)",
         "",
-        "- [卡片的三种类型](卡片的三种类型.md) 2025-09-28",
+        "- [卡片的三种类型](卡片的三种类型.md) — 2025-09-28",
         "",
         "- 参考资料",
         INDEX_BLOCK_END,
@@ -66,14 +66,10 @@ describe("A1 — independent index rebuild", () => {
     expect(inner.split(INDEX_BLOCK_END)[0]?.trim()).toBe(
       [
         "- [B](B/目录.md)",
-        "",
         "    - [b1](B/b1.md)",
-        "",
         "    - [b2](B/b2.md)",
-        "",
         "    - **子**",
-        "",
-        "        - [b3](B/子/b3.md) 2026-09-04 23:40",
+        "        - [b3](B/子/b3.md) — 2026-09-04 23:40",
       ].join("\n"),
     );
   });

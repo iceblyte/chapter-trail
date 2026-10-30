@@ -30,6 +30,7 @@ const noopActions: PanelActions = {
   moveFileToFolder: () => Promise.resolve(),
   startManagingWithModePicker: () => Promise.resolve(),
   reorderDomains: () => Promise.resolve(),
+  setLegacyDomainIgnored: () => Promise.resolve(),
   startManagingFlow: () => Promise.resolve(),
   previewStartManaging: () => ({ missingOrderCount: 0, hasNameClash: false, existingOrders: 0 }),
   listFolderCandidates: () => [],

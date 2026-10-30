@@ -38,3 +38,6 @@ export function parseYaml(_text: string): unknown {
 export function setIcon(el: HTMLElement, name: string): void {
   el.textContent = name;
 }
+
+/** the real API shows a styled tooltip on hover; the harness keeps a no-op */
+export function setTooltip(_el: HTMLElement, _tooltip: string, _options?: unknown): void {}

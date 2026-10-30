@@ -13,11 +13,12 @@ import {
   attachClosestEdge,
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { setTooltip } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
 import type { ChapterTrailSettings } from "../settings";
-import type { DomainMode, ManagedDomain, Registry } from "../types";
+import type { DomainId, DomainMode, ManagedDomain, Registry } from "../types";
 import { useI18n, useRegistry } from "./bridge";
 import { orderedDomains } from "./card-order";
 import { AddDomainFlow } from "./components/AddDomainFlow";
@@ -48,6 +49,8 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const [onlyAttention, setOnlyAttention] = useState(false);
   /** show only one chain style: "all" | "independent" | "series" */
   const [modeFilter, setModeFilter] = useState<"all" | DomainMode>("all");
+  /** reveal legacy-order banners the user chose to ignore (round 18) */
+  const [showIgnoredLegacy, setShowIgnoredLegacy] = useState(false);
 
   /* the start-managing command can open the picker remotely */
   useEffect(() => {
@@ -69,11 +72,43 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   );
   const sortedRoots = useMemo(() => sortedDomains.map((domain) => domain.root), [sortedDomains]);
   const attention = domains.filter((domain) => hasChips(domain)).length;
-  const legacyTotal = useMemo(
-    () => [...registry.legacyOrders.values()].reduce((sum, paths) => sum + paths.length, 0),
+  const ignoredLegacy = useMemo(
+    () => new Set(props.settings.ignoredLegacyFolders ?? []),
+    [props.settings.ignoredLegacyFolders],
+  );
+  const legacyGroups = useMemo(
+    () => [...registry.legacyOrders.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     [registry.legacyOrders],
   );
-  const legacyDomain = registry.legacyOrders.keys().next().value;
+  const ignoredLegacyCount = legacyGroups.filter(([domain]) => ignoredLegacy.has(domain)).length;
+
+  /**
+   * A moved domain re-roots (A/B → B): the new root was never dragged,
+   * so without this it would fall to the alphabetical tail and the
+   * cards would visibly jump (round 18). The new root inherits the
+   * vanished root's card slot, position-preserving.
+   */
+  useEffect(() => {
+    if (cardOrder.length === 0) return;
+    const currentRoots = sortedRoots;
+    const vanished = cardOrder.filter((root) => !currentRoots.includes(root));
+    if (vanished.length === 0) return;
+    const orderSet = new Set(cardOrder);
+    const added = currentRoots.filter((root) => !orderSet.has(root));
+    if (added.length === 0) return;
+    const next = [...cardOrder];
+    for (let i = 0; i < vanished.length && i < added.length; i++) {
+      const vanishedRoot = vanished[i];
+      const addedRoot = added[i];
+      if (vanishedRoot === undefined || addedRoot === undefined) continue;
+      const slot = next.indexOf(vanishedRoot);
+      if (slot !== -1) next[slot] = addedRoot;
+      else next.push(addedRoot);
+    }
+    for (const root of added) if (!next.includes(root)) next.push(root);
+    setCardOrder(next);
+    void props.actions.reorderDomains(next);
+  }, [cardOrder, props.actions, sortedRoots]);
 
   /* single card monitor — resolves against the DISPLAYED root list
    * (the persisted cardOrder may be empty before the first drag) */
@@ -161,6 +196,16 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
         >
           <ObsidianIcon name="circle-alert" />
         </button>
+        {ignoredLegacyCount > 0 && (
+          <button
+            type="button"
+            className={`ct-icon-btn${showIgnoredLegacy ? " is-active" : ""}`}
+            title={t("Show ignored legacy orders")}
+            onClick={() => setShowIgnoredLegacy((v) => !v)}
+          >
+            <ObsidianIcon name="eye" />
+          </button>
+        )}
         <button
           type="button"
           className="ct-icon-btn"
@@ -192,42 +237,59 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           {`${t(domains.length === 1 ? "{n} domain" : "{n} domains", { n: domains.length })} · ${t(attention === 1 ? "{m} needs attention" : "{m} need attention", { m: attention })}`}
         </span>
         <span className="ct-legend">
-          <i title={t("Red: broken links or structural conflicts")}>
-            <span className="ct-dot is-red" />
-            {t("red")}
-          </i>
-          <i title={t("Yellow: index outdated, gaps too tight, tied orders or first-run review")}>
-            <span className="ct-dot is-yellow" />
-            {t("yellow")}
-          </i>
-          <i title={t("Blue: entries waiting for ordering")}>
-            <span className="ct-dot is-blue" />
-            {t("blue")}
-          </i>
+          <LegendDot
+            tone="is-red"
+            label={t("red")}
+            tooltip={t("Red: broken links or structural conflicts")}
+          />
+          <LegendDot
+            tone="is-yellow"
+            label={t("yellow")}
+            tooltip={t("Yellow: index outdated, gaps too tight, tied orders or first-run review")}
+          />
+          <LegendDot
+            tone="is-blue"
+            label={t("blue")}
+            tooltip={t("Blue: entries waiting for ordering")}
+          />
         </span>
       </div>
 
-      {legacyTotal > 0 && legacyDomain !== undefined && (
-        <div className="ct-banner">
-          <span className="ct-dot is-yellow" />
-          <span
-            // eslint-disable-next-line react/no-danger -- i18n copy carries <code>
-            dangerouslySetInnerHTML={{
-              __html: t("{n} legacy <code>order</code> fields — “{domain}” was dissolved", {
-                n: legacyTotal,
-                domain: legacyDomain,
-              }),
-            }}
-          />
-          <button
-            type="button"
-            className="ct-btn"
-            onClick={() => props.actions.reviewLegacyOrders(legacyDomain)}
-          >
-            {t("Review")}
-          </button>
-        </div>
-      )}
+      {legacyGroups
+        .filter(([domain]) => showIgnoredLegacy || !ignoredLegacy.has(domain))
+        .map(([domain, paths]) => {
+          const isIgnored = ignoredLegacy.has(domain);
+          return (
+            <div key={domain} className={`ct-banner${isIgnored ? " is-ignored" : ""}`}>
+              <span className="ct-dot is-yellow" />
+              <span
+                // eslint-disable-next-line react/no-danger -- i18n copy carries <code>
+                dangerouslySetInnerHTML={{
+                  __html: t("{n} legacy <code>order</code> fields — “{domain}” was dissolved", {
+                    n: paths.length,
+                    domain,
+                  }),
+                }}
+              />
+              <button
+                type="button"
+                className="ct-btn"
+                onClick={() => props.actions.reviewLegacyOrders(domain)}
+              >
+                {t("Review")}
+              </button>
+              <button
+                type="button"
+                className="ct-btn"
+                onClick={() =>
+                  void props.actions.setLegacyDomainIgnored(domain as DomainId, !isIgnored)
+                }
+              >
+                {t(isIgnored ? "Un-ignore" : "Ignore")}
+              </button>
+            </div>
+          );
+        })}
 
       <div className="ct-panel-body">
         {visibleDomains.map((domain) => (
@@ -239,6 +301,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           >
             <DomainCard
               domain={domain}
+              registry={registry}
               attention={attentionOf(domain, !folded.has(domain.root))}
               settings={props.settings}
               actions={props.actions}
@@ -295,6 +358,24 @@ function hasChips(domain: ManagedDomain): boolean {
     status.ties.length > 0 ||
     status.tightGap ||
     status.legacyHint
+  );
+}
+
+/**
+ * One legend dot with Obsidian's own hover tooltip — a native title
+ * attribute never showed reliably on these (round 18), so the real
+ * setTooltip API renders an instant styled tooltip instead.
+ */
+function LegendDot(props: { tone: string; label: string; tooltip: string }): React.JSX.Element {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (ref.current) setTooltip(ref.current, props.tooltip);
+  }, [props.tooltip]);
+  return (
+    <i ref={ref}>
+      <span className={`ct-dot ${props.tone}`} />
+      {props.label}
+    </i>
   );
 }
 

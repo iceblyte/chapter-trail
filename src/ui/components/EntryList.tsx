@@ -20,10 +20,7 @@ import {
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
-import {
-  attachClosestEdge,
-  extractClosestEdge,
-} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { setIcon } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -31,11 +28,24 @@ import { MORE_ROW_HEIGHT, ROW_HEIGHT } from "../../constants";
 import { parentOf } from "../../core/path-util";
 import type { I18nService } from "../../i18n/runtime";
 import type { ChapterTrailSettings } from "../../settings";
-import type { ManagedDomain, OrderEntry } from "../../types";
+import type { ManagedDomain, OrderEntry, Registry } from "../../types";
 import { useI18n } from "../bridge";
 import type { PanelActions } from "../panel-actions";
 
 const DRAG_TYPE = "ct-entry";
+
+/** three bands per row: the outer bands are the gaps between rows
+ *  (chain insert), the middle band is "onto the row" (move into) */
+type DropZone = "top" | "center" | "bottom";
+
+/** which third of the row the pointer is in */
+function zoneAt(element: HTMLElement, clientY: number): DropZone {
+  const rect = element.getBoundingClientRect();
+  const ratio = rect.height > 0 ? (clientY - rect.top) / rect.height : 0.5;
+  if (ratio < 0.3) return "top";
+  if (ratio > 0.7) return "bottom";
+  return "center";
+}
 
 /** per-domain list scroll positions, preserved across remounts */
 const scrollMemory = new Map<string, number>();
@@ -59,12 +69,16 @@ type Row =
     }
   | { kind: "file"; entry: OrderEntry; chainIndex: number; depth: number }
   | { kind: "pending"; entry: OrderEntry }
-  | { kind: "unmanaged"; path: string; name: string }
+  | { kind: "unmanaged"; path: string; name: string; files: string[] }
+  | { kind: "unmanaged-file"; path: string; depth: number }
+  | { kind: "unmanaged-manage"; path: string }
   | { kind: "more"; count: number }
   | { kind: "broken"; path: string };
 
 export interface EntryListProps {
   domain: ManagedDomain;
+  /** full registry — managed-subfolder rows open that subdomain's index */
+  registry: Registry;
   settings: ChapterTrailSettings;
   actions: PanelActions;
   i18n: I18nService;
@@ -196,9 +210,21 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
         chainIndex,
         depth: 0,
       }));
-      // unmanaged subfolders trail (plain rows, not draggable)
+      // unmanaged subfolders trail (not draggable); clicking one expands
+      // its file list, empty folders included (round 18)
       for (const folder of domain.unmanagedFolders) {
-        rows.push({ kind: "unmanaged", path: folder.path, name: folder.title });
+        rows.push({
+          kind: "unmanaged",
+          path: folder.path,
+          name: folder.title,
+          files: folder.files,
+        });
+        if (props.expandedFolders.has(folder.path)) {
+          for (const file of folder.files) {
+            rows.push({ kind: "unmanaged-file", path: file, depth: 1 });
+          }
+          rows.push({ kind: "unmanaged-manage", path: folder.path });
+        }
       }
     }
     const shownPending = pending.slice(0, 3);
@@ -240,9 +266,11 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
             chainIndex?: number;
             targetPath?: string;
             targetIsFolder?: boolean;
+            zone?: DropZone;
           };
           const edge = extractClosestEdge(target.data);
-          const targetEdge: "top" | "bottom" = edge === "bottom" ? "bottom" : "top";
+          const zone: DropZone = targetData.zone ?? (edge === "bottom" ? "bottom" : "top");
+          const targetEdge: "top" | "bottom" = zone === "bottom" ? "bottom" : "top";
           // a folderPath marker means the drag started on a folder row:
           // block-move the whole subfolder relative to the drop target
           if (data.folderPath !== undefined && data.entryPath !== undefined) {
@@ -256,24 +284,54 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
               return;
             }
           }
+          if (data.entryPath === undefined) return;
           const chainIndex = targetData.chainIndex;
           if (chainIndex === undefined) return;
-          const landing = chainIndex + (targetEdge === "bottom" ? 1 : 0);
-          // dropping a file onto a row in a DIFFERENT folder physically
-          // moves the file into that folder (drag to the outside) —
-          // covers both folder rows and file rows across folders
-          if (data.entryPath !== undefined && targetData.targetPath !== undefined) {
-            const fileFolder = parentOf(data.entryPath);
-            const targetFolder =
-              targetData.targetIsFolder === true
-                ? targetData.targetPath
-                : parentOf(targetData.targetPath);
+          const fileFolder = parentOf(data.entryPath);
+
+          // three drop zones per row (round 18): the top/bottom bands are
+          // the GAPS between rows → chain insert; the middle band is "onto
+          // the row" → move into a folder. Dropping a file on a folder's
+          // upper half used to swallow it into the folder.
+          if (targetData.targetIsFolder === true && targetData.targetPath !== undefined) {
+            if (zone === "center") {
+              if (fileFolder !== null && fileFolder !== targetData.targetPath) {
+                void actions.moveFileToFolder(domain.root, data.entryPath, targetData.targetPath);
+              }
+              return;
+            }
+            // gap beside a folder row: land at the folder's chain boundary
+            let landing = chainIndex; // top edge = right before the folder
+            if (zone === "bottom") {
+              // after the folder's whole subtree
+              landing = chainIndex;
+              domain.entries.forEach((entry, index) => {
+                if (
+                  entry.path === targetData.targetPath ||
+                  entry.path.startsWith(`${targetData.targetPath}/`)
+                ) {
+                  landing = index + 1;
+                }
+              });
+            }
+            const from = domain.entries.findIndex((entry) => entry.path === data.entryPath);
+            if (from === -1) return;
+            let insertAt = landing;
+            if (insertAt > from) insertAt -= 1;
+            if (insertAt === from) return;
+            void actions.moveEntry(domain.root, data.entryPath, insertAt);
+            return;
+          }
+
+          // file-row target
+          if (zone === "center") {
+            const targetFolder = targetData.targetPath ? parentOf(targetData.targetPath) : null;
             if (fileFolder !== null && targetFolder !== null && fileFolder !== targetFolder) {
               void actions.moveFileToFolder(domain.root, data.entryPath, targetFolder);
               return;
             }
           }
-          if (data.entryPath === undefined) return;
+          const landing = chainIndex + (targetEdge === "bottom" ? 1 : 0);
           let insertAt = landing;
           const from = domain.entries.findIndex((entry) => entry.path === data.entryPath);
           if (from === -1) return;
@@ -310,6 +368,12 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
 
   const toggleFolder = (path: string): void => {
     props.onToggleFolder(path);
+  };
+
+  /** clicking a managed-subfolder row jumps to that subdomain's index */
+  const openManagedFolder = (folderPath: string): void => {
+    const child = props.registry.domains.get(folderPath);
+    if (child) actions.openIndexPage(child.indexPath);
   };
 
   /** one row's content (the virtual wrapper handles positioning/measurement) */
@@ -371,16 +435,50 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       );
     }
     if (row.kind === "unmanaged") {
+      const expanded = props.expandedFolders.has(row.path);
       return (
         <button
           type="button"
           className="ct-row is-dim ct-unmanaged-row"
+          title={t("Click to expand this folder's files")}
+          onClick={() => toggleFolder(row.path)}
+        >
+          <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
+            <span className="ct-seq">{expanded ? "▾" : "▸"}</span>
+            {row.name}
+          </span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-order">—</span>
+        </button>
+      );
+    }
+    if (row.kind === "unmanaged-file") {
+      return (
+        <button
+          type="button"
+          className="ct-row is-dim ct-unmanaged-row"
+          style={{ paddingLeft: 14 + row.depth * 14 }}
+          title={row.path}
+          onClick={() => props.actions.openFile(row.path)}
+        >
+          <span className="ct-row-title">{row.path.slice(row.path.lastIndexOf("/") + 1)}</span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-order">—</span>
+        </button>
+      );
+    }
+    if (row.kind === "unmanaged-manage") {
+      return (
+        <button
+          type="button"
+          className="ct-row is-dim ct-unmanaged-row"
+          style={{ paddingLeft: 14 + 14 }}
           title={t("Click to start managing this folder")}
           onClick={() => void props.actions.startManagingWithModePicker(row.path)}
         >
-          <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
-            {row.name}
-          </span>
+          <span className="ct-row-title">{t("＋ Start managing a folder")}</span>
           <span className="ct-row-date">—</span>
           <span className="ct-row-date">—</span>
           <span className="ct-row-order">—</span>
@@ -399,6 +497,7 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
         onDragState={setDragging}
         onMove={onMove}
         onOpen={props.actions.openFile}
+        onOpenFolder={openManagedFolder}
         i18n={props.i18n}
       />
     );
@@ -511,15 +610,12 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
         const data = source.data as Partial<DragData>;
         return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
       },
-      getData: ({ element: el, input }) =>
-        attachClosestEdge(
-          {
-            chainIndex: props.chainIndex,
-            targetPath: props.path,
-            targetIsFolder: true,
-          },
-          { element: el, input, allowedEdges: ["top", "bottom"] },
-        ),
+      getData: ({ element: el, input }) => ({
+        chainIndex: props.chainIndex,
+        targetPath: props.path,
+        targetIsFolder: true,
+        zone: zoneAt(el as HTMLElement, input.clientY),
+      }),
     });
   }, [props.chainIndex, props.domainRoot, props.path]);
 
@@ -556,6 +652,8 @@ interface ChainRowProps {
   onDragState(path: string | null): void;
   onMove(path: string, delta: -1 | 1): void;
   onOpen(path: string): void;
+  /** managed-subfolder rows jump to the subdomain's index (round 18) */
+  onOpenFolder(path: string): void;
   i18n: I18nService;
 }
 
@@ -615,15 +713,12 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
         const data = source.data as Partial<DragData>;
         return data.type === DRAG_TYPE && data.domainRoot === props.domainRoot;
       },
-      getData: ({ element: el, input }) =>
-        attachClosestEdge(
-          {
-            chainIndex: props.chainIndex,
-            targetPath: entry.path,
-            targetIsFolder: false,
-          },
-          { element: el, input, allowedEdges: ["top", "bottom"] },
-        ),
+      getData: ({ element: el, input }) => ({
+        chainIndex: props.chainIndex,
+        targetPath: entry.path,
+        targetIsFolder: false,
+        zone: zoneAt(el as HTMLElement, input.clientY),
+      }),
     });
   }, [props.chainIndex, props.domainRoot, entry.path]);
 
@@ -643,8 +738,10 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
       <span
         className={`ct-row-title${props.isFolder ? " is-folder" : ""}`}
         style={props.depth > 0 ? { paddingLeft: props.depth * 14 } : undefined}
-        onClick={props.isFolder ? undefined : () => props.onOpen(entry.path)}
-        title={props.isFolder ? undefined : entry.path}
+        onClick={
+          props.isFolder ? () => props.onOpenFolder(entry.path) : () => props.onOpen(entry.path)
+        }
+        title={props.isFolder ? t("Open index page") : entry.path}
       >
         <span className="ct-seq">{String(props.chainIndex + 1).padStart(2, "0")}</span>
         {entry.prefix !== undefined && props.isFolder === false && (

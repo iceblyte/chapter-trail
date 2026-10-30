@@ -516,6 +516,74 @@ const results = [];
   });
 }
 
+/* ---------- scenario 5b: file onto folder TOP edge = insert BEFORE (round 18) ---------- */
+{
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(() => window.__ctReady === true);
+  const outcome = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    await sleep(300);
+    const ct = window.__ct;
+    const noticesBefore = ct.notices.length;
+    const card = [...document.querySelectorAll(".ct-card")].find(
+      (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
+    );
+    const rows = [...card.querySelectorAll(".ct-rows-scroll .ct-row")];
+    const fileRow = rows.find((row) =>
+      row.querySelector(".ct-row-title")?.textContent?.includes("03 配置详解"),
+    );
+    const folderRow = rows.find(
+      (row) =>
+        row.classList.contains("is-folder-row") &&
+        row.querySelector(".ct-row-title")?.textContent?.includes("番外"),
+    );
+    if (!fileRow || !folderRow) return { lookup: "rows missing" };
+    const grip = fileRow.querySelector(".ct-grip");
+    grip.style.visibility = "visible";
+    const gs = grip.getBoundingClientRect();
+    const ts = folderRow.getBoundingClientRect();
+    const dt = new DataTransfer();
+    const fire = (el, type, x, y) =>
+      el.dispatchEvent(
+        new DragEvent(type, {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+    fire(fileRow, "dragstart", gs.x + 6, gs.y + 6);
+    // TOP BAND of the folder row: the gap BEFORE the folder — must insert,
+    // never swallow the file into the folder (round 18 fix)
+    fire(folderRow, "dragover", ts.x + 100, ts.y + 3);
+    fire(folderRow, "drop", ts.x + 100, ts.y + 3);
+    window.dispatchEvent(new DragEvent("dragend", { dataTransfer: dt, bubbles: true }));
+    grip.style.visibility = "";
+    await sleep(700);
+    const store = ct.store.getSnapshot();
+    const domain = [...store.domains.values()].find((d) => d.root === "Blogs");
+    const titles = domain.entries.map((e) => e.title);
+    const i03 = titles.indexOf("03 配置详解");
+    const i06 = titles.indexOf("06 番外篇");
+    return {
+      notice: ct.notices.slice(noticesBefore).at(-1) ?? null,
+      movedIn: ct.vault.exists("Blogs/番外/03 配置详解.md"),
+      stayed: ct.vault.exists("Blogs/03 配置详解.md"),
+      before: i03 !== -1 && i06 !== -1 && i03 === i06 - 1,
+      titles,
+    };
+  });
+  results.push({
+    name: "file onto folder TOP edge inserts before it (no swallow)",
+    ...outcome,
+    pass:
+      outcome.stayed === true &&
+      outcome.movedIn === false &&
+      outcome.before === true,
+  });
+}
+
 /* ---------- scenario 6: picker includes folder A (only subfolders) ---------- */
 {
   const outcome = await page.evaluate(async () => {

@@ -98,6 +98,7 @@ export class PluginServices {
     }));
     const snapshot: VaultSnapshot = {
       files,
+      folders: this.deps.vault.listFolders(),
       readFileBody: (path) => this.deps.vault.read(path),
     };
     const next = await buildRegistry(snapshot, { dates: dateReadOptions(this.settings) });

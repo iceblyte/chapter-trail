@@ -117,6 +117,13 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
       this.settings.domainOrder = [...order];
       await this.saveSettings();
     },
+    setLegacyDomainIgnored: async (domain, ignored) => {
+      const current = new Set(this.settings.ignoredLegacyFolders ?? []);
+      if (ignored) current.add(domain);
+      else current.delete(domain);
+      this.settings.ignoredLegacyFolders = [...current];
+      await this.saveSettings();
+    },
     startManagingFlow: (folder, mode) => this.services.startManaging(folder, mode),
     previewStartManaging: (folder) => this.services.previewStartManaging(folder),
     listFolderCandidates: () => {

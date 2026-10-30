@@ -26,14 +26,26 @@ export function renderIndexInner(
   registry: Registry,
   opts: RenderOptions,
 ): string {
-  const lines: string[] = [];
+  const lines: RenderLine[] = [];
   if (domain.mode === "series") {
     emitSeriesEntries(domain, domain.root, opts, lines, 0);
   } else {
     renderIndependentChain(domain, registry, opts, domain.root, lines, 0);
   }
-  // one blank line between entries — much easier to scan than a dense list
-  return `${lines.join("\n\n")}\n`;
+  // top-level entries get a blank line between them (easy to scan);
+  // nested lines hug their parent node (round 18 layout)
+  let out = "";
+  for (const [index, line] of lines.entries()) {
+    if (index > 0) out += line.depth === 0 ? "\n\n" : "\n";
+    out += line.text;
+  }
+  return `${out}\n`;
+}
+
+/** one rendered markdown line and its indent depth */
+interface RenderLine {
+  text: string;
+  depth: number;
 }
 
 /**
@@ -47,7 +59,7 @@ function renderIndependentChain(
   registry: Registry,
   opts: RenderOptions,
   linkRoot: VaultPath,
-  lines: string[],
+  lines: RenderLine[],
   depth: number,
 ): void {
   for (const entry of domain.entries) {
@@ -55,10 +67,10 @@ function renderIndependentChain(
       renderManagedFolder(entry, registry, opts, linkRoot, lines, depth);
       continue;
     }
-    lines.push(`${indent(depth)}${renderLeaf(entry, linkRoot, opts)}`);
+    lines.push({ text: `${indent(depth)}${renderLeaf(entry, linkRoot, opts)}`, depth });
   }
   for (const folder of domain.unmanagedFolders) {
-    lines.push(`${indent(depth)}- ${folder.title}`);
+    lines.push({ text: `${indent(depth)}- ${folder.title}`, depth });
   }
 }
 
@@ -68,14 +80,15 @@ function renderManagedFolder(
   registry: Registry,
   opts: RenderOptions,
   linkRoot: VaultPath,
-  lines: string[],
+  lines: RenderLine[],
   depth: number,
 ): void {
   const child = registry.domains.get(entry.path);
   const linkPath = child ? relativeInside(child.indexPath, linkRoot) : null;
-  lines.push(
-    `${indent(depth)}${linkPath ? `- [${entry.title}](${encodeLinkPath(linkPath)})` : `- ${entry.title}`}`,
-  );
+  lines.push({
+    text: `${indent(depth)}${linkPath ? `- [${entry.title}](${encodeLinkPath(linkPath)})` : `- ${entry.title}`}`,
+    depth,
+  });
   if (!child) return;
   if (child.mode === "series") {
     // one chain across the child's subtree → indented tree
@@ -89,7 +102,7 @@ function renderLeaf(entry: OrderEntry, root: VaultPath, opts: RenderOptions): st
   const rel = relativeInside(entry.path, root);
   if (rel === null) return `- ${entry.title}`;
   const date = formatDates(entry, opts);
-  return `- [${entry.title}](${encodeLinkPath(rel)})${date ? ` ${date}` : ""}`;
+  return `- [${entry.title}](${encodeLinkPath(rel)})${date ? ` — ${date}` : ""}`;
 }
 
 function formatDates(entry: OrderEntry, opts: RenderOptions): string {
@@ -124,7 +137,7 @@ function emitSeriesEntries(
   domain: ManagedDomain,
   linkRoot: VaultPath,
   opts: RenderOptions,
-  lines: string[],
+  lines: RenderLine[],
   depth: number,
 ): void {
   const root: TreeNode = { children: [], folders: new Map() };
@@ -154,15 +167,15 @@ function emitTree(
   node: TreeNode,
   linkRoot: VaultPath,
   opts: RenderOptions,
-  lines: string[],
+  lines: RenderLine[],
   depth: number,
 ): void {
   for (const child of node.children) {
     if (child.type === "folder") {
-      lines.push(`${indent(depth)}- **${child.name}**`);
+      lines.push({ text: `${indent(depth)}- **${child.name}**`, depth });
       emitTree(child.node, linkRoot, opts, lines, depth + 1);
     } else {
-      lines.push(`${indent(depth)}${renderLeaf(child.entry, linkRoot, opts)}`);
+      lines.push({ text: `${indent(depth)}${renderLeaf(child.entry, linkRoot, opts)}`, depth });
     }
   }
 }

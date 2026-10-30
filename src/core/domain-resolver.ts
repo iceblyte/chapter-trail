@@ -35,6 +35,9 @@ import { basename, detectTightGaps, orderValue, sortChain } from "./sort-core";
 
 export interface VaultSnapshot {
   files: FileMeta[];
+  /** all folder paths — lets EMPTY subfolders appear in the unmanaged
+   *  trail; optional so lightweight test snapshots can omit it */
+  folders?: readonly VaultPath[] | undefined;
   /** read a file body — only index-page candidates trigger this */
   readFileBody(path: VaultPath): Promise<string>;
 }
@@ -119,6 +122,7 @@ export async function buildRegistry(
         page,
         {
           fileSet,
+          folders: snap.folders,
           metaByPath,
           domainRoots,
           indexPathByRoot,
@@ -177,6 +181,7 @@ export async function buildRegistry(
 
 interface BuildContext {
   fileSet: Set<VaultPath>;
+  folders: readonly VaultPath[] | undefined;
   metaByPath: Map<VaultPath, FileMeta>;
   domainRoots: Set<VaultPath>;
   indexPathByRoot: Map<VaultPath, VaultPath>;
@@ -286,9 +291,16 @@ function collectUnmanaged(
     if (!isUnder(path, root)) continue;
     const rel = relativeInside(path, root);
     if (!rel) continue;
-    const head = rel.split("/")[0];
+    const slash = rel.indexOf("/");
+    if (slash === -1) continue; // a direct file, not a folder head
+    const head = rel.slice(0, slash);
     if (!head) continue;
     directChildren.add(root === "" ? head : `${root}/${head}`);
+  }
+  // the vault's folder list covers EMPTY folders, which carry no files
+  for (const folder of ctx.folders ?? []) {
+    if (parentOf(folder) !== root) continue;
+    directChildren.add(folder);
   }
   const out: UnmanagedFolder[] = [];
   for (const child of directChildren) {
@@ -296,18 +308,15 @@ function collectUnmanaged(
     if (!rel) continue;
     if (ctx.domainRoots.has(child)) continue; // managed → part of the chain
     if (excluded.has(rel)) continue;
-    if (!folderHasNotes(child, ctx)) continue; // empty folders are omitted
-    out.push({ path: child, title: folderName(child) });
+    const files: VaultPath[] = [];
+    for (const path of ctx.fileSet) {
+      if (path.endsWith(".md") && isUnder(path, child)) files.push(path);
+    }
+    files.sort((a, b) => nameCollator.compare(basename(a), basename(b)));
+    out.push({ path: child, title: folderName(child), files });
   }
   out.sort((a, b) => nameCollator.compare(basename(a.path), basename(b.path)));
   return out;
-}
-
-function folderHasNotes(folder: VaultPath, ctx: BuildContext): boolean {
-  for (const path of ctx.fileSet) {
-    if (path.endsWith(".md") && isUnder(path, folder)) return true;
-  }
-  return false;
 }
 
 function coerceMode(raw: unknown): DomainMode {

@@ -113,6 +113,7 @@ async function main(): Promise<void> {
       services.moveFileToFolder(root, filePath, targetFolder),
     startManagingWithModePicker: (folder) => services.startManaging(folder, "independent"),
     reorderDomains: () => Promise.resolve(),
+    setLegacyDomainIgnored: () => Promise.resolve(),
     startManagingFlow: (folder: DomainId, mode: DomainMode) => services.startManaging(folder, mode),
     previewStartManaging: (folder) => services.previewStartManaging(folder),
     listFolderCandidates: () => {

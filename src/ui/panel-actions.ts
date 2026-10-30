@@ -45,6 +45,9 @@ export interface PanelActions {
   startManagingWithModePicker(folder: DomainId): Promise<void>;
   /** reorder the domain cards in the panel */
   reorderDomains(order: readonly DomainId[]): Promise<void>;
+  /** remember (or un-remember) that a dissolved domain's leftover orders
+   *  are deliberately kept — hides its panel banner (round 18) */
+  setLegacyDomainIgnored(domain: DomainId, ignored: boolean): Promise<void>;
   /** pre-check for the flow's confirmation copy (write counts etc.) */
   previewStartManaging(folder: DomainId): StartManagingPreview;
   /** candidate folders for the flow, with metadata for the picker */

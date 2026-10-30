@@ -35,10 +35,13 @@ export interface OrderEntry {
   dates?: EntryDates;
 }
 
-/** Plain-text trailing entry for unmanaged subfolders (independent mode). */
+/** Plain-text trailing entry for unmanaged subfolders (independent mode).
+ *  `files` lists the folder's markdown files for the panel's expandable
+ *  view; empty folders are included with an empty list (round 18). */
 export interface UnmanagedFolder {
   path: VaultPath;
   title: string;
+  files: VaultPath[];
 }
 
 export type ConflictKind =

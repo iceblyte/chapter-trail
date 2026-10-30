@@ -8,7 +8,7 @@ import { setIcon } from "obsidian";
 import { useEffect, useRef } from "react";
 import type { I18nService } from "../../i18n/runtime";
 import type { ChapterTrailSettings } from "../../settings";
-import type { ManagedDomain } from "../../types";
+import type { ManagedDomain, Registry } from "../../types";
 import { useI18n } from "../bridge";
 import type { PanelActions } from "../panel-actions";
 import { EntryList } from "./EntryList";
@@ -16,6 +16,8 @@ import { ObsidianIcon } from "./ObsidianIcon";
 
 export interface DomainCardProps {
   domain: ManagedDomain;
+  /** full registry, for managed-subfolder lookups (click jumps to it) */
+  registry: Registry;
   /** set only when the card is folded and needs attention (bug 13) */
   attention: "is-red" | "is-yellow" | "is-blue" | null;
   actions: PanelActions;
@@ -30,7 +32,7 @@ export interface DomainCardProps {
 }
 
 export function DomainCard(props: DomainCardProps): React.JSX.Element {
-  const { domain, settings, actions } = props;
+  const { domain, registry, settings, actions } = props;
   const { t } = useI18n(props.i18n);
   const managedIconRef = useRef<HTMLSpanElement>(null);
 
@@ -128,6 +130,7 @@ export function DomainCard(props: DomainCardProps): React.JSX.Element {
           ) : (
             <EntryList
               domain={domain}
+              registry={registry}
               settings={settings}
               actions={actions}
               i18n={props.i18n}

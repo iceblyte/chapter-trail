@@ -263,7 +263,9 @@ const panelShot = async (name) => {
 /* ---------- scenario 7: mode filter buttons (round 17) ---------- */
 {
   const visible = () =>
-    page.evaluate(() => [...document.querySelectorAll(".ct-card .ct-card-path")].map((el) => el.textContent));
+    page.evaluate(() =>
+      [...document.querySelectorAll(".ct-card .ct-card-path")].map((el) => el.textContent),
+    );
   const clickFilter = (title) =>
     page.evaluate((t) => {
       document.querySelector(`.ct-panel-head .ct-icon-btn[title="${t}"]`).click();
