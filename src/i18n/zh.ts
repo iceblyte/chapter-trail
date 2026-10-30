@@ -11,9 +11,12 @@ export const zh: Dict = {
   "Index file name": "索引文件名",
   "Used when creating new index pages. Recognition is by the <code>is-index</code> marker, not the file name — existing pages are never renamed. Preset suggestion: <code>index</code>. Changing this marks affected domains “Index outdated”.":
     "创建新索引页时使用。识别依据是 <code>is-index</code> 标记而非文件名 — 已有索引页永不被重命名。预设建议：<code>index</code>。修改后相关域将标黄“索引过期”。",
-  "Date display on index entries": "索引条目的日期显示",
-  "Reads the date properties below (any common date/datetime format). Entries without a parsable date simply show no date; subfolder entries never show one. Changing this marks affected domains “Index outdated”. Tip: the community plugin <b>Update modified date</b> can keep these properties current automatically — no manual maintenance needed.":
-    "读取下方配置的日期属性（支持常见日期/日期时间格式）。无法解析的条目不显示日期；子文件夹条目从不显示。修改后相关域将标黄“索引过期”。建议：社区插件 <b>Update modified date</b> 可自动维护这些属性，无需手动维护。",
+  "Show created date on index pages": "索引页显示创建时间",
+  "Default on. Index entries show each note’s created property (name configurable below). Tip: the community plugin <b>Update modified date</b> can keep these properties current automatically — no manual maintenance needed.":
+    "默认开启。索引条目显示笔记的 created 属性（属性名在下方配置）。建议：社区插件 <b>Update modified date</b> 可自动维护这些属性，无需手动维护。",
+  "Show updated date on index pages": "索引页显示更新时间",
+  "Default off. Turn on to also show the updated property; with both on, entries render as “created → updated”.":
+    "默认关闭。开启后同时显示 updated 属性；两者都开启时显示为“创建 → 更新”。",
   "Modified date property": "更新时间属性名",
   "The name of the YAML/frontmatter property to read as the updated date — same default as the “Update modified date” plugin.":
     "读取为更新时间（updated）的 frontmatter 属性名 — 与“Update modified date”插件的默认值一致。",
@@ -23,6 +26,9 @@ export const zh: Dict = {
   "Date format": "日期格式",
   "Momentjs-style tokens: <code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>. Values without a time part never show one. Blank = <code>YYYY-MM-DD HH:mm</code>.":
     "momentjs 风格令牌：<code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>。没有时间部分的值不会补出时间。留空 = <code>YYYY-MM-DD HH:mm</code>。",
+  "Delete the index page when a domain dissolves": "域解散时删除索引页",
+  "Default on: dissolving a domain moves {indexFile}.md to the system trash. Turn off to keep the page as a normal note — the plugin markers and the is-index/mode keys are removed and the rendered list stays as static text.":
+    "默认开启：解散域时将 {indexFile}.md 移入系统回收站。关闭后保留该页并转为普通笔记 — 移除插件标记与 is-index/mode 键，已生成的索引列表作为静态文本保留。",
   "Support the author": "支持作者",
   "If Chapter Trail is useful to you, a sponsorship on 爱发电 (afdian) keeps development going. Thank you!":
     "如果 Chapter Trail 对你有帮助，欢迎在爱发电（afdian）上支持开发，谢谢！",
@@ -37,9 +43,6 @@ export const zh: Dict = {
   "Full exit path: strip injected navigation → delete index pages (per-domain confirm) → clear order fields (per-domain confirm). Everything outside the confirmed scope is untouched.":
     "完整退出路径：剥离注入导航 → 删除索引页（逐域确认）→ 清除 order 字段（逐域确认）。确认范围之外的任何内容都不受影响。",
   "Open wizard…": "打开向导…",
-  created: "created",
-  updated: "updated",
-  both: "两者",
   English: "English",
   中文: "中文",
 
@@ -47,7 +50,6 @@ export const zh: Dict = {
   "Index file name updated": "索引文件名已更新",
   "New pages will use “{indexFile}” · affected domains marked “Index outdated” · nothing renamed":
     "新索引页将使用“{indexFile}” · 相关域已标黄“索引过期” · 不重命名任何文件",
-  "Date display: {mode}": "日期显示：{mode}",
   "{n} domains marked “Index outdated” — rebuild their index pages to apply":
     "{n} 个域已标黄“索引过期” — 重建索引页后生效",
   "Remove all injected markers from {n} notes?": "从 {n} 篇笔记中移除全部已注入标记？",
@@ -99,7 +101,13 @@ export const zh: Dict = {
   yellow: "黄",
   blue: "蓝",
   "Show only domains needing attention": "只显示需关注的域",
-  "No domains need attention": "没有需要关注的域",
+  "Show only independent domains": "只显示独立的域",
+  "Show only series domains": "只显示系列的域",
+  "No domains match the current filters": "没有符合当前筛选条件的域",
+  "Red: broken links or structural conflicts": "红：断链或结构冲突",
+  "Yellow: index outdated, gaps too tight, tied orders or first-run review":
+    "黄：索引过期、间隙过密、order 平手或首次声明待检查",
+  "Blue: entries waiting for ordering": "蓝：有待排序的条目",
   "{n} legacy <code>order</code> fields — “{domain}” was dissolved":
     "{n} 个遗留 <code>order</code> 字段 — “{domain}”已解散",
   Review: "去处理",
@@ -241,9 +249,14 @@ export const zh: Dict = {
   "strips chapter-trail markers only — your own callouts are kept":
     "仅剥离 chapter-trail 标记 — 你自己写的 callout 不受影响",
   "Delete index & stop": "删除索引页并停止",
+  "Keep index & stop": "保留索引页并停止",
+  "The domain <b>{domain}</b> dissolves; <b>{indexFile}.md</b> stays as a normal note (plugin markers removed). The ordering data lives in each note’s frontmatter and will remain unless you clear it below.":
+    "解散域 <b>{domain}</b>；<b>{indexFile}.md</b> 保留为普通笔记（移除插件标记）。排序数据保存在每篇笔记的 frontmatter 中，除非在下方勾选清除，否则将保留。",
   "✓ Domain dissolved": "✓ 域已解散",
-  "{indexFile}.md deleted · remaining order fields (if any) will surface in the vault banner":
-    "{indexFile}.md 已删除 · 残留 order 字段（若有）将出现在 vault 黄条中",
+  "{indexFile}.md deleted": "{indexFile}.md 已删除",
+  "{indexFile}.md kept as a normal note": "{indexFile}.md 已保留为普通笔记",
+  "order fields kept — clean up via the panel banner or the Remove-all wizard":
+    "order 字段已保留 — 可通过面板黄条或“全部清除”向导清理",
   "order cleared ({n})": "order 已清除（{n}）",
   "nav markers stripped ({n})": "导航标记已剥离（{n}）",
   " · order & injections kept": " · order 与注入已保留",

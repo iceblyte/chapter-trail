@@ -41,23 +41,47 @@ function isChainMember(registry: Registry, domain: DomainId, path: VaultPath): b
   return domain_.entries.some((entry) => entry.path === path);
 }
 
+/** Extra vault context the service layer computes for one batch. */
+export interface ClassifyContext {
+  /**
+   * Managed domains whose root folder no longer exists in the vault at
+   * classification time. When a domain's root (or an ancestor of it) is
+   * renamed/moved, Obsidian fires a rename for the folder and every
+   * child file — without this set each file would classify as "left the
+   * domain" and its order would be wiped. A vanished root means the
+   * whole domain moved: orders travel with the files, the follow-up
+   * scan re-roots the domain, so the batch only refreshes.
+   */
+  missingRoots?: ReadonlySet<DomainId>;
+  /**
+   * New paths of file renames that moved TOGETHER WITH their folder
+   * (a folder rename in the same batch, or the old parent folder is
+   * already gone — split batches included). Folder moves must never
+   * clear order in either direction: into a managed domain (the carried
+   * order slots the files into the chain) or out of one (the values
+   * stay on the notes as legacy orders, nothing silently destroyed).
+   */
+  movedWithFolder?: ReadonlySet<VaultPath>;
+  /**
+   * New paths in this batch that are folders (the folder's own rename
+   * event) — folder paths must never receive order writes or pending
+   * flags.
+   */
+  folderPaths?: ReadonlySet<VaultPath>;
+}
+
 /**
  * Classify a debounced batch. `events` must be pre-merged per path by
  * the EventSource (one event per path per batch).
- *
- * `missingRoots`: managed domains whose root folder no longer exists in
- * the vault at classification time. When a domain's root (or an ancestor
- * of it) is renamed/moved, Obsidian fires a rename for the folder and
- * every child file — without this set each file would classify as
- * "left the domain" and its order would be wiped. A vanished root means
- * the whole domain moved: orders travel with the files, the follow-up
- * scan re-roots the domain, so the batch only refreshes.
  */
 export function classifyBatch(
   events: readonly RawVaultEvent[],
   registry: Registry,
-  missingRoots: ReadonlySet<DomainId> = new Set(),
+  ctx: ClassifyContext = {},
 ): ClassifierAction[] {
+  const missingRoots = ctx.missingRoots ?? new Set<DomainId>();
+  const movedWithFolder = ctx.movedWithFolder ?? new Set<VaultPath>();
+  const folderPaths = ctx.folderPaths ?? new Set<VaultPath>();
   const actions: ClassifierAction[] = [];
   const stale = new Set<DomainId>();
 
@@ -106,6 +130,8 @@ export function classifyBatch(
         const newPath = event.path;
         const fromDomain = findDomainOf(registry, oldPath);
         const toDomain = findDomainOf(registry, newPath);
+        const isFolder = folderPaths.has(newPath);
+        const withFolder = movedWithFolder.has(newPath);
 
         // the domain root itself moved: never clear orders (they travel
         // with the files); the follow-up scan re-roots the domain
@@ -124,19 +150,33 @@ export function classifyBatch(
           break;
         }
         if (fromDomain !== null) {
-          // left a managed domain (to another domain or to nowhere)
-          actions.push({ type: "clear-order-and-nav", path: newPath, fromDomain });
+          // left a managed domain (to another domain or to nowhere).
+          // Files that moved WITH their folder keep their order — it
+          // slots them into the target chain or stays as a legacy value;
+          // folder paths never receive order writes at all.
+          if (!withFolder && !isFolder) {
+            actions.push({ type: "clear-order-and-nav", path: newPath, fromDomain });
+          }
           stale.add(fromDomain);
           if (toDomain !== null) {
-            actions.push({ type: "flag-entered-pending", path: newPath, domain: toDomain });
+            if (!withFolder && !isFolder) {
+              actions.push({ type: "flag-entered-pending", path: newPath, domain: toDomain });
+            }
+            stale.add(toDomain);
           }
           actions.push({ type: "refresh" });
           break;
         }
         if (toDomain !== null) {
-          // entered from an unmanaged location
-          actions.push({ type: "clear-order-and-nav", path: newPath, fromDomain: "" });
-          actions.push({ type: "flag-entered-pending", path: newPath, domain: toDomain });
+          // entered from an unmanaged location: single files get their
+          // legacy order cleared (designed), files that arrived with
+          // their folder keep it and join the chain at that value
+          if (!withFolder && !isFolder) {
+            actions.push({ type: "clear-order-and-nav", path: newPath, fromDomain: "" });
+            actions.push({ type: "flag-entered-pending", path: newPath, domain: toDomain });
+          } else {
+            stale.add(toDomain);
+          }
           actions.push({ type: "refresh" });
           break;
         }

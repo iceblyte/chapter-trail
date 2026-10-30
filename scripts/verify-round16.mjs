@@ -209,7 +209,9 @@ const panelShot = async (name) => {
 
   // attention filter: only cards with chips stay visible
   await page.evaluate(() => {
-    document.querySelector(".ct-panel-head .ct-icon-btn").click();
+    document
+      .querySelector('.ct-panel-head .ct-icon-btn[title="Show only domains needing attention"]')
+      .click();
   });
   await sleep(100);
   const filterState = await page.evaluate(() => {
@@ -217,7 +219,7 @@ const panelShot = async (name) => {
       (el) => el.textContent,
     );
     const active = document
-      .querySelector(".ct-panel-head .ct-icon-btn")
+      .querySelector('.ct-panel-head .ct-icon-btn[title="Show only domains needing attention"]')
       ?.getAttribute("class")
       .includes("is-active");
     return { paths, active };
@@ -231,7 +233,9 @@ const panelShot = async (name) => {
 
   // reset: filter off, Blogs expanded again
   await page.evaluate(() => {
-    document.querySelector(".ct-panel-head .ct-icon-btn").click();
+    document
+      .querySelector('.ct-panel-head .ct-icon-btn[title="Show only domains needing attention"]')
+      .click();
     const card = [...document.querySelectorAll(".ct-card")].find(
       (el) => el.querySelector(".ct-card-path")?.textContent === "Blogs",
     );
@@ -254,6 +258,39 @@ const panelShot = async (name) => {
     window.__ct.notices.some((n) => String(n).startsWith("[copy] Blogs")),
   );
   check("bug 3: copy-domain-path button triggers the action", copied);
+}
+
+/* ---------- scenario 7: mode filter buttons (round 17) ---------- */
+{
+  const visible = () =>
+    page.evaluate(() => [...document.querySelectorAll(".ct-card .ct-card-path")].map((el) => el.textContent));
+  const clickFilter = (title) =>
+    page.evaluate((t) => {
+      document.querySelector(`.ct-panel-head .ct-icon-btn[title="${t}"]`).click();
+    }, title);
+
+  await clickFilter("Show only independent domains");
+  await sleep(100);
+  const independent = { paths: await visible() };
+  await clickFilter("Show only series domains");
+  await sleep(100);
+  const series = { paths: await visible() };
+  await panelShot("round17-05-series-filter.png");
+  await clickFilter("Show only series domains"); // back to "all"
+  await sleep(100);
+  const all = await visible();
+
+  check(
+    "round 17: independent filter shows only 随笔",
+    independent.paths.length === 1 && independent.paths[0] === "随笔",
+    independent.paths.join(","),
+  );
+  check(
+    "round 17: series filter shows only Blogs",
+    series.paths.length === 1 && series.paths[0] === "Blogs",
+    series.paths.join(","),
+  );
+  check("round 17: resetting shows every domain again", all.length === 2, all.join(","));
 }
 
 console.log(pageErrors.length ? `PAGE ERRORS: ${pageErrors.join(" || ")}` : "no page errors");

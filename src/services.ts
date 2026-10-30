@@ -25,7 +25,7 @@ import {
 } from "./core/block-codec";
 import { buildRegistry, type VaultSnapshot } from "./core/domain-resolver";
 import type { EchoLedger } from "./core/echo-ledger";
-import { classifyBatch, findDomainOf } from "./core/event-classifier";
+import { type ClassifyContext, classifyBatch, findDomainOf } from "./core/event-classifier";
 import { patchFrontmatter } from "./core/frontmatter-patch";
 import { renderIndexInner } from "./core/index-renderer";
 import {
@@ -43,7 +43,7 @@ import {
 } from "./core/series-tree";
 import { normalizedOrder, orderValue, planInsert, tailOrder } from "./core/sort-core";
 import type { I18nService } from "./i18n/runtime";
-import { type ChapterTrailSettings, dateReadOptions } from "./settings";
+import { type ChapterTrailSettings, dateReadOptions, indexDateOptions } from "./settings";
 import type { DomainId, DomainMode, ManagedDomain, Registry, VaultPath } from "./types";
 
 export interface ServiceDeps {
@@ -162,7 +162,7 @@ export class PluginServices {
 
   private async handleBatch(events: readonly RawVaultEvent[]): Promise<void> {
     const registry = this.deps.store.getSnapshot();
-    const actions = classifyBatch(events, registry, this.missingDomainRoots(events, registry));
+    const actions = classifyBatch(events, registry, this.classifyContext(events, registry));
     const tasks: WriteTask[] = [];
 
     for (const action of actions) {
@@ -243,24 +243,53 @@ export class PluginServices {
   }
 
   /**
-   * Domains whose root folder no longer exists in the vault. Obsidian
-   * fires a rename for a moved folder AND every child inside it, so a
-   * whole-domain move used to classify as "every file left the domain"
-   * and wiped all order fields (bug: moving a managed folder into
-   * another folder lost every order). A vanished root means the domain
-   * (or an ancestor) moved: orders travel with the files and the next
-   * scan re-roots the domain — the classifier only refreshes.
+   * Vault context for the classifier (rename-heavy batches). Obsidian
+   * fires a rename for a moved folder AND every child inside it, so
+   * folder moves used to classify as "every file left the domain" and
+   * wiped all order fields — the worst data loss the plugin could
+   * inflict. Three signals feed the guards:
+   * ① missingRoots — the domain root (or an ancestor) is gone: whole-
+   *    domain move, the scan re-roots it, orders travel with the files;
+   * ② movedWithFolder — a file whose rename lands inside a folder that
+   *    renamed in the same batch, or whose OLD parent folder no longer
+   *    exists (split batches): folder moves never clear order in either
+   *    direction (into a managed domain the carried order slots the
+   *    files into the chain; out of one the values stay on the notes);
+   * ③ folderPaths — the folder's own rename events must never receive
+   *    order writes or pending flags.
    */
-  private missingDomainRoots(
-    events: readonly RawVaultEvent[],
-    registry: Registry,
-  ): ReadonlySet<DomainId> {
+  private classifyContext(events: readonly RawVaultEvent[], registry: Registry): ClassifyContext {
+    const ctx: ClassifyContext = {};
+    if (!events.some((event) => event.type === "rename")) return ctx;
+
     const missing = new Set<DomainId>();
-    if (!events.some((event) => event.type === "rename")) return missing;
     for (const root of registry.domains.keys()) {
       if (!this.deps.vault.exists(root)) missing.add(root);
     }
-    return missing;
+    if (missing.size > 0) ctx.missingRoots = missing;
+
+    const folders = new Set(this.deps.vault.listFolders());
+    const renames = events.filter(
+      (event): event is RawVaultEvent & { oldPath: VaultPath } =>
+        event.type === "rename" && event.oldPath !== undefined,
+    );
+    const folderPaths = new Set(renames.filter((e) => folders.has(e.path)).map((e) => e.path));
+    if (folderPaths.size > 0) ctx.folderPaths = folderPaths;
+
+    const folderMoves = renames.filter((e) => folderPaths.has(e.path));
+    const moved = new Set<VaultPath>();
+    for (const e of renames) {
+      if (folderPaths.has(e.path)) continue; // the folder's own event
+      const withFolderEvent = folderMoves.some(
+        (f) => isUnder(e.oldPath, f.oldPath) || isUnder(e.path, f.path),
+      );
+      const oldParent = parentOf(e.oldPath) ?? "";
+      if (withFolderEvent || (oldParent !== "" && !this.deps.vault.exists(oldParent))) {
+        moved.add(e.path);
+      }
+    }
+    if (moved.size > 0) ctx.movedWithFolder = moved;
+    return ctx;
   }
 
   /** failed writes must never disappear silently (locked files etc.) */
@@ -456,8 +485,31 @@ export class PluginServices {
       }
     }
     if (tasks.length > 0) await this.deps.writer.run(tasks);
-    this.deps.ledger.registerAbsent(domain.indexPath);
-    await this.deps.vault.trashFile(domain.indexPath);
+    if (this.settings.deleteIndexOnDissolve) {
+      this.deps.ledger.registerAbsent(domain.indexPath);
+      await this.deps.vault.trashFile(domain.indexPath);
+    } else {
+      // keep the page: demote it to a normal note — the marker block and
+      // the plugin keys go, everything the user wrote stays byte-identical
+      // (a kept marker would re-create the domain on the next scan)
+      try {
+        const raw = await this.deps.vault.read(domain.indexPath);
+        const noBlock = removeIndexBlock(raw);
+        const patched = patchFrontmatter(
+          noBlock,
+          [
+            { op: "remove", key: PLUGIN_KEYS.isIndex },
+            { op: "remove", key: PLUGIN_KEYS.mode },
+          ],
+          { parseYaml: this.deps.parseYaml },
+        );
+        const next = patched.ok ? patched.text : noBlock;
+        this.deps.ledger.register(domain.indexPath, next);
+        await this.deps.vault.process(domain.indexPath, () => next);
+      } catch {
+        // page already gone — nothing to demote
+      }
+    }
     await this.scan();
   }
 
@@ -485,9 +537,7 @@ export class PluginServices {
       if (!choice.confirmed) return 0;
     }
 
-    const inner = renderIndexInner(domain, registry, {
-      dateDisplay: this.settings.dateDisplay,
-    });
+    const inner = renderIndexInner(domain, registry, indexDateOptions(this.settings));
     const result = await this.deps.writer.run([
       {
         path: domain.indexPath,

@@ -6,13 +6,18 @@
  *
  * Bug 10: an independent domain's index now nests a managed subdomain's
  * WHOLE list under the subfolder link (indented, same chain order), not
- * just the subfolder link itself.
+ * just the subfolder link itself. Entries are separated by blank lines
+ * for readability; which dates render is user-configurable (default:
+ * created on, updated off).
  */
-import type { DateDisplay, ManagedDomain, OrderEntry, Registry, VaultPath } from "../types";
+import type { ManagedDomain, OrderEntry, Registry, VaultPath } from "../types";
 import { encodeLinkPath, relativeInside } from "./path-util";
 
 export interface RenderOptions {
-  dateDisplay: DateDisplay;
+  /** render each entry's created date */
+  showCreated: boolean;
+  /** render each entry's updated date */
+  showUpdated: boolean;
 }
 
 /** Render one domain's index block content (list only, no markers). */
@@ -21,14 +26,14 @@ export function renderIndexInner(
   registry: Registry,
   opts: RenderOptions,
 ): string {
-  if (domain.mode === "series") {
-    const lines: string[] = [];
-    emitSeriesEntries(domain, domain.root, opts, lines, 0);
-    return `${lines.join("\n")}\n`;
-  }
   const lines: string[] = [];
-  renderIndependentChain(domain, registry, opts, domain.root, lines, 0);
-  return `${lines.join("\n")}\n`;
+  if (domain.mode === "series") {
+    emitSeriesEntries(domain, domain.root, opts, lines, 0);
+  } else {
+    renderIndependentChain(domain, registry, opts, domain.root, lines, 0);
+  }
+  // one blank line between entries — much easier to scan than a dense list
+  return `${lines.join("\n\n")}\n`;
 }
 
 /**
@@ -83,18 +88,17 @@ function renderManagedFolder(
 function renderLeaf(entry: OrderEntry, root: VaultPath, opts: RenderOptions): string {
   const rel = relativeInside(entry.path, root);
   if (rel === null) return `- ${entry.title}`;
-  const date = formatDates(entry, opts.dateDisplay);
+  const date = formatDates(entry, opts);
   return `- [${entry.title}](${encodeLinkPath(rel)})${date ? ` ${date}` : ""}`;
 }
 
-function formatDates(entry: OrderEntry, mode: DateDisplay): string {
+function formatDates(entry: OrderEntry, opts: RenderOptions): string {
   const dates = entry.dates;
   if (!dates) return "";
-  if (mode === "created") return dates.created ?? "";
-  if (mode === "updated") return dates.updated ?? "";
   const parts: string[] = [];
-  if (dates.created) parts.push(dates.created);
-  if (dates.updated) parts.push(dates.updated);
+  if (opts.showCreated && dates.created) parts.push(dates.created);
+  if (opts.showUpdated && dates.updated) parts.push(dates.updated);
+  if (parts.length === 0) return "";
   if (parts.length === 2) return `${parts[0]} → ${parts[1]}`;
   return parts[0] ?? "";
 }

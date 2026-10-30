@@ -11,8 +11,10 @@ import type { ChapterTrailSettings } from "./settings";
 export interface SettingsHooks {
   /** validate + persist a new index file name; returns the effective name */
   onIndexFileNameChange(name: string): Promise<string>;
-  /** persist a new date display mode */
-  onDateDisplayChange(mode: ChapterTrailSettings["dateDisplay"]): Promise<void>;
+  /** persist the index date toggles; marks affected domains outdated */
+  onIndexDatesChange(): Promise<void>;
+  /** persist the dissolve behavior toggle */
+  onDissolveBehaviorChange(): Promise<void>;
   /** validate + persist a date-source setting; returns the effective value */
   onDateSourceChange(
     kind: "updatedProperty" | "createdProperty" | "dateFormat",
@@ -74,21 +76,34 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
         });
       });
 
-    /* Date display */
+    /* Index dates: two independent toggles (default: created on, updated off) */
     new Setting(containerEl)
-      .setName(t("Date display on index entries"))
+      .setName(t("Show created date on index pages"))
       .setDesc(
         t(
-          "Reads the date properties below (any common date/datetime format). Entries without a parsable date simply show no date; subfolder entries never show one. Changing this marks affected domains “Index outdated”. Tip: the community plugin <b>Update modified date</b> can keep these properties current automatically — no manual maintenance needed.",
+          "Default on. Index entries show each note’s created property (name configurable below). Tip: the community plugin <b>Update modified date</b> can keep these properties current automatically — no manual maintenance needed.",
         ),
       )
-      .addDropdown((drop) => {
-        drop.addOption("created", t("created"));
-        drop.addOption("updated", t("updated"));
-        drop.addOption("both", t("both"));
-        drop.setValue(this.host.settings.dateDisplay);
-        drop.onChange(async (value) => {
-          await this.hooks.onDateDisplayChange(value as ChapterTrailSettings["dateDisplay"]);
+      .addToggle((toggle) => {
+        toggle.setValue(this.host.settings.indexShowCreated);
+        toggle.onChange(async (next) => {
+          this.host.settings.indexShowCreated = next;
+          await this.hooks.onIndexDatesChange();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName(t("Show updated date on index pages"))
+      .setDesc(
+        t(
+          "Default off. Turn on to also show the updated property; with both on, entries render as “created → updated”.",
+        ),
+      )
+      .addToggle((toggle) => {
+        toggle.setValue(this.host.settings.indexShowUpdated);
+        toggle.onChange(async (next) => {
+          this.host.settings.indexShowUpdated = next;
+          await this.hooks.onIndexDatesChange();
         });
       });
 
@@ -201,6 +216,23 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
         drop.setValue(this.host.settings.language);
         drop.onChange(async (value) => {
           await this.hooks.onLanguageChange(value === "zh" ? "zh" : "en");
+        });
+      });
+
+    /* Dissolve behavior: what happens to the index page */
+    new Setting(containerEl)
+      .setName(t("Delete the index page when a domain dissolves"))
+      .setDesc(
+        t(
+          "Default on: dissolving a domain moves {indexFile}.md to the system trash. Turn off to keep the page as a normal note — the plugin markers and the is-index/mode keys are removed and the rendered list stays as static text.",
+          { indexFile: this.host.settings.indexFileName },
+        ),
+      )
+      .addToggle((toggle) => {
+        toggle.setValue(this.host.settings.deleteIndexOnDissolve);
+        toggle.onChange(async (next) => {
+          this.host.settings.deleteIndexOnDissolve = next;
+          await this.hooks.onDissolveBehaviorChange();
         });
       });
 

@@ -27,7 +27,8 @@ describe("A1 — independent index rebuild", () => {
     await h.services.scan();
     await h.services.rebuildIndex("读书");
     const index = vault.readContent("读书/目录.md");
-    // the managed subfolder nests its own entries underneath (bug 10)
+    // the managed subfolder nests its own entries underneath (bug 10);
+    // every entry is separated by a blank line for readability (round 17)
     expect(index).toBe(
       [
         "---",
@@ -37,9 +38,13 @@ describe("A1 — independent index rebuild", () => {
         "",
         INDEX_BLOCK_BEGIN,
         "- [引言：卢曼的盒子](引言：卢曼的盒子.md) 2025-09-14",
+        "",
         "- [第一部分](第一部分/目录.md)",
+        "",
         "    - [01](第一部分/01.md)",
+        "",
         "- [卡片的三种类型](卡片的三种类型.md) 2025-09-28",
+        "",
         "- 参考资料",
         INDEX_BLOCK_END,
         "",
@@ -48,7 +53,7 @@ describe("A1 — independent index rebuild", () => {
   });
 
   it("a series subdomain nests its whole indented tree under the folder link", async () => {
-    const h = makeHarness({ dateDisplay: "updated" });
+    const h = makeHarness({ indexShowCreated: false, indexShowUpdated: true });
     const { vault } = h;
     vault.seed("A/目录.md", indexPageContent("independent"));
     vault.seed("A/B/目录.md", indexPageContent("series", { order: 20000 }));
@@ -61,9 +66,13 @@ describe("A1 — independent index rebuild", () => {
     expect(inner.split(INDEX_BLOCK_END)[0]?.trim()).toBe(
       [
         "- [B](B/目录.md)",
+        "",
         "    - [b1](B/b1.md)",
+        "",
         "    - [b2](B/b2.md)",
+        "",
         "    - **子**",
+        "",
         "        - [b3](B/子/b3.md) 2026-09-04 23:40",
       ].join("\n"),
     );
@@ -658,5 +667,130 @@ describe("legacyHint — first-run review hint lifecycle", () => {
     // and it stays gone across rescans (the flag is sticky by carry-over)
     await h.services.scan();
     expect(status()?.legacyHint).toBe(false);
+  });
+});
+
+describe("A5c — folder moves never wipe order (round 17)", () => {
+  it("moving an ordered subfolder INTO a series domain keeps its orders", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("series"));
+    vault.seed("A/01.md", note(10000));
+    vault.seed("C/c1.md", note(5000));
+    vault.seed("C/c2.md", note(6000));
+    await h.services.scan();
+
+    // the user drags C into A in Obsidian's file explorer: folder rename
+    // + one rename per child, all in one batch
+    h.vault.moveFolder("C", "A/C");
+    await h.services.handleExternalBatch([...h.vault.events]);
+
+    // the carried orders slot the files into A's chain — nothing cleared
+    expect(orderOf(h, "A/C/c1.md")).toBe(5000);
+    expect(orderOf(h, "A/C/c2.md")).toBe(6000);
+    const domain = h.store.getSnapshot().domains.get("A");
+    expect(domain?.entries.map((entry) => entry.path)).toEqual([
+      "A/C/c1.md",
+      "A/C/c2.md",
+      "A/01.md",
+    ]);
+    expect(domain?.status.pending).toEqual([]);
+  });
+
+  it("moving an ordered folder INTO an independent domain keeps the orders on disk", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("A/01.md", note(10000));
+    vault.seed("C/c1.md", note(5000));
+    await h.services.scan();
+
+    h.vault.moveFolder("C", "A/C");
+    await h.services.handleExternalBatch([...h.vault.events]);
+
+    // the independent chain only chains direct files + managed subfolders:
+    // A/C stays unmanaged, but its carried orders are NOT wiped — they
+    // come alive if the user later manages that folder
+    expect(orderOf(h, "A/C/c1.md")).toBe(5000);
+    const domain = h.store.getSnapshot().domains.get("A");
+    expect(domain?.entries.map((entry) => entry.path)).toEqual(["A/01.md"]);
+    expect(domain?.unmanagedFolders.map((f) => f.path)).toEqual(["A/C"]);
+  });
+
+  it("moving an ordered subfolder OUT of a domain keeps the orders as legacy values", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("A/sub/x.md", note(10000));
+    vault.seed("A/sub/y.md", note(20000));
+    await h.services.scan();
+
+    h.vault.seedFolder("备用区");
+    h.vault.moveFolder("A/sub", "备用区/sub");
+    await h.services.handleExternalBatch([...h.vault.events]);
+
+    expect(orderOf(h, "备用区/sub/x.md")).toBe(10000);
+    expect(orderOf(h, "备用区/sub/y.md")).toBe(20000);
+    // nothing silently destroyed: the leftovers surface in the banner
+    expect([...h.store.getSnapshot().legacyOrders.keys()]).toContain("备用区/sub");
+  });
+
+  it("split batches still keep orders (the old parent folder is gone)", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("C/c1.md", note(5000));
+    await h.services.scan();
+
+    h.vault.moveFolder("C", "A/C");
+    // batch 1: only the folder's own rename arrives
+    const folderEvent = h.vault.events.find((e) => e.oldPath === "C");
+    await h.services.handleExternalBatch(folderEvent ? [folderEvent] : []);
+    // batch 2: the child file renames
+    const fileEvents = h.vault.events.filter((e) => e.oldPath?.startsWith("C/"));
+    await h.services.handleExternalBatch(fileEvents);
+
+    expect(orderOf(h, "A/C/c1.md")).toBe(5000);
+  });
+
+  it("a single file moved out of a domain is still cleared (designed behavior)", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("A/01.md", note(10000));
+    await h.services.scan();
+
+    await vault.rename("A/01.md", "草稿/01.md");
+    await h.services.handleExternalBatch([
+      { type: "rename", path: "草稿/01.md", oldPath: "A/01.md" },
+    ]);
+    expect(orderOf(h, "草稿/01.md")).toBeUndefined();
+  });
+});
+
+describe("dissolve behavior — deleteIndexOnDissolve (round 17)", () => {
+  it("default: the index page is trashed (original behavior)", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h);
+    await h.services.scan();
+    await h.services.stopManaging("Blogs", { clearOrder: false, stripNav: false });
+    expect(h.vault.exists("Blogs/目录.md")).toBe(false);
+    expect(h.store.getSnapshot().domains.has("Blogs")).toBe(false);
+  });
+
+  it("with the setting off the page stays as a normal note, markers removed", async () => {
+    const h = makeHarness({ deleteIndexOnDissolve: false });
+    seedSeriesVault(h);
+    await h.services.scan();
+    await h.services.stopManaging("Blogs", { clearOrder: false, stripNav: false });
+
+    expect(h.vault.exists("Blogs/目录.md")).toBe(true);
+    const page = h.vault.readContent("Blogs/目录.md");
+    expect(page).not.toContain("chapter-trail:begin");
+    expect(page).not.toContain("is-index");
+    expect(page).not.toContain("mode: series");
+    // the note itself and the orders are untouched
+    expect(orderOf(h, "Blogs/01 为什么选择 Quartz.md")).toBe(10000);
+    expect(h.store.getSnapshot().domains.has("Blogs")).toBe(false);
   });
 });

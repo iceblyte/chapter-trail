@@ -52,3 +52,36 @@ describe("coerceSettings — date source fields (bug 5/6/8)", () => {
     expect(coerceSettings({ dateFormat: "" }).dateFormat).toBe("YYYY-MM-DD HH:mm");
   });
 });
+
+describe("coerceSettings — index date toggles + dissolve behavior (round 17)", () => {
+  it("defaults: created shown, updated hidden, index deleted on dissolve", () => {
+    const s = coerceSettings({});
+    expect(s.indexShowCreated).toBe(true);
+    expect(s.indexShowUpdated).toBe(false);
+    expect(s.deleteIndexOnDissolve).toBe(true);
+  });
+
+  it("migrates the legacy dateDisplay dropdown", () => {
+    expect(coerceSettings({ dateDisplay: "created" })).toMatchObject({
+      indexShowCreated: true,
+      indexShowUpdated: false,
+    });
+    expect(coerceSettings({ dateDisplay: "updated" })).toMatchObject({
+      indexShowCreated: false,
+      indexShowUpdated: true,
+    });
+    expect(coerceSettings({ dateDisplay: "both" })).toMatchObject({
+      indexShowCreated: true,
+      indexShowUpdated: true,
+    });
+    // explicit toggles always win over the legacy field
+    expect(coerceSettings({ dateDisplay: "both", indexShowUpdated: false })).toMatchObject({
+      indexShowUpdated: false,
+    });
+  });
+
+  it("deleteIndexOnDissolve only turns off on an explicit false", () => {
+    expect(coerceSettings({ deleteIndexOnDissolve: false }).deleteIndexOnDissolve).toBe(false);
+    expect(coerceSettings({ deleteIndexOnDissolve: true }).deleteIndexOnDissolve).toBe(true);
+  });
+});

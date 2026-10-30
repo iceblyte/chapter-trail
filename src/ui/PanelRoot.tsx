@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
 import type { ChapterTrailSettings } from "../settings";
-import type { ManagedDomain, Registry } from "../types";
+import type { DomainMode, ManagedDomain, Registry } from "../types";
 import { useI18n, useRegistry } from "./bridge";
 import { orderedDomains } from "./card-order";
 import { AddDomainFlow } from "./components/AddDomainFlow";
@@ -46,6 +46,8 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const [expandedFolders, setExpandedFolders] = useState<ReadonlySet<string>>(() => new Set());
   /** bug 13: show only the cards that need attention */
   const [onlyAttention, setOnlyAttention] = useState(false);
+  /** show only one chain style: "all" | "independent" | "series" */
+  const [modeFilter, setModeFilter] = useState<"all" | DomainMode>("all");
 
   /* the start-managing command can open the picker remotely */
   useEffect(() => {
@@ -57,8 +59,13 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   const domains = useMemo(() => [...registry.domains.values()], [registry]);
   const sortedDomains = useMemo(() => orderedDomains(domains, cardOrder), [domains, cardOrder]);
   const visibleDomains = useMemo(
-    () => (onlyAttention ? sortedDomains.filter((domain) => hasChips(domain)) : sortedDomains),
-    [sortedDomains, onlyAttention],
+    () =>
+      sortedDomains.filter(
+        (domain) =>
+          (modeFilter === "all" || domain.mode === modeFilter) &&
+          (!onlyAttention || hasChips(domain)),
+      ),
+    [sortedDomains, modeFilter, onlyAttention],
   );
   const sortedRoots = useMemo(() => sortedDomains.map((domain) => domain.root), [sortedDomains]);
   const attention = domains.filter((domain) => hasChips(domain)).length;
@@ -132,6 +139,22 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
         <span className="ct-panel-title">{t("Chapter Trail")}</span>
         <button
           type="button"
+          className={`ct-icon-btn${modeFilter === "independent" ? " is-active" : ""}`}
+          title={t("Show only independent domains")}
+          onClick={() => setModeFilter((m) => (m === "independent" ? "all" : "independent"))}
+        >
+          <ObsidianIcon name="list" />
+        </button>
+        <button
+          type="button"
+          className={`ct-icon-btn${modeFilter === "series" ? " is-active" : ""}`}
+          title={t("Show only series domains")}
+          onClick={() => setModeFilter((m) => (m === "series" ? "all" : "series"))}
+        >
+          <ObsidianIcon name="layers" />
+        </button>
+        <button
+          type="button"
           className={`ct-icon-btn${onlyAttention ? " is-active" : ""}`}
           title={t("Show only domains needing attention")}
           onClick={toggleAttentionFilter}
@@ -169,15 +192,15 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           {`${t(domains.length === 1 ? "{n} domain" : "{n} domains", { n: domains.length })} · ${t(attention === 1 ? "{m} needs attention" : "{m} need attention", { m: attention })}`}
         </span>
         <span className="ct-legend">
-          <i>
+          <i title={t("Red: broken links or structural conflicts")}>
             <span className="ct-dot is-red" />
             {t("red")}
           </i>
-          <i>
+          <i title={t("Yellow: index outdated, gaps too tight, tied orders or first-run review")}>
             <span className="ct-dot is-yellow" />
             {t("yellow")}
           </i>
-          <i>
+          <i title={t("Blue: entries waiting for ordering")}>
             <span className="ct-dot is-blue" />
             {t("blue")}
           </i>
@@ -240,7 +263,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
           </div>
         )}
         {domains.length > 0 && visibleDomains.length === 0 && (
-          <div className="ct-empty-note">{t("No domains need attention")}</div>
+          <div className="ct-empty-note">{t("No domains match the current filters")}</div>
         )}
       </div>
 

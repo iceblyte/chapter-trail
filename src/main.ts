@@ -403,21 +403,31 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     await this.stopManagingFlow(domain.root);
   }
 
-  /** M5 (prototype 05): delete index + optional order / nav cleanup. */
+  /** M5 (prototype 05): dissolve the domain; what happens to the index
+   *  page follows the deleteIndexOnDissolve setting. */
   async stopManagingFlow(root: DomainId): Promise<void> {
     const t = this.i18n.t.bind(this.i18n);
     const domain = this.store.getSnapshot().domains.get(root);
     if (!domain) return;
     const noteCount = domain.entries.filter((entry) => entry.kind === "file").length;
+    const deletesIndex = this.settings.deleteIndexOnDissolve;
     const result = await this.confirmPort.confirm({
       title: t("Stop managing this folder?"),
-      body: t(
-        "Deleting <b>{indexFile}.md</b> dissolves the domain <b>{domain}</b>. The ordering data lives in each note’s frontmatter and will remain unless you clear it below.",
-        {
-          indexFile: this.settings.indexFileName,
-          domain: root,
-        },
-      ),
+      body: deletesIndex
+        ? t(
+            "Deleting <b>{indexFile}.md</b> dissolves the domain <b>{domain}</b>. The ordering data lives in each note’s frontmatter and will remain unless you clear it below.",
+            {
+              indexFile: this.settings.indexFileName,
+              domain: root,
+            },
+          )
+        : t(
+            "The domain <b>{domain}</b> dissolves; <b>{indexFile}.md</b> stays as a normal note (plugin markers removed). The ordering data lives in each note’s frontmatter and will remain unless you clear it below.",
+            {
+              indexFile: this.settings.indexFileName,
+              domain: root,
+            },
+          ),
       checkboxes: [
         {
           id: "clearOrder",
@@ -428,23 +438,27 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
           label: `${t("Also remove injected navigation")} (${t("({n} notes)", { n: noteCount })})`,
         },
       ],
-      confirmLabel: t("Delete index & stop"),
+      confirmLabel: deletesIndex ? t("Delete index & stop") : t("Keep index & stop"),
       cancelLabel: t("Cancel"),
       confirmDanger: true,
     });
     if (!result.confirmed) return;
+    const clearOrder = result.checked?.includes("clearOrder") ?? false;
     await this.services.stopManaging(root, {
-      clearOrder: result.checked?.includes("clearOrder") ?? false,
+      clearOrder,
       stripNav: result.checked?.includes("stripNav") ?? false,
     });
-    this.notifierPort.notice(
-      t("✓ Domain dissolved") +
-        " — " +
-        t(
-          "{indexFile}.md deleted · remaining order fields (if any) will surface in the vault banner",
-          { indexFile: this.settings.indexFileName },
-        ),
-    );
+    // the old wording promised a legacy banner unconditionally — leftovers
+    // only exist when the user chose to keep the order fields (#6)
+    let notice = `${t("✓ Domain dissolved")} — ${
+      deletesIndex
+        ? t("{indexFile}.md deleted", { indexFile: this.settings.indexFileName })
+        : t("{indexFile}.md kept as a normal note", { indexFile: this.settings.indexFileName })
+    }`;
+    if (!clearOrder) {
+      notice += ` — ${t("order fields kept — clean up via the panel banner or the Remove-all wizard")}`;
+    }
+    this.notifierPort.notice(notice);
   }
 
   /* ---------------- remove-all wizard (M6, prototype 05) ---------------- */
@@ -590,18 +604,19 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     return effective;
   }
 
-  async onDateDisplayChange(mode: ChapterTrailSettings["dateDisplay"]): Promise<void> {
-    this.settings.dateDisplay = mode;
+  async onIndexDatesChange(): Promise<void> {
     await this.saveSettings();
     const roots = [...this.store.getSnapshot().domains.keys()];
     this.store.markStale(roots);
     this.notifierPort.notice(
-      this.i18n.t("Date display: {mode}", { mode }) +
-        " — " +
-        this.i18n.t("{n} domains marked “Index outdated” — rebuild their index pages to apply", {
-          n: roots.length,
-        }),
+      this.i18n.t("{n} domains marked “Index outdated” — rebuild their index pages to apply", {
+        n: roots.length,
+      }),
     );
+  }
+
+  async onDissolveBehaviorChange(): Promise<void> {
+    await this.saveSettings();
   }
 
   private dateRescanTimer: number | null = null;

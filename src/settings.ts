@@ -7,13 +7,14 @@
 import type { DateReadOptions } from "./core/date-value";
 import { DEFAULT_DATE_FORMAT } from "./core/date-value";
 import type { Lang } from "./i18n/index";
-import type { DateDisplay } from "./types";
 
 export interface ChapterTrailSettings {
   /** base name (no .md) used when creating new index pages */
   indexFileName: string;
-  /** which date index entries show */
-  dateDisplay: DateDisplay;
+  /** render each index entry's created date (default on) */
+  indexShowCreated: boolean;
+  /** render each index entry's updated date (default off) */
+  indexShowUpdated: boolean;
   /** frontmatter key read as the updated date */
   updatedProperty: string;
   /** frontmatter key read as the created date; "" hides created dates */
@@ -24,6 +25,9 @@ export interface ChapterTrailSettings {
   injectNavEnabled: boolean;
   /** auto-rebuild the affected domain index after order writes (v1.4) */
   autoRebuildIndex: boolean;
+  /** move a dissolved domain's index page to the trash (default on);
+   *  off = the page is demoted to a normal note, markers removed */
+  deleteIndexOnDissolve: boolean;
   /** UI language (default English) */
   language: Lang;
   /** hidden debug switch: verbose event-classification logging */
@@ -34,12 +38,14 @@ export interface ChapterTrailSettings {
 
 export const DEFAULT_SETTINGS: ChapterTrailSettings = {
   indexFileName: "目录",
-  dateDisplay: "created",
+  indexShowCreated: true,
+  indexShowUpdated: false,
   updatedProperty: "updated",
   createdProperty: "created",
   dateFormat: DEFAULT_DATE_FORMAT,
   injectNavEnabled: false,
   autoRebuildIndex: false,
+  deleteIndexOnDissolve: true,
   language: "en",
   debug: false,
 };
@@ -52,11 +58,7 @@ export function defaultIndexName(lang: Lang): string {
 export function coerceSettings(raw: unknown): ChapterTrailSettings {
   const source = (
     typeof raw === "object" && raw !== null ? raw : {}
-  ) as Partial<ChapterTrailSettings>;
-  const dateDisplay =
-    source.dateDisplay === "updated" || source.dateDisplay === "both"
-      ? source.dateDisplay
-      : "created";
+  ) as Partial<ChapterTrailSettings> & { dateDisplay?: unknown };
   const language: Lang = source.language === "zh" ? "zh" : "en";
   // the default index name follows the UI language; a stored name that
   // equals the OTHER language's default is a stale pre-1.x default and
@@ -72,8 +74,18 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
   ) {
     indexFileName = defaultIndexName("en");
   }
+  // the pre-round-17 dateDisplay dropdown (created/updated/both) migrates
+  // to the two independent toggles when they are not stored yet
+  const legacy = typeof source.dateDisplay === "string" ? source.dateDisplay : undefined;
+  const indexShowCreated =
+    typeof source.indexShowCreated === "boolean" ? source.indexShowCreated : legacy !== "updated"; // created / both / unset → on
+  const indexShowUpdated =
+    typeof source.indexShowUpdated === "boolean"
+      ? source.indexShowUpdated
+      : legacy === "updated" || legacy === "both";
   return {
-    dateDisplay,
+    indexShowCreated,
+    indexShowUpdated,
     // the modified-date property is required to stay functional: an empty
     // value falls back to the default; an empty created property is the
     // documented way to hide created dates (mirrors "Update modified date")
@@ -89,6 +101,7 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
         : DEFAULT_DATE_FORMAT,
     injectNavEnabled: source.injectNavEnabled === true,
     autoRebuildIndex: source.autoRebuildIndex === true,
+    deleteIndexOnDissolve: source.deleteIndexOnDissolve !== false,
     indexFileName,
     language,
     debug: source.debug === true,
@@ -104,5 +117,16 @@ export function dateReadOptions(settings: ChapterTrailSettings): DateReadOptions
     createdKey: settings.createdProperty,
     updatedKey: settings.updatedProperty,
     format: settings.dateFormat,
+  };
+}
+
+/** which dates the INDEX PAGE renders for these settings */
+export function indexDateOptions(settings: ChapterTrailSettings): {
+  showCreated: boolean;
+  showUpdated: boolean;
+} {
+  return {
+    showCreated: settings.indexShowCreated,
+    showUpdated: settings.indexShowUpdated,
   };
 }

@@ -19,6 +19,9 @@ function getDomain(registry: Registry, root: string) {
   return domain;
 }
 
+/** default index dates: created on, updated off */
+const CREATED_ONLY = { showCreated: true, showUpdated: false };
+
 describe("renderIndexInner — golden files", () => {
   it("series domain renders the indented tree with plain-text folders", async () => {
     const registry = await buildRegistry(
@@ -42,7 +45,7 @@ describe("renderIndexInner — golden files", () => {
       }),
     );
     const domain = getDomain(registry, "Blogs");
-    const output = renderIndexInner(domain, registry, { dateDisplay: "created" });
+    const output = renderIndexInner(domain, registry, CREATED_ONLY);
     expect(output).toBe(golden("series-index.md"));
   });
 
@@ -65,13 +68,13 @@ describe("renderIndexInner — golden files", () => {
       }),
     );
     const domain = getDomain(registry, "读书");
-    const output = renderIndexInner(domain, registry, { dateDisplay: "created" });
+    const output = renderIndexInner(domain, registry, CREATED_ONLY);
     expect(output).toBe(golden("independent-index.md"));
   });
 });
 
 describe("renderIndexInner — date display variants", () => {
-  it("updated mode and both mode", async () => {
+  it("created-only, updated-only and both", async () => {
     const registry = await buildRegistry(
       makeSnapshot({
         "随笔/目录.md": indexPageSpec("series"),
@@ -81,11 +84,17 @@ describe("renderIndexInner — date display variants", () => {
       }),
     );
     const domain = getDomain(registry, "随笔");
-    expect(renderIndexInner(domain, registry, { dateDisplay: "updated" })).toBe(
+    expect(renderIndexInner(domain, registry, { showCreated: true, showUpdated: false })).toBe(
+      "- [01](01.md) 2025-11-09\n",
+    );
+    expect(renderIndexInner(domain, registry, { showCreated: false, showUpdated: true })).toBe(
       "- [01](01.md) 2026-01-12\n",
     );
-    expect(renderIndexInner(domain, registry, { dateDisplay: "both" })).toBe(
+    expect(renderIndexInner(domain, registry, { showCreated: true, showUpdated: true })).toBe(
       "- [01](01.md) 2025-11-09 → 2026-01-12\n",
+    );
+    expect(renderIndexInner(domain, registry, { showCreated: false, showUpdated: false })).toBe(
+      "- [01](01.md)\n",
     );
   });
 
@@ -97,6 +106,21 @@ describe("renderIndexInner — date display variants", () => {
       }),
     );
     const domain = getDomain(registry, "随笔");
-    expect(renderIndexInner(domain, registry, { dateDisplay: "created" })).toBe("- [01](01.md)\n");
+    expect(renderIndexInner(domain, registry, CREATED_ONLY)).toBe("- [01](01.md)\n");
+  });
+});
+
+describe("renderIndexInner — layout", () => {
+  it("separates every entry with a blank line", async () => {
+    const registry = await buildRegistry(
+      makeSnapshot({
+        "A/目录.md": indexPageSpec("series"),
+        "A/1.md": { frontmatter: { order: 10000 } },
+        "A/2.md": { frontmatter: { order: 20000 } },
+      }),
+    );
+    const domain = getDomain(registry, "A");
+    const output = renderIndexInner(domain, registry, CREATED_ONLY);
+    expect(output).toBe("- [1](1.md)\n\n- [2](2.md)\n");
   });
 });
