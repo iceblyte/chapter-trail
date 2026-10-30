@@ -437,20 +437,14 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     if (row.kind === "unmanaged") {
       const expanded = props.expandedFolders.has(row.path);
       return (
-        <button
-          type="button"
-          className="ct-row is-dim ct-unmanaged-row"
+        <UnmanagedFolderRow
+          key={row.path}
+          path={row.path}
+          name={row.name}
+          isOpen={expanded}
           title={t("Click to expand this folder's files")}
-          onClick={() => toggleFolder(row.path)}
-        >
-          <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
-            <span className="ct-seq">{expanded ? "▾" : "▸"}</span>
-            {row.name}
-          </span>
-          <span className="ct-row-date">—</span>
-          <span className="ct-row-date">—</span>
-          <span className="ct-row-order">—</span>
-        </button>
+          onToggle={toggleFolder}
+        />
       );
     }
     if (row.kind === "unmanaged-file") {
@@ -555,6 +549,46 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     </div>
   );
 }
+
+interface UnmanagedFolderRowProps {
+  path: string;
+  name: string;
+  isOpen: boolean;
+  title: string;
+  onToggle(path: string): void;
+}
+
+/**
+ * Unmanaged folder row — visually identical to the series FolderRow
+ * (same lucide folder/folder-open icon, same title styling), but a
+ * plain click just expands the file list (round 19: the text chevron
+ * broke visual consistency with the managed folder rows).
+ */
+const UnmanagedFolderRow = (props: UnmanagedFolderRowProps): React.JSX.Element => {
+  const iconRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!iconRef.current) return;
+    setIcon(iconRef.current, props.isOpen ? "folder-open" : "folder");
+  }, [props.isOpen]);
+
+  return (
+    <button
+      type="button"
+      className="ct-row is-dim is-folder-row ct-unmanaged-row"
+      title={props.title}
+      onClick={() => props.onToggle(props.path)}
+    >
+      <span className="ct-folder-icon" ref={iconRef} />
+      <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
+        {props.name}
+      </span>
+      <span className="ct-row-date">—</span>
+      <span className="ct-row-date">—</span>
+      <span className="ct-row-order">—</span>
+    </button>
+  );
+};
 
 interface FolderRowProps {
   path: string;

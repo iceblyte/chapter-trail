@@ -295,6 +295,89 @@ const panelShot = async (name) => {
   check("round 17: resetting shows every domain again", all.length === 2, all.join(","));
 }
 
+/* ---------- scenario 8: legend tooltip + banner ignore (round 19) ---------- */
+{
+  // 1. pure-CSS legend tooltip shows on hover
+  await page.hover(".ct-legend .ct-legend-item");
+  await sleep(120);
+  const tipDisplay = await page.evaluate(() => {
+    const tip = document.querySelector(".ct-legend .ct-legend-item .ct-tip");
+    return tip ? getComputedStyle(tip).display : "missing";
+  });
+  check("round 19: legend tooltip is visible on hover", tipDisplay === "block", tipDisplay);
+  await page.mouse.move(8, 8);
+
+  // 2. legacy banner: Review + Ignore adjacent at the right edge
+  await page.evaluate(async () => {
+    const ct = window.__ct;
+    const front = ["---", "order: 10000", "---", ""].join("\n");
+    ct.vault.write("已解散域/旧笔记.md", `${front}正文\n`);
+    await ct.services.scan();
+  });
+  await sleep(120);
+  const banner = await page.evaluate(() => {
+    const el = document.querySelector(".ct-banner");
+    if (!el) return null;
+    const buttons = [...el.querySelectorAll(".ct-btn")];
+    if (buttons.length < 2) return { buttons: buttons.length };
+    const review = buttons[0].getBoundingClientRect();
+    const ignore = buttons[1].getBoundingClientRect();
+    return {
+      labels: buttons.map((b) => b.textContent.trim()),
+      gap: ignore.left - review.right,
+    };
+  });
+  check(
+    "round 19: banner shows Review + Ignore adjacent at the right",
+    !!banner && banner.labels?.join(",") === "Review,Ignore" && banner.gap > 0 && banner.gap <= 10,
+    banner ? `gap=${banner.gap?.toFixed(1)}px` : "no banner",
+  );
+  await panelShot("round19-06-banner.png");
+
+  // 3. Ignore hides the banner INSTANTLY (no reload) and reveals the eye
+  await page.evaluate(() => {
+    const el = document.querySelector(".ct-banner");
+    const ignoreBtn = [...el.querySelectorAll(".ct-btn")].find(
+      (b) => b.textContent.trim() === "Ignore",
+    );
+    ignoreBtn.click();
+  });
+  await sleep(120);
+  const afterIgnore = await page.evaluate(() => ({
+    banners: document.querySelectorAll(".ct-banner").length,
+    eye: document.querySelectorAll(
+      '.ct-panel-head .ct-icon-btn[title="Show ignored legacy orders"]',
+    ).length,
+  }));
+  check(
+    "round 19: Ignore hides the banner instantly + eye toggle appears",
+    afterIgnore.banners === 0 && afterIgnore.eye === 1,
+    JSON.stringify(afterIgnore),
+  );
+
+  // 4. the eye toggle reveals the ignored banner with Un-ignore
+  await page.evaluate(() => {
+    document
+      .querySelector('.ct-panel-head .ct-icon-btn[title="Show ignored legacy orders"]')
+      .click();
+  });
+  await sleep(120);
+  const revealed = await page.evaluate(() => {
+    const el = document.querySelector(".ct-banner.is-ignored");
+    if (!el) return null;
+    return {
+      hasUnignore: [...el.querySelectorAll(".ct-btn")].some(
+        (b) => b.textContent.trim() === "Un-ignore",
+      ),
+    };
+  });
+  check(
+    "round 19: eye toggle reveals the ignored banner with Un-ignore",
+    !!revealed && revealed.hasUnignore === true,
+  );
+  await panelShot("round19-07-ignored-revealed.png");
+}
+
 console.log(pageErrors.length ? `PAGE ERRORS: ${pageErrors.join(" || ")}` : "no page errors");
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} CHECKS PASS`);

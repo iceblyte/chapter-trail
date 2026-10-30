@@ -120,6 +120,31 @@ body.theme-dark {
   align-items: center;
   gap: 4px;
 }
+/* pure-CSS hover tooltip (round 19): host tooltip APIs proved unreliable
+   inside the panel — a self-contained :hover tip cannot fail */
+.ct-legend .ct-legend-item {
+  position: relative;
+  cursor: help;
+}
+.ct-legend .ct-legend-item .ct-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--layer-menu, 60);
+  background: var(--background-primary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  white-space: nowrap;
+  padding: 4px 9px;
+  pointer-events: none;
+}
+.ct-legend .ct-legend-item:hover .ct-tip {
+  display: block;
+}
 .ct-dot {
   width: 8px;
   height: 8px;
@@ -143,8 +168,15 @@ body.theme-dark {
   align-items: center;
   gap: 8px;
 }
-.ct-banner .ct-btn {
-  margin-left: auto;
+/* the text takes the flexible space: both buttons hug the right edge
+   with a uniform gap (the old margin-left:auto on every .ct-btn split
+   the free space BETWEEN the two auto margins — uneven gaps) */
+.ct-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.ct-banner.is-ignored {
+  opacity: 0.65;
 }
 
 .ct-panel-body {

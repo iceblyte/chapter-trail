@@ -13,7 +13,6 @@ import {
   attachClosestEdge,
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import { setTooltip } from "obsidian";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RegistryStore } from "../adapter/registry-store";
 import type { I18nService } from "../i18n/runtime";
@@ -72,15 +71,30 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
   );
   const sortedRoots = useMemo(() => sortedDomains.map((domain) => domain.root), [sortedDomains]);
   const attention = domains.filter((domain) => hasChips(domain)).length;
-  const ignoredLegacy = useMemo(
+  /**
+   * Ignored legacy domains live in LOCAL state: the action only mutates
+   * the settings object in place, which nothing observes — without a
+   * state flip the banner wouldn't move until some other re-render
+   * happened (that was the "ignore does nothing until reload" bug).
+   */
+  const [ignoredLegacy, setIgnoredLegacy] = useState<ReadonlySet<string>>(
     () => new Set(props.settings.ignoredLegacyFolders ?? []),
-    [props.settings.ignoredLegacyFolders],
   );
   const legacyGroups = useMemo(
     () => [...registry.legacyOrders.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     [registry.legacyOrders],
   );
   const ignoredLegacyCount = legacyGroups.filter(([domain]) => ignoredLegacy.has(domain)).length;
+  const toggleIgnoredLegacy = (domain: string): void => {
+    const willIgnore = !ignoredLegacy.has(domain);
+    setIgnoredLegacy((current) => {
+      const next = new Set(current);
+      if (willIgnore) next.add(domain);
+      else next.delete(domain);
+      return next;
+    });
+    void props.actions.setLegacyDomainIgnored(domain as DomainId, willIgnore);
+  };
 
   /**
    * A moved domain re-roots (A/B → B): the new root was never dragged,
@@ -263,6 +277,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
             <div key={domain} className={`ct-banner${isIgnored ? " is-ignored" : ""}`}>
               <span className="ct-dot is-yellow" />
               <span
+                className="ct-banner-text"
                 // eslint-disable-next-line react/no-danger -- i18n copy carries <code>
                 dangerouslySetInnerHTML={{
                   __html: t("{n} legacy <code>order</code> fields — “{domain}” was dissolved", {
@@ -278,13 +293,7 @@ export function PanelRoot(props: PanelRootProps): React.JSX.Element {
               >
                 {t("Review")}
               </button>
-              <button
-                type="button"
-                className="ct-btn"
-                onClick={() =>
-                  void props.actions.setLegacyDomainIgnored(domain as DomainId, !isIgnored)
-                }
-              >
+              <button type="button" className="ct-btn" onClick={() => toggleIgnoredLegacy(domain)}>
                 {t(isIgnored ? "Un-ignore" : "Ignore")}
               </button>
             </div>
@@ -362,19 +371,16 @@ function hasChips(domain: ManagedDomain): boolean {
 }
 
 /**
- * One legend dot with Obsidian's own hover tooltip — a native title
- * attribute never showed reliably on these (round 18), so the real
- * setTooltip API renders an instant styled tooltip instead.
+ * One legend dot with a PURE CSS hover tooltip. Both a native title
+ * attribute and the host's setTooltip proved unreliable inside the
+ * panel (round 18/19) — a self-contained :hover tooltip cannot fail.
  */
 function LegendDot(props: { tone: string; label: string; tooltip: string }): React.JSX.Element {
-  const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (ref.current) setTooltip(ref.current, props.tooltip);
-  }, [props.tooltip]);
   return (
-    <i ref={ref}>
+    <i className="ct-legend-item">
       <span className={`ct-dot ${props.tone}`} />
       {props.label}
+      <span className="ct-tip">{props.tooltip}</span>
     </i>
   );
 }
