@@ -44,10 +44,19 @@ function isChainMember(registry: Registry, domain: DomainId, path: VaultPath): b
 /**
  * Classify a debounced batch. `events` must be pre-merged per path by
  * the EventSource (one event per path per batch).
+ *
+ * `missingRoots`: managed domains whose root folder no longer exists in
+ * the vault at classification time. When a domain's root (or an ancestor
+ * of it) is renamed/moved, Obsidian fires a rename for the folder and
+ * every child file — without this set each file would classify as
+ * "left the domain" and its order would be wiped. A vanished root means
+ * the whole domain moved: orders travel with the files, the follow-up
+ * scan re-roots the domain, so the batch only refreshes.
  */
 export function classifyBatch(
   events: readonly RawVaultEvent[],
   registry: Registry,
+  missingRoots: ReadonlySet<DomainId> = new Set(),
 ): ClassifierAction[] {
   const actions: ClassifierAction[] = [];
   const stale = new Set<DomainId>();
@@ -98,6 +107,12 @@ export function classifyBatch(
         const fromDomain = findDomainOf(registry, oldPath);
         const toDomain = findDomainOf(registry, newPath);
 
+        // the domain root itself moved: never clear orders (they travel
+        // with the files); the follow-up scan re-roots the domain
+        if (fromDomain !== null && missingRoots.has(fromDomain)) {
+          actions.push({ type: "refresh" });
+          break;
+        }
         if (fromDomain !== null && registry.domains.get(fromDomain)?.indexPath === oldPath) {
           actions.push({ type: "refresh" }); // index page moved: follows the marker
           break;

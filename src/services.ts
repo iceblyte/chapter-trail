@@ -162,7 +162,7 @@ export class PluginServices {
 
   private async handleBatch(events: readonly RawVaultEvent[]): Promise<void> {
     const registry = this.deps.store.getSnapshot();
-    const actions = classifyBatch(events, registry);
+    const actions = classifyBatch(events, registry, this.missingDomainRoots(events, registry));
     const tasks: WriteTask[] = [];
 
     for (const action of actions) {
@@ -240,6 +240,27 @@ export class PluginServices {
       }
     }
     await this.scan();
+  }
+
+  /**
+   * Domains whose root folder no longer exists in the vault. Obsidian
+   * fires a rename for a moved folder AND every child inside it, so a
+   * whole-domain move used to classify as "every file left the domain"
+   * and wiped all order fields (bug: moving a managed folder into
+   * another folder lost every order). A vanished root means the domain
+   * (or an ancestor) moved: orders travel with the files and the next
+   * scan re-roots the domain — the classifier only refreshes.
+   */
+  private missingDomainRoots(
+    events: readonly RawVaultEvent[],
+    registry: Registry,
+  ): ReadonlySet<DomainId> {
+    const missing = new Set<DomainId>();
+    if (!events.some((event) => event.type === "rename")) return missing;
+    for (const root of registry.domains.keys()) {
+      if (!this.deps.vault.exists(root)) missing.add(root);
+    }
+    return missing;
   }
 
   /** failed writes must never disappear silently (locked files etc.) */

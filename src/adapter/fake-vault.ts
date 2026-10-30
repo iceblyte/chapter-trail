@@ -113,7 +113,9 @@ export class FakeVault implements VaultPort {
   }
 
   exists(path: VaultPath): boolean {
-    return this.files.has(path);
+    // folders count too: the classifier checks whether a managed
+    // domain's ROOT FOLDER still exists after a rename batch
+    return this.files.has(path) || this.folders.has(path);
   }
 
   listMarkdownFiles(): VaultPath[] {
@@ -155,6 +157,47 @@ export class FakeVault implements VaultPort {
     const folder = newPath.slice(0, newPath.lastIndexOf("/"));
     if (folder) this.ensureFolder(folder);
     this.emit({ type: "rename", path: newPath, oldPath: path });
+  }
+
+  /**
+   * Simulate the host moving a whole folder: re-key every file inside
+   * and emit a rename for the folder AND one per child file — exactly
+   * what Obsidian's vault does (the classifier's missing-root fix and
+   * its regression tests rely on this behavior).
+   */
+  moveFolder(oldPath: VaultPath, newPath: VaultPath): void {
+    if (oldPath === "" || newPath === "" || newPath.startsWith(`${oldPath}/`)) {
+      throw new Error(`moveFolder: bad move: ${oldPath} -> ${newPath}`);
+    }
+    const moves = new Map<VaultPath, VaultPath>();
+    for (const path of [...this.files.keys(), ...this.frontmatterOverrides.keys()]) {
+      if (path === oldPath || path.startsWith(`${oldPath}/`)) {
+        moves.set(path, path === oldPath ? newPath : `${newPath}${path.slice(oldPath.length)}`);
+      }
+    }
+    for (const [from, to] of moves) {
+      if (this.files.has(from)) {
+        this.files.set(to, this.files.get(from) ?? "");
+        this.files.delete(from);
+      }
+      if (this.frontmatterOverrides.has(from)) {
+        this.frontmatterOverrides.set(to, this.frontmatterOverrides.get(from) ?? null);
+        this.frontmatterOverrides.delete(from);
+      }
+    }
+    for (const folder of [...this.folders]) {
+      if (folder === oldPath || folder.startsWith(`${oldPath}/`)) {
+        this.folders.delete(folder);
+        this.folders.add(
+          folder === oldPath ? newPath : `${newPath}${folder.slice(oldPath.length)}`,
+        );
+      }
+    }
+    this.ensureFolder(newPath);
+    this.emit({ type: "rename", path: newPath, oldPath });
+    for (const [from, to] of moves) {
+      this.emit({ type: "rename", path: to, oldPath: from });
+    }
   }
 
   async trashFile(path: VaultPath): Promise<void> {

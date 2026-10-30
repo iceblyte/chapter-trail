@@ -164,6 +164,70 @@ describe("A5 — move a note out of the domain", () => {
   });
 });
 
+describe("A5b — moving a managed folder keeps every order (bug 12)", () => {
+  it("series domain moved into another folder re-roots instead of clearing order", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h);
+    await h.services.scan();
+    expect(h.store.getSnapshot().domains.has("Blogs")).toBe(true);
+
+    // the user drags Blogs into 随笔 in the file explorer: Obsidian fires
+    // a rename for the folder AND one per child file
+    h.vault.seedFolder("随笔");
+    h.vault.moveFolder("Blogs", "随笔/Blogs");
+    await h.services.handleExternalBatch([...h.vault.events]);
+
+    // orders travel with the files — none was wiped
+    expect(orderOf(h, "随笔/Blogs/01 为什么选择 Quartz.md")).toBe(10000);
+    expect(orderOf(h, "随笔/Blogs/02 环境搭建与部署.md")).toBe(20000);
+    expect(orderOf(h, "随笔/Blogs/进阶篇/05 主题定制.md")).toBe(50000);
+
+    // the domain re-rooted to the new location with the same chain
+    const domain = h.store.getSnapshot().domains.get("随笔/Blogs");
+    expect(domain?.mode).toBe("series");
+    expect(domain?.indexPath).toBe("随笔/Blogs/目录.md");
+    expect(domain?.entries.map((entry) => entry.title)).toEqual([
+      "01 为什么选择 Quartz",
+      "02 环境搭建与部署",
+      "03 配置详解",
+      "04 插件机制",
+      "05 主题定制",
+    ]);
+    expect(h.store.getSnapshot().domains.has("Blogs")).toBe(false);
+  });
+
+  it("the re-rooted domain stays fully operational (drag still writes midpoints)", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h);
+    await h.services.scan();
+    h.vault.seedFolder("随笔");
+    h.vault.moveFolder("Blogs", "随笔/Blogs");
+    await h.services.handleExternalBatch([...h.vault.events]);
+
+    await h.services.moveEntry("随笔/Blogs", "随笔/Blogs/02 环境搭建与部署.md", 2);
+    // lands between 03 (30000) and 04 (40000) → midpoint
+    expect(orderOf(h, "随笔/Blogs/02 环境搭建与部署.md")).toBe(35000);
+  });
+
+  it("a single file moved out still clears its order (original behavior)", async () => {
+    const h = makeHarness();
+    seedSeriesVault(h);
+    await h.services.scan();
+    h.vault.seedFolder("草稿");
+    await h.vault.rename("Blogs/01 为什么选择 Quartz.md", "草稿/01 为什么选择 Quartz.md");
+    await h.services.handleExternalBatch([
+      {
+        type: "rename",
+        path: "草稿/01 为什么选择 Quartz.md",
+        oldPath: "Blogs/01 为什么选择 Quartz.md",
+      },
+    ]);
+    expect(orderOf(h, "草稿/01 为什么选择 Quartz.md")).toBeUndefined();
+    // untouched siblings keep theirs
+    expect(orderOf(h, "Blogs/02 环境搭建与部署.md")).toBe(20000);
+  });
+});
+
 describe("A6 — ties and reindex", () => {
   it("ties fall back to filename order; reindex normalizes to 10000 steps", async () => {
     const h = makeHarness();
