@@ -27,6 +27,7 @@ describe("A1 — independent index rebuild", () => {
     await h.services.scan();
     await h.services.rebuildIndex("读书");
     const index = vault.readContent("读书/目录.md");
+    // the managed subfolder nests its own entries underneath (bug 10)
     expect(index).toBe(
       [
         "---",
@@ -37,10 +38,33 @@ describe("A1 — independent index rebuild", () => {
         INDEX_BLOCK_BEGIN,
         "- [引言：卢曼的盒子](引言：卢曼的盒子.md) 2025-09-14",
         "- [第一部分](第一部分/目录.md)",
+        "    - [01](第一部分/01.md)",
         "- [卡片的三种类型](卡片的三种类型.md) 2025-09-28",
         "- 参考资料",
         INDEX_BLOCK_END,
         "",
+      ].join("\n"),
+    );
+  });
+
+  it("a series subdomain nests its whole indented tree under the folder link", async () => {
+    const h = makeHarness({ dateDisplay: "updated" });
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("A/B/目录.md", indexPageContent("series", { order: 20000 }));
+    vault.seed("A/B/b1.md", note(10000, { created: "2026-08-28" }));
+    vault.seed("A/B/b2.md", note(20000));
+    vault.seed("A/B/子/b3.md", note(30000, { updated: "2026-09-04 23:40" }));
+    await h.services.scan();
+    await h.services.rebuildIndex("A");
+    const inner = vault.readContent("A/目录.md").split(INDEX_BLOCK_BEGIN)[1] ?? "";
+    expect(inner.split(INDEX_BLOCK_END)[0]?.trim()).toBe(
+      [
+        "- [B](B/目录.md)",
+        "    - [b1](B/b1.md)",
+        "    - [b2](B/b2.md)",
+        "    - **子**",
+        "        - [b3](B/子/b3.md) 2026-09-04 23:40",
       ].join("\n"),
     );
   });

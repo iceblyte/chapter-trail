@@ -3,6 +3,10 @@
  * (DESIGN.md §4.6). Golden-file tested: the output format is the plugin's
  * public contract with Quartz (raw relative markdown links per the
  * confirmed prototype baseline).
+ *
+ * Bug 10: an independent domain's index now nests a managed subdomain's
+ * WHOLE list under the subfolder link (indented, same chain order), not
+ * just the subfolder link itself.
  */
 import type { DateDisplay, ManagedDomain, OrderEntry, Registry, VaultPath } from "../types";
 import { encodeLinkPath, relativeInside } from "./path-util";
@@ -18,24 +22,62 @@ export function renderIndexInner(
   opts: RenderOptions,
 ): string {
   if (domain.mode === "series") {
-    return renderSeriesTree(domain, opts);
+    const lines: string[] = [];
+    emitSeriesEntries(domain, domain.root, opts, lines, 0);
+    return `${lines.join("\n")}\n`;
   }
-
   const lines: string[] = [];
+  renderIndependentChain(domain, registry, opts, domain.root, lines, 0);
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Independent chain: direct files, managed subfolders (each nesting its
+ * subdomain's full list) and unmanaged folders trailing as plain text.
+ * `linkRoot` is the folder of the index page being rendered — every
+ * link resolves against it, at any nesting depth.
+ */
+function renderIndependentChain(
+  domain: ManagedDomain,
+  registry: Registry,
+  opts: RenderOptions,
+  linkRoot: VaultPath,
+  lines: string[],
+  depth: number,
+): void {
   for (const entry of domain.entries) {
     if (entry.kind === "managed-folder") {
-      const child = registry.domains.get(entry.path);
-      const linkPath = child ? relativeInside(child.indexPath, domain.root) : null;
-      lines.push(linkPath ? `- [${entry.title}](${encodeLinkPath(linkPath)})` : `- ${entry.title}`);
+      renderManagedFolder(entry, registry, opts, linkRoot, lines, depth);
       continue;
     }
-    lines.push(renderLeaf(entry, domain.root, opts));
+    lines.push(`${indent(depth)}${renderLeaf(entry, linkRoot, opts)}`);
   }
-  /* independent: unmanaged folders trail as plain text, name-sorted */
   for (const folder of domain.unmanagedFolders) {
-    lines.push(`- ${folder.title}`);
+    lines.push(`${indent(depth)}- ${folder.title}`);
   }
-  return `${lines.join("\n")}\n`;
+}
+
+/** subfolder link line + the subdomain's entries nested underneath */
+function renderManagedFolder(
+  entry: OrderEntry,
+  registry: Registry,
+  opts: RenderOptions,
+  linkRoot: VaultPath,
+  lines: string[],
+  depth: number,
+): void {
+  const child = registry.domains.get(entry.path);
+  const linkPath = child ? relativeInside(child.indexPath, linkRoot) : null;
+  lines.push(
+    `${indent(depth)}${linkPath ? `- [${entry.title}](${encodeLinkPath(linkPath)})` : `- ${entry.title}`}`,
+  );
+  if (!child) return;
+  if (child.mode === "series") {
+    // one chain across the child's subtree → indented tree
+    emitSeriesEntries(child, linkRoot, opts, lines, depth + 1);
+  } else {
+    renderIndependentChain(child, registry, opts, linkRoot, lines, depth + 1);
+  }
 }
 
 function renderLeaf(entry: OrderEntry, root: VaultPath, opts: RenderOptions): string {
@@ -69,7 +111,18 @@ interface TreeNode {
   folders: Map<string, TreeNode>;
 }
 
-function renderSeriesTree(domain: ManagedDomain, opts: RenderOptions): string {
+/**
+ * Emit a series domain's chain as an indented tree: intermediate
+ * folders become plain bold nodes at first appearance, leaves are
+ * standard links resolving against `linkRoot`.
+ */
+function emitSeriesEntries(
+  domain: ManagedDomain,
+  linkRoot: VaultPath,
+  opts: RenderOptions,
+  lines: string[],
+  depth: number,
+): void {
   const root: TreeNode = { children: [], folders: new Map() };
   for (const entry of domain.entries) {
     if (entry.kind !== "file") continue;
@@ -77,7 +130,6 @@ function renderSeriesTree(domain: ManagedDomain, opts: RenderOptions): string {
     if (rel === null) continue;
     const segments = rel.split("/");
     let node = root;
-    // intermediate folders become plain bold nodes at first appearance
     for (let i = 0; i < segments.length - 1; i++) {
       const name = segments[i];
       if (!name) continue;
@@ -91,14 +143,12 @@ function renderSeriesTree(domain: ManagedDomain, opts: RenderOptions): string {
     }
     node.children.push({ type: "file", entry });
   }
-  const lines: string[] = [];
-  emitTree(root, domain, opts, lines, 0);
-  return `${lines.join("\n")}\n`;
+  emitTree(root, linkRoot, opts, lines, depth);
 }
 
 function emitTree(
   node: TreeNode,
-  domain: ManagedDomain,
+  linkRoot: VaultPath,
   opts: RenderOptions,
   lines: string[],
   depth: number,
@@ -106,9 +156,9 @@ function emitTree(
   for (const child of node.children) {
     if (child.type === "folder") {
       lines.push(`${indent(depth)}- **${child.name}**`);
-      emitTree(child.node, domain, opts, lines, depth + 1);
+      emitTree(child.node, linkRoot, opts, lines, depth + 1);
     } else {
-      lines.push(`${indent(depth)}${renderLeaf(child.entry, domain.root, opts)}`);
+      lines.push(`${indent(depth)}${renderLeaf(child.entry, linkRoot, opts)}`);
     }
   }
 }
