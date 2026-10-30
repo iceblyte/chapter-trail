@@ -312,6 +312,98 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
     props.onToggleFolder(path);
   };
 
+  /** one row's content (the virtual wrapper handles positioning/measurement) */
+  const renderRowContent = (rowIndex: number): React.ReactNode => {
+    const trailStart = view.rows.length + view.shownPending.length;
+    if (rowIndex >= trailStart) {
+      const trailing = rowIndex - trailStart;
+      const brokenPath = broken[trailing - (view.morePending > 0 ? 1 : 0)];
+      // the "…n more · git sync batch" row wraps to two lines so
+      // the full hint stays readable (bug 11)
+      const isMoreRow = view.morePending > 0 && trailing === 0;
+      return (
+        <div className={`ct-row is-dim${isMoreRow ? " ct-more-row" : ""}`}>
+          {brokenPath ? (
+            <span className="ct-row-title is-missing">
+              {brokenPath} — {t("file not found — deleted or moved out of the vault")}
+            </span>
+          ) : (
+            <span className="ct-row-title">
+              {t("…{n} more · git sync batch — no auto-write, drag or use first-run assignment", {
+                n: view.morePending,
+              })}
+            </span>
+          )}
+        </div>
+      );
+    }
+    const pendingIndex = rowIndex - view.rows.length;
+    if (pendingIndex >= 0) {
+      const entry = view.shownPending[pendingIndex];
+      if (!entry) return null;
+      return (
+        <div className="ct-row is-pending">
+          <span className="ct-dot is-blue" style={{ marginRight: 1 }} />
+          <span className="ct-row-title">{entry.title}</span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-order">—</span>
+        </div>
+      );
+    }
+
+    const row = view.rows[rowIndex];
+    if (!row) return null;
+    if (row.kind === "folder") {
+      return (
+        <FolderRow
+          path={row.path}
+          name={row.name}
+          depth={row.depth}
+          chainIndex={row.chainIndex}
+          firstFilePath={row.firstFilePath}
+          isOpen={props.expandedFolders.has(row.path)}
+          domainRoot={domain.root}
+          isDragging={dragging === row.firstFilePath}
+          onDragState={setDragging}
+          onToggle={toggleFolder}
+        />
+      );
+    }
+    if (row.kind === "unmanaged") {
+      return (
+        <button
+          type="button"
+          className="ct-row is-dim ct-unmanaged-row"
+          title={t("Click to start managing this folder")}
+          onClick={() => void props.actions.startManagingWithModePicker(row.path)}
+        >
+          <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
+            {row.name}
+          </span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-date">—</span>
+          <span className="ct-row-order">—</span>
+        </button>
+      );
+    }
+    if (row.kind !== "file") return null;
+    return (
+      <ChainRow
+        entry={row.entry}
+        chainIndex={row.chainIndex}
+        depth={row.depth}
+        domainRoot={domain.root}
+        isFolder={row.entry.kind === "managed-folder"}
+        isDragging={dragging === row.entry.path}
+        onDragState={setDragging}
+        onMove={onMove}
+        onOpen={props.actions.openFile}
+        i18n={props.i18n}
+      />
+    );
+  };
+
   return (
     <div className="ct-rows">
       {/* column header row sits above the pinned index row (bug 1) */}
@@ -336,116 +428,26 @@ export function EntryList(props: EntryListProps): React.JSX.Element {
       </button>
       <div ref={scrollRef} className="ct-rows-scroll">
         <div style={{ position: "relative", height: `${virtualizer.getTotalSize()}px` }}>
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const absoluteStyle = {
-              position: "absolute" as const,
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: `${virtualRow.size}px`,
-              transform: `translateY(${virtualRow.start}px)`,
-            };
-            const rowIndex = virtualRow.index;
-            const trailStart = view.rows.length + view.shownPending.length;
-            if (rowIndex >= trailStart) {
-              const trailing = rowIndex - trailStart;
-              const brokenPath = broken[trailing - (view.morePending > 0 ? 1 : 0)];
-              // the "…n more · git sync batch" row wraps to two lines so
-              // the full hint stays readable (bug 11)
-              const isMoreRow = view.morePending > 0 && trailing === 0;
-              return (
-                <div
-                  key={virtualRow.key}
-                  className={`ct-row is-dim${isMoreRow ? " ct-more-row" : ""}`}
-                  style={absoluteStyle}
-                >
-                  {brokenPath ? (
-                    <span className="ct-row-title is-missing">
-                      {brokenPath} — {t("file not found — deleted or moved out of the vault")}
-                    </span>
-                  ) : (
-                    <span className="ct-row-title">
-                      {t(
-                        "…{n} more · git sync batch — no auto-write, drag or use first-run assignment",
-                        { n: view.morePending },
-                      )}
-                    </span>
-                  )}
-                </div>
-              );
-            }
-            const pendingIndex = rowIndex - view.rows.length;
-            if (pendingIndex >= 0) {
-              const entry = view.shownPending[pendingIndex];
-              if (!entry) return null;
-              return (
-                <div key={virtualRow.key} className="ct-row is-pending" style={absoluteStyle}>
-                  <span className="ct-dot is-blue" style={{ marginRight: 1 }} />
-                  <span className="ct-row-title">{entry.title}</span>
-                  <span className="ct-row-date">—</span>
-                  <span className="ct-row-date">—</span>
-                  <span className="ct-row-order">—</span>
-                </div>
-              );
-            }
-
-            const row = view.rows[rowIndex];
-            if (!row) return null;
-            if (row.kind === "folder") {
-              return (
-                <FolderRow
-                  key={virtualRow.key}
-                  path={row.path}
-                  name={row.name}
-                  depth={row.depth}
-                  chainIndex={row.chainIndex}
-                  firstFilePath={row.firstFilePath}
-                  isOpen={props.expandedFolders.has(row.path)}
-                  domainRoot={domain.root}
-                  isDragging={dragging === row.firstFilePath}
-                  onDragState={setDragging}
-                  onToggle={toggleFolder}
-                  style={absoluteStyle}
-                />
-              );
-            }
-            if (row.kind === "unmanaged") {
-              return (
-                <button
-                  key={virtualRow.key}
-                  type="button"
-                  className="ct-row is-dim ct-unmanaged-row"
-                  style={absoluteStyle}
-                  title={t("Click to start managing this folder")}
-                  onClick={() => void props.actions.startManagingWithModePicker(row.path)}
-                >
-                  <span className="ct-row-title is-folder" style={{ paddingLeft: 14 }}>
-                    {row.name}
-                  </span>
-                  <span className="ct-row-date">—</span>
-                  <span className="ct-row-date">—</span>
-                  <span className="ct-row-order">—</span>
-                </button>
-              );
-            }
-            if (row.kind !== "file") return null;
-            return (
-              <ChainRow
-                key={virtualRow.key}
-                entry={row.entry}
-                chainIndex={row.chainIndex}
-                depth={row.depth}
-                domainRoot={domain.root}
-                isFolder={row.entry.kind === "managed-folder"}
-                isDragging={dragging === row.entry.path}
-                onDragState={setDragging}
-                onMove={onMove}
-                onOpen={props.actions.openFile}
-                style={absoluteStyle}
-                i18n={props.i18n}
-              />
-            );
-          })}
+          {/* each virtual item renders inside a measuring wrapper: rows
+           * keep their natural height (32px rows, the two-line "more"
+           * row grows) and the virtualizer measures real heights */}
+          {virtualizer.getVirtualItems().map((virtualRow) => (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              className="ct-vrow"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {renderRowContent(virtualRow.index)}
+            </div>
+          ))}
         </div>
       </div>
       <div className="ct-rows-foot">
@@ -466,7 +468,6 @@ interface FolderRowProps {
   isDragging: boolean;
   onDragState(path: string | null): void;
   onToggle(path: string): void;
-  style: React.CSSProperties;
 }
 
 /** series folder node: lucide folder icon, whole-row click toggles the
@@ -526,7 +527,6 @@ const FolderRow = (props: FolderRowProps): React.JSX.Element => {
     <div
       ref={rowRef}
       className={`ct-row is-folder-row${props.isDragging ? " is-lifted" : ""}`}
-      style={props.style}
       onClick={() => props.onToggle(props.path)}
     >
       <span className="ct-grip" ref={gripRef}>
@@ -556,7 +556,6 @@ interface ChainRowProps {
   onDragState(path: string | null): void;
   onMove(path: string, delta: -1 | 1): void;
   onOpen(path: string): void;
-  style: React.CSSProperties;
   i18n: I18nService;
 }
 
@@ -632,7 +631,6 @@ const ChainRow = (props: ChainRowProps): React.JSX.Element => {
     <div
       ref={rowRef}
       className={`ct-row${props.isDragging ? " is-lifted" : ""}${props.isFolder ? " is-managedfolder" : ""}`}
-      style={props.style}
       onContextMenu={(event) => {
         event.preventDefault();
         setMenu({ x: event.clientX, y: event.clientY });

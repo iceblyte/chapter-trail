@@ -266,7 +266,9 @@ body.theme-dark {
   position: relative;
   user-select: none;
 }
-.ct-row:last-child {
+/* virtual row wrappers (.ct-vrow) carry positioning only; rows keep
+   their natural height — the two-line "more" row grows as needed */
+.ct-vrow:last-child > .ct-row {
   border-bottom: none;
 }
 .ct-row:hover {
@@ -334,6 +336,8 @@ body.theme-dark {
 .ct-row.ct-more-row .ct-row-title {
   white-space: normal;
   line-height: 1.35;
+  overflow: visible;
+  text-overflow: clip;
 }
 .ct-row.is-missing .ct-row-title,
 .ct-row-title.is-missing {

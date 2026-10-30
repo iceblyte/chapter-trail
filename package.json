@@ -17,7 +17,8 @@
     "gen-vault": "node scripts/gen-synthetic-vault.mjs",
     "check:core-purity": "node scripts/check-core-purity.mjs",
     "build:harness": "node scripts/build-harness.mjs",
-    "verify:drag": "node scripts/verify-drag.mjs"
+    "verify:drag": "node scripts/verify-drag.mjs",
+    "verify:round16": "node scripts/verify-round16.mjs"
   },
   "keywords": [
     "obsidian",

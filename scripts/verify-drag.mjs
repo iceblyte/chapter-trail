@@ -36,7 +36,7 @@ const server = createServer((req, res) => {
     res.end();
   }
 });
-await new Promise((resolve) => server.listen(4199, resolve));
+await new Promise((resolve) => server.listen(9601, resolve));
 
 const browser = await puppeteer.launch({
   executablePath: "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
@@ -56,7 +56,7 @@ page.on("console", (message) => {
     pageErrors.push(`console: ${message.text()}`);
   }
 });
-await page.goto("http://127.0.0.1:4199/", { waitUntil: "networkidle0" });
+await page.goto("http://127.0.0.1:9601/", { waitUntil: "networkidle0" });
 await page.waitForFunction(() => window.__ctReady === true);
 await page.evaluate(() => {
   window.__ctDebug = true;
