@@ -15,6 +15,8 @@ export interface SettingsHooks {
   onIndexDatesChange(): Promise<void>;
   /** persist the dissolve behavior toggle */
   onDissolveBehaviorChange(): Promise<void>;
+  /** persist the picker exclusion list; returns the normalized string */
+  onPickerExcludeChange(value: string): Promise<string>;
   /** validate + persist a date-source setting; returns the effective value */
   onDateSourceChange(
     kind: "updatedProperty" | "createdProperty" | "dateFormat",
@@ -234,6 +236,23 @@ export class ChapterTrailSettingTab extends PluginSettingTab {
           this.host.settings.deleteIndexOnDissolve = next;
           await this.hooks.onDissolveBehaviorChange();
         });
+      });
+
+    /* Picker exclusions (round 21) */
+    new Setting(containerEl)
+      .setName(t("Excluded folders in the picker"))
+      .setDesc(
+        t(
+          "Folder names hidden from the start-managing tree, matched by name at any depth (case-insensitive, comma-separated). Defaults: <code>assets</code>, <code>attachment</code>, <code>attachments</code>.",
+        ),
+      )
+      .addText((text) => {
+        text
+          .setValue(this.host.settings.pickerExcludeFolders.join(", "))
+          .onChange(async (value) => {
+            const effective = await this.hooks.onPickerExcludeChange(value);
+            text.setValue(effective);
+          });
       });
 
     /* Sponsor (afdian) */

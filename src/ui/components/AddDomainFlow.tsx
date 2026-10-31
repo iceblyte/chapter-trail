@@ -7,7 +7,8 @@
  * multiple roots, each expandable one by one, so a big vault no longer
  * dumps a long flat list on the user. The filter auto-expands matches.
  */
-import { useMemo, useState } from "react";
+import { setIcon } from "obsidian";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { I18nService } from "../../i18n/runtime";
 import type { FolderTreeNode } from "../../services";
 import type { DomainId, DomainMode } from "../../types";
@@ -189,6 +190,25 @@ export function AddDomainFlow(props: AddDomainFlowProps): React.JSX.Element {
   );
 }
 
+/** lucide chevron with a generous click target (round 21): the plain
+ *  text arrow was too small to hit comfortably */
+function TreeCaret(props: { open: boolean; hasChildren: boolean; onToggle(): void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (ref.current) setIcon(ref.current, "chevron-right");
+  }, []);
+  return (
+    <span
+      ref={ref}
+      className={`ct-tree-caret${props.open ? " is-open" : ""}${props.hasChildren ? "" : " is-empty"}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (props.hasChildren) props.onToggle();
+      }}
+    />
+  );
+}
+
 function TreeRow(props: {
   node: FolderTreeNode;
   depth: number;
@@ -220,15 +240,11 @@ function TreeRow(props: {
         className={`ct-tree-row${selected ? " is-selected" : ""}${node.selectable ? "" : " is-disabled"}`}
         style={{ paddingLeft: depth * 16 }}
       >
-        <span
-          className={`ct-tree-caret${isOpen ? " is-open" : ""}${hasChildren ? "" : " is-empty"}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (hasChildren) props.onToggleExpand(node.path);
-          }}
-        >
-          ▸
-        </span>
+        <TreeCaret
+          open={isOpen}
+          hasChildren={hasChildren}
+          onToggle={() => props.onToggleExpand(node.path)}
+        />
         <span
           className="ct-tree-name"
           title={node.path}

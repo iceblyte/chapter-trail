@@ -37,7 +37,12 @@ export interface ChapterTrailSettings {
   /** dissolved domains whose leftover orders the user deliberately
    *  keeps — their panel banners stay hidden until un-ignored */
   ignoredLegacyFolders?: string[] | undefined;
+  /** folder names hidden in the start-managing tree, matched by any
+   *  path segment, case-insensitive (round 21) */
+  pickerExcludeFolders: string[];
 }
+
+export const DEFAULT_PICKER_EXCLUDE_FOLDERS = ["assets", "attachment", "attachments"];
 
 export const DEFAULT_SETTINGS: ChapterTrailSettings = {
   indexFileName: "目录",
@@ -51,6 +56,7 @@ export const DEFAULT_SETTINGS: ChapterTrailSettings = {
   deleteIndexOnDissolve: true,
   language: "en",
   debug: false,
+  pickerExcludeFolders: DEFAULT_PICKER_EXCLUDE_FOLDERS,
 };
 
 /** per-language default index file name (prototype baseline) */
@@ -114,7 +120,21 @@ export function coerceSettings(raw: unknown): ChapterTrailSettings {
     ignoredLegacyFolders: Array.isArray(source.ignoredLegacyFolders)
       ? source.ignoredLegacyFolders.filter((item): item is string => typeof item === "string")
       : undefined,
+    // absent → defaults; an explicitly empty list stays empty (user opted out)
+    pickerExcludeFolders:
+      source.pickerExcludeFolders === undefined
+        ? [...DEFAULT_PICKER_EXCLUDE_FOLDERS]
+        : normalizePickerExcludes(source.pickerExcludeFolders),
   };
+}
+
+/** accept an array or a comma separated string; drop empties */
+function normalizePickerExcludes(raw: unknown): string[] {
+  const parts = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/[,\s]+/) : [];
+  return parts
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item !== "");
 }
 
 /** the date-reading options the resolver should use for these settings */

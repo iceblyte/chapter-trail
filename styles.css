@@ -818,14 +818,24 @@ body.theme-dark {
   opacity: 0.5;
 }
 .ct-tree-caret {
-  width: 14px;
+  width: 22px;
+  height: 22px;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-faint);
-  font-size: 10px;
-  text-align: center;
+  cursor: pointer;
+}
+.ct-tree-caret:hover {
+  color: var(--text-normal);
+}
+.ct-tree-caret svg {
+  width: 12px;
+  height: 12px;
   transition: transform 120ms ease;
 }
-.ct-tree-caret.is-open {
+.ct-tree-caret.is-open svg {
   transform: rotate(90deg);
 }
 .ct-tree-caret.is-empty {

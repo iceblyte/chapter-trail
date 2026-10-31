@@ -398,6 +398,15 @@ export class PluginServices {
       return false;
     };
 
+    // picker-level exclusions (settings): matched by ANY path segment,
+    // case-insensitive — "assets" hides /assets, /quartz/assets, …
+    const excludes = (this.settings.pickerExcludeFolders ?? [])
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry) => entry !== "");
+    const excluded = (folder: string): boolean =>
+      excludes.length > 0 &&
+      folder.split("/").some((segment) => excludes.includes(segment.toLowerCase()));
+
     const childrenOf = new Map<string, string[]>();
     for (const folder of folders) {
       const parent = parentOf(folder) ?? "";
@@ -410,6 +419,7 @@ export class PluginServices {
     }
 
     const build = (folder: string): FolderTreeNode | null => {
+      if (excluded(folder)) return null;
       const counts = directNotes.get(folder) ?? { notes: 0, orderless: 0 };
       const managed = registry.domains.has(folder);
       const inSeries = insideSeries(folder);

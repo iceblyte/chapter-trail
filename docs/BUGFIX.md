@@ -434,3 +434,15 @@ verify:drag 在真实 Chromium 中驱动真实面板：拖文件夹后面板行�
 | 2 | 点击域卡片中的文件：已打开 → 跳到对应标签页；未打开 → 新开标签页，不覆盖当前页 | `openFileInNewTab`：遍历 `workspace.getLeavesOfType("markdown")` 命中同文件则 `revealLeaf` 跳转，否则 `getLeaf("tab").openFile` 新标签打开；仅面板点击（条目行 / 目录行 / 受管子域跳转）走此策略，上一篇/下一篇跳转命令保留原"原地替换"行为（顺序阅读不产生标签堆积） | API 核对（getLeaf/PaneType/revealLeaf/MarkdownView）+ 代码路径；真机复验点 |
 
 验证：`pnpm gate` 229 项全绿；`pnpm verify:drag` 10 场景全 PASS（场景 6 升级为树形选择器断言：A 为根、展开后可见 B）；`pnpm verify:round16` 17/17；`pnpm build` 产物更新。
+
+---
+
+# 第二十一轮修复（2026-10-31）：真机反馈 2 项
+
+| # | 反馈 | 真正的根因 | 修复 | 验证 |
+|---|------|-----------|------|------|
+| 1 | 重开仓库后，点击已打开的文件仍新开标签而不跳转 | Obsidian 会**延迟加载**非活动标签页的视图——重开仓库后 `leaf.view` 尚未实例化，`view.file` 为空，逐叶匹配全部落空 | 匹配改为双通道：活动视图用 `view.file.path`，未加载标签用 **`leaf.getViewState().state.file`**（序列化布局状态，未加载也携带文件路径） | API 核对（WorkspaceLeaf.getViewState）+ 真机复验点 |
+| 2a | 树形选择器箭头太小不好点 | 文本箭头 ▸ + 14px 命中区 | 换成 lucide **chevron-right** 图标（setIcon，与面板右上角同一机制），展开时旋转 90°，命中区放大到 **22×22px** 带 hover 变色 | 浏览器实测 22×22 + 图标已挂载（round21 截图） |
+| 2b | assets 文件夹出现在树中未被排除 | 选择器无排除机制 | 新设置**"选择器排除文件夹"**（默认 `assets, attachment, attachments`）：按任意层级的文件夹名匹配、不区分大小写（`assets` 同时隐藏 `/assets` 与 `/quartz/assets`）；逗号分隔文本输入，coerce 接受数组或字符串、缺省回落默认、显式清空保留空 | 集成测试 ×1（根级/嵌套/大小写变体全部隐藏）+ 浏览器场景（树中无 assets）|
+
+验证：`pnpm gate` 232 项全绿；`pnpm verify:drag` 10 场景全 PASS；`pnpm verify:round16` 升级为 **19/19**（新增 assets 排除与箭头断言 + 截图 round21-09）；`pnpm build` 产物更新。

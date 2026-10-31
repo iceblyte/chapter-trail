@@ -85,3 +85,20 @@ describe("coerceSettings — index date toggles + dissolve behavior (round 17)",
     expect(coerceSettings({ deleteIndexOnDissolve: true }).deleteIndexOnDissolve).toBe(true);
   });
 });
+
+describe("coerceSettings — picker exclude folders (round 21)", () => {
+  it("defaults exclude common asset folders", () => {
+    expect(coerceSettings({}).pickerExcludeFolders).toEqual([
+      "assets",
+      "attachment",
+      "attachments",
+    ]);
+  });
+
+  it("accepts a comma separated string and drops empties", () => {
+    expect(
+      coerceSettings({ pickerExcludeFolders: " assets , 附件 , " }).pickerExcludeFolders,
+    ).toEqual(["assets", "附件"]);
+    expect(coerceSettings({ pickerExcludeFolders: [] }).pickerExcludeFolders).toEqual([]);
+  });
+});

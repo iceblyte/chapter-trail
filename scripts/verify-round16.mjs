@@ -410,6 +410,32 @@ const panelShot = async (name) => {
     !!blogs && blogs.disabled === true && !!jinjie && jinjie.disabled === true,
     JSON.stringify(state),
   );
+  // round 21: asset folders are excluded by default, any depth
+  const assetVisible = state.some((r) => r.name === "assets");
+  check(
+    "round 21: asset folders are excluded from the picker tree",
+    assetVisible === false,
+    JSON.stringify(state.map((r) => r.name)),
+  );
+  // round 21: the caret is a lucide icon with a 22px hit area
+  const caret = await page.evaluate(() => {
+    const el = document.querySelector(".ct-tree-caret:not(.is-empty)");
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    // the harness's obsidian-mock setIcon writes the icon NAME as text —
+    // real Obsidian injects the chevron-right svg through the same call
+    return {
+      width: rect.width,
+      height: rect.height,
+      iconSet: el.querySelector("svg") !== null || (el.textContent ?? "") !== "",
+    };
+  });
+  check(
+    "round 21: caret is a lucide icon with a 22px hit area",
+    !!caret && caret.iconSet === true && caret.width >= 21 && caret.height >= 21,
+    caret ? `${caret.width}x${caret.height} iconSet=${caret.iconSet}` : "none",
+  );
+  await panelShot("round21-09-picker-caret.png");
   await page.evaluate(() => {
     const cancel = [...document.querySelectorAll(".ct-modal-actions button")].find(
       (b) => b.textContent === "Cancel",

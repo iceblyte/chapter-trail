@@ -44,6 +44,9 @@ function seedVault(): FakeVault {
   vault.seed("随笔/周更的节奏.md", "---\n---\n正文\n");
   // replication of the user's vault: folder A holds only subfolder B
   vault.seed("A/B/11.md", "---\n---\n正文\n");
+  // asset folders must be excluded from the picker tree by default
+  vault.seed("assets/图片说明.md", "---\n---\n正文\n");
+  vault.seed("Blogs/assets/截图.md", "---\n---\n正文\n");
   return vault;
 }
 

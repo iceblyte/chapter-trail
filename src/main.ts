@@ -269,8 +269,13 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     if (!file) return;
     const { workspace } = this.app;
     for (const leaf of workspace.getLeavesOfType("markdown")) {
+      // a live MarkdownView knows its file directly; a tab restored by a
+      // vault REOPEN may not be loaded yet (Obsidian defers view creation)
+      // — its serialized view state still carries the file path
       const view = leaf.view;
-      if (view instanceof MarkdownView && view.file?.path === file.path) {
+      const livePath = view instanceof MarkdownView ? view.file?.path : undefined;
+      const statePath = (leaf.getViewState().state as { file?: string }).file;
+      if (livePath === file.path || statePath === file.path) {
         void workspace.revealLeaf(leaf);
         return;
       }
@@ -603,6 +608,16 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
 
   async onDissolveBehaviorChange(): Promise<void> {
     await this.saveSettings();
+  }
+
+  async onPickerExcludeChange(value: string): Promise<string> {
+    const normalized = value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry !== "");
+    this.settings.pickerExcludeFolders = normalized;
+    await this.saveSettings();
+    return normalized.join(", ");
   }
 
   private dateRescanTimer: number | null = null;

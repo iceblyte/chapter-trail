@@ -27,6 +27,9 @@ export const zh: Dict = {
   "Momentjs-style tokens: <code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>. Values without a time part never show one. Blank = <code>YYYY-MM-DD HH:mm</code>.":
     "momentjs 风格令牌：<code>YYYY</code> <code>YY</code> <code>MM</code> <code>DD</code> <code>HH</code> <code>mm</code> <code>ss</code>。没有时间部分的值不会补出时间。留空 = <code>YYYY-MM-DD HH:mm</code>。",
   "Delete the index page when a domain dissolves": "域解散时删除索引页",
+  "Excluded folders in the picker": "选择器排除文件夹",
+  "Folder names hidden from the start-managing tree, matched by name at any depth (case-insensitive, comma-separated). Defaults: <code>assets</code>, <code>attachment</code>, <code>attachments</code>.":
+    "从“开始管理”的文件夹树中隐藏的文件夹，按任意层级的名称匹配（不区分大小写，逗号分隔）。默认：<code>assets</code>、<code>attachment</code>、<code>attachments</code>。",
   "Default on: dissolving a domain moves {indexFile}.md to the system trash. Turn off to keep the page as a normal note — the plugin markers and the is-index/mode keys are removed and the rendered list stays as static text.":
     "默认开启：解散域时将 {indexFile}.md 移入系统回收站。关闭后保留该页并转为普通笔记 — 移除插件标记与 is-index/mode 键，已生成的索引列表作为静态文本保留。",
   "Support the author": "支持作者",

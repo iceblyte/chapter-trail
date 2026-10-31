@@ -838,3 +838,29 @@ describe("round 20 — listFolderTree (tree folder picker)", () => {
     }
   });
 });
+
+describe("round 21 — picker exclusions", () => {
+  it("hides asset folders (any depth, case-insensitive) from the tree", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("随笔/01.md", note(10000));
+    vault.seed("随笔/assets/图片.png.md", note(20000));
+    vault.seed("Quartz/assets/图.md", note(30000));
+    vault.seed("Attachments/a.md", note(40000));
+    await h.services.scan();
+
+    const paths: string[] = [];
+    const walk = (nodes: ReturnType<typeof h.services.listFolderTree>): void => {
+      for (const node of nodes) {
+        paths.push(node.path);
+        walk(node.children);
+      }
+    };
+    walk(h.services.listFolderTree());
+
+    expect(paths).toContain("随笔");
+    expect(paths).not.toContain("随笔/assets");
+    expect(paths).not.toContain("Quartz/assets");
+    expect(paths).not.toContain("Attachments"); // case-insensitive match
+  });
+});
