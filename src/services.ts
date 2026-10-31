@@ -545,6 +545,14 @@ export class PluginServices {
       await this.rebuildIndex(folder, { silent: true });
     }
 
+    // the PARENT domain's chain gains this folder as a managed entry —
+    // rebuild its index right away so 目录 reflects the new structure
+    // immediately instead of waiting for a manual rebuild (round 22)
+    const parent = parentOf(folder);
+    if (parent !== null && parent !== "" && this.deps.store.getSnapshot().domains.has(parent)) {
+      await this.rebuildIndex(parent, { silent: true });
+    }
+
     this.deps.notifier.notice(t("✓ Domain created — {domain}", { domain: folder }));
   }
 

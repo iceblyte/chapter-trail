@@ -236,25 +236,24 @@ function TreeRow(props: {
 
   return (
     <>
+      {/* the WHOLE row is the click target (round 22): clicking anywhere
+       * selects a selectable folder or expands a non-selectable one; the
+       * caret keeps its own toggle via stopPropagation */}
       <div
         className={`ct-tree-row${selected ? " is-selected" : ""}${node.selectable ? "" : " is-disabled"}`}
         style={{ paddingLeft: depth * 16 }}
+        title={node.path}
+        onClick={() => {
+          if (node.selectable) props.onSelect(node.path);
+          else if (hasChildren) props.onToggleExpand(node.path);
+        }}
       >
         <TreeCaret
           open={isOpen}
           hasChildren={hasChildren}
           onToggle={() => props.onToggleExpand(node.path)}
         />
-        <span
-          className="ct-tree-name"
-          title={node.path}
-          onClick={() => {
-            if (node.selectable) props.onSelect(node.path);
-            else if (hasChildren) props.onToggleExpand(node.path);
-          }}
-        >
-          {node.name}
-        </span>
+        <span className="ct-tree-name">{node.name}</span>
         {meta !== "" && <span className="ct-tree-meta">{meta}</span>}
       </div>
       {isOpen &&

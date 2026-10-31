@@ -864,3 +864,45 @@ describe("round 21 — picker exclusions", () => {
     expect(paths).not.toContain("Attachments"); // case-insensitive match
   });
 });
+
+describe("round 22 — start managing inside an independent domain", () => {
+  it("rebuilds the parent's index so the new subdomain shows up immediately", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("A/01.md", note(10000));
+    vault.seed("A/B/b1.md", note(10000));
+    await h.services.scan();
+
+    await h.services.startManaging("A/B", "independent");
+
+    // B is now a managed entry in A's chain and A's index already
+    // renders it with its nested files — no manual rebuild needed
+    const domain = h.store.getSnapshot().domains.get("A");
+    expect(domain?.entries.some((entry) => entry.path === "A/B")).toBe(true);
+    const inner = vault.readContent("A/目录.md").split(INDEX_BLOCK_BEGIN)[1] ?? "";
+    expect(inner).toContain("- [B](B/目录.md)");
+    expect(inner).toContain("    - [b1](B/b1.md)");
+    expect(inner).not.toContain("- B\n");
+  });
+
+  it("the new subdomain becomes drag-sortable in the parent chain", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("A/目录.md", indexPageContent("independent"));
+    vault.seed("A/01.md", note(10000));
+    vault.seed("A/B/b1.md", note(10000));
+    await h.services.scan();
+    await h.services.startManaging("A/B", "independent");
+
+    // B lands last with no order (blue pending); dragging it to the top
+    // writes the order onto B's own index page
+    const domain = h.store.getSnapshot().domains.get("A");
+    expect(domain?.entries.at(-1)?.path).toBe("A/B");
+    expect(h.vault.getFrontmatter("A/B/目录.md")?.order).toBeUndefined();
+
+    await h.services.moveEntry("A", "A/B", 0);
+    expect(h.vault.getFrontmatter("A/B/目录.md")?.order).toBeDefined();
+    expect(h.store.getSnapshot().domains.get("A")?.entries[0]?.path).toBe("A/B");
+  });
+});

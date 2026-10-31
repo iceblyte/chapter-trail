@@ -436,6 +436,21 @@ const panelShot = async (name) => {
     caret ? `${caret.width}x${caret.height} iconSet=${caret.iconSet}` : "none",
   );
   await panelShot("round21-09-picker-caret.png");
+  // round 22: clicking ANYWHERE on the row selects the folder
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll(".ct-tree-row")].find(
+      (el) => el.querySelector(".ct-tree-name")?.textContent === "已解散域",
+    );
+    row.click();
+  });
+  await sleep(120);
+  const rowSelected = await page.evaluate(() => {
+    const row = [...document.querySelectorAll(".ct-tree-row")].find(
+      (el) => el.querySelector(".ct-tree-name")?.textContent === "已解散域",
+    );
+    return row?.classList.contains("is-selected") === true;
+  });
+  check("round 22: clicking anywhere on a tree row selects the folder", rowSelected);
   await page.evaluate(() => {
     const cancel = [...document.querySelectorAll(".ct-modal-actions button")].find(
       (b) => b.textContent === "Cancel",
