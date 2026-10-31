@@ -790,3 +790,51 @@ describe("dissolve behavior — deleteIndexOnDissolve (round 17)", () => {
     expect(h.store.getSnapshot().domains.has("Blogs")).toBe(false);
   });
 });
+
+describe("round 20 — listFolderTree (tree folder picker)", () => {
+  it("builds a pruned multi-root tree with candidates, managed and series hints", async () => {
+    const h = makeHarness();
+    const { vault } = h;
+    vault.seed("Blogs/目录.md", indexPageContent("series"));
+    vault.seed("Blogs/01.md", note(10000));
+    vault.seed("Blogs/进阶篇/02.md", note(20000));
+    vault.seed("读书/目录.md", indexPageContent("independent"));
+    vault.seed("读书/引言.md", note(10000));
+    vault.seed("随笔/如何写作.md", note());
+    vault.seed("随笔/深处/只有空文件夹的目录.md", indexPageContent("series")); // nested series
+    await h.services.scan();
+
+    const tree = h.services.listFolderTree();
+    const roots = tree.map((node) => node.name).sort();
+    expect(roots).toEqual(["Blogs", "读书", "随笔"]);
+
+    const blogs = tree.find((node) => node.path === "Blogs");
+    expect(blogs?.managed).toBe(true);
+    expect(blogs?.selectable).toBe(false);
+    expect(blogs?.children.map((child) => child.name)).toEqual(["进阶篇"]);
+    expect(blogs?.children[0]?.hint).toBe("inside a series domain");
+    expect(blogs?.children[0]?.selectable).toBe(false);
+
+    const suibi = tree.find((node) => node.path === "随笔");
+    expect(suibi?.selectable).toBe(true);
+    expect(suibi?.notes).toBe(1);
+    expect(suibi?.children.map((child) => child.name)).toEqual(["深处"]);
+    expect(suibi?.children[0]?.children).toEqual([]); // leaf, no pruning below
+
+    // truly empty branches are pruned: no folder without notes/subfolders
+    for (const node of tree) {
+      const walk = (n: {
+        path: string;
+        notes: number;
+        subfolders: number;
+        children: unknown[];
+      }) => {
+        if (n.notes === 0 && n.subfolders === 0 && n.children.length === 0) {
+          throw new Error(`empty branch survived: ${n.path}`);
+        }
+        for (const child of n.children as never[]) walk(child as never);
+      };
+      walk(node);
+    }
+  });
+});

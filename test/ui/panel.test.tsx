@@ -33,7 +33,7 @@ const noopActions: PanelActions = {
   setLegacyDomainIgnored: () => Promise.resolve(),
   startManagingFlow: () => Promise.resolve(),
   previewStartManaging: () => ({ missingOrderCount: 0, hasNameClash: false, existingOrders: 0 }),
-  listFolderCandidates: () => [],
+  listFolderTree: () => [],
 };
 
 function domain(partial: Partial<ManagedDomain>): ManagedDomain {

@@ -378,6 +378,46 @@ const panelShot = async (name) => {
   await panelShot("round19-07-ignored-revealed.png");
 }
 
+/* ---------- scenario 9: tree folder picker (round 20) ---------- */
+{
+  await page.evaluate(() => {
+    const flow = [...document.querySelectorAll(".ct-panel-foot button")].find((b) =>
+      b.textContent.includes("Start managing"),
+    );
+    flow.click();
+  });
+  await sleep(200);
+  await page.evaluate(() => {
+    // expand Blogs (managed root) to show its series children
+    const row = [...document.querySelectorAll(".ct-tree-row")].find(
+      (el) => el.querySelector(".ct-tree-name")?.textContent === "Blogs",
+    );
+    row.querySelector(".ct-tree-caret").click();
+  });
+  await sleep(150);
+  await panelShot("round20-08-tree-picker.png");
+  const state = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll(".ct-tree-row")].map((el) => ({
+      name: el.querySelector(".ct-tree-name")?.textContent,
+      disabled: el.classList.contains("is-disabled"),
+    }));
+    return rows;
+  });
+  const blogs = state.find((r) => r.name === "Blogs");
+  const jinjie = state.find((r) => r.name === "进阶篇");
+  check(
+    "round 20: picker tree shows Blogs disabled with its series child",
+    !!blogs && blogs.disabled === true && !!jinjie && jinjie.disabled === true,
+    JSON.stringify(state),
+  );
+  await page.evaluate(() => {
+    const cancel = [...document.querySelectorAll(".ct-modal-actions button")].find(
+      (b) => b.textContent === "Cancel",
+    );
+    cancel?.click();
+  });
+}
+
 console.log(pageErrors.length ? `PAGE ERRORS: ${pageErrors.join(" || ")}` : "no page errors");
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} CHECKS PASS`);

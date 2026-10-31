@@ -67,6 +67,23 @@ export interface StartManagingPreview {
   existingOrders: number;
 }
 
+/** one node of the folder-picker tree (round 20) */
+export interface FolderTreeNode {
+  path: string;
+  /** last path segment, displayed in the tree */
+  name: string;
+  /** the folder is already a managed domain root */
+  managed: boolean;
+  /** the user may pick this folder to start managing */
+  selectable: boolean;
+  /** why the row is not selectable ("already managed" / series) */
+  hint: string | undefined;
+  notes: number;
+  orderless: number;
+  subfolders: number;
+  children: FolderTreeNode[];
+}
+
 export class PluginServices {
   private eventSource: EventSource | null = null;
   private rescanning = false;
@@ -343,6 +360,85 @@ export class PluginServices {
       hasNameClash: this.deps.vault.exists(indexPath),
       existingOrders,
     };
+  }
+
+  /**
+   * The start-managing folder picker as a TREE (round 20): the vault's
+   * top-level folders are multiple roots, each expandable one by one.
+   * A folder appears when it is a candidate, already managed, or has a
+   * shown descendant; truly empty branches are pruned. `selectable`
+   * keeps the original flat-picker rules (not inside a series domain,
+   * not managed, and holding notes or subfolders).
+   */
+  listFolderTree(): FolderTreeNode[] {
+    const registry = this.deps.store.getSnapshot();
+    const files = this.deps.vault.listMarkdownFiles();
+    const folders = this.deps.vault.listFolders();
+
+    /* per-folder stats in one pass (direct notes only) */
+    const directNotes = new Map<string, { notes: number; orderless: number }>();
+    for (const path of files) {
+      const folder = parentOf(path) ?? "";
+      const entry = directNotes.get(folder) ?? { notes: 0, orderless: 0 };
+      entry.notes += 1;
+      const fm = this.deps.vault.getFrontmatter(path);
+      if (fm?.order === undefined && fm?.["is-index"] !== true) entry.orderless += 1;
+      directNotes.set(folder, entry);
+    }
+    const subfolderCounts = new Map<string, number>();
+    for (const folder of folders) {
+      const parent = parentOf(folder) ?? "";
+      subfolderCounts.set(parent, (subfolderCounts.get(parent) ?? 0) + 1);
+    }
+    const insideSeries = (folder: string): boolean => {
+      for (const [root, domain] of registry.domains) {
+        if (domain.mode !== "series") continue;
+        if (folder !== root && folder.startsWith(`${root}/`)) return true;
+      }
+      return false;
+    };
+
+    const childrenOf = new Map<string, string[]>();
+    for (const folder of folders) {
+      const parent = parentOf(folder) ?? "";
+      const list = childrenOf.get(parent) ?? [];
+      list.push(folder);
+      childrenOf.set(parent, list);
+    }
+    for (const list of childrenOf.values()) {
+      list.sort((a, b) => a.localeCompare(b, "zh", { numeric: true }));
+    }
+
+    const build = (folder: string): FolderTreeNode | null => {
+      const counts = directNotes.get(folder) ?? { notes: 0, orderless: 0 };
+      const managed = registry.domains.has(folder);
+      const inSeries = insideSeries(folder);
+      const subfolders = subfolderCounts.get(folder) ?? 0;
+      const selectable = !managed && !inSeries && (counts.notes > 0 || subfolders > 0);
+      const children = (childrenOf.get(folder) ?? [])
+        .map(build)
+        .filter((child): child is FolderTreeNode => child !== null);
+      // prune only truly invisible branches: no notes, nothing below.
+      // Folders WITH notes stay even when not selectable (managed or
+      // inside a series domain) — the hint explains why
+      if (!managed && !selectable && counts.notes === 0 && children.length === 0) {
+        return null;
+      }
+      return {
+        path: folder,
+        name: folder.slice(folder.lastIndexOf("/") + 1),
+        managed,
+        selectable,
+        hint: managed ? "already managed" : inSeries ? "inside a series domain" : undefined,
+        notes: counts.notes,
+        orderless: counts.orderless,
+        subfolders,
+        children,
+      };
+    };
+    return (childrenOf.get("") ?? [])
+      .map(build)
+      .filter((node): node is FolderTreeNode => node !== null);
   }
 
   /** Create the index page (+ first-run order assignment). The caller

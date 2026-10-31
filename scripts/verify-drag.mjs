@@ -593,13 +593,22 @@ const results = [];
     );
     flow.click();
     await sleep(200);
-    const titles = [...document.querySelectorAll(".ct-option-tt")].map((el) => el.textContent);
-    return { titles, hasA: titles.includes("A") };
+    // round 20: the picker is a tree — A is a collapsed top-level root;
+    // expanding it must reveal B
+    const names = [...document.querySelectorAll(".ct-tree-name")].map((el) => el.textContent);
+    if (!names.includes("A")) return { names, hasA: false, hasBAfterExpand: false };
+    const rowA = [...document.querySelectorAll(".ct-tree-row")].find(
+      (row) => row.querySelector(".ct-tree-name")?.textContent === "A",
+    );
+    rowA.querySelector(".ct-tree-caret").click();
+    await sleep(200);
+    const namesAfter = [...document.querySelectorAll(".ct-tree-name")].map((el) => el.textContent);
+    return { names, namesAfter, hasA: true, hasBAfterExpand: namesAfter.includes("B") };
   });
   results.push({
-    name: "picker shows folder A (only subfolders)",
+    name: "picker tree shows folder A as a root and expands to B",
     ...outcome,
-    pass: outcome.hasA === true,
+    pass: outcome.hasA === true && outcome.hasBAfterExpand === true,
   });
   await page.evaluate(() => {
     const cancel = [...document.querySelectorAll(".ct-modal-actions button")].find(

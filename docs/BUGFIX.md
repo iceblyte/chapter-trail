@@ -423,3 +423,14 @@ verify:drag 在真实 Chromium 中驱动真实面板：拖文件夹后面板行�
 | 4 | 去处理/忽略两按钮间隔不统一 | 旧规则 `.ct-banner .ct-btn { margin-left: auto }` 对两个按钮同时生效，flexbox 把剩余空间分摊在两个 auto margin 之间，间距随文本长度漂移 | 文本节点 `flex: 1` 占满弹性空间，删除 auto margin 规则——两按钮以统一 8px 间距贴最右 | 浏览器实测：按钮间隙恰好 8.0px |
 
 验证：`pnpm gate` 228 项全绿；`pnpm verify:drag` 10 场景全 PASS；`pnpm verify:round16` 升级为 **16/16**（新增 tooltip/黄条四断言 + 截图 round19-06/07）；`pnpm build` 产物更新。
+
+---
+
+# 第二十轮优化（2026-10-31）：真机反馈 2 项
+
+| # | 反馈 | 实现 | 验证 |
+|---|------|------|------|
+| 1 | 开始管理的文件夹选择器改为树形：从仓库顶层多个根出发逐个展开，避免长列表杂乱 | `services.listFolderTree()`：仓库顶层文件夹为多根，逐层展开；只剪掉"无笔记且无子级"的空分支；已受管根与系列域内文件夹照常显示但不可选（灰显 + 原因提示）；有笔记但不可选的文件夹保留（提示说明）；筛选时自动展开并只保留匹配分支及其祖先；展开箭头带旋转动画；集成测试锁定（多根/剪枝/managed/inside-series/叶子） | 集成测试 ×1 + 浏览器场景（Blogs 灰显 + 子级展开）+ 截图 round20-08 |
+| 2 | 点击域卡片中的文件：已打开 → 跳到对应标签页；未打开 → 新开标签页，不覆盖当前页 | `openFileInNewTab`：遍历 `workspace.getLeavesOfType("markdown")` 命中同文件则 `revealLeaf` 跳转，否则 `getLeaf("tab").openFile` 新标签打开；仅面板点击（条目行 / 目录行 / 受管子域跳转）走此策略，上一篇/下一篇跳转命令保留原"原地替换"行为（顺序阅读不产生标签堆积） | API 核对（getLeaf/PaneType/revealLeaf/MarkdownView）+ 代码路径；真机复验点 |
+
+验证：`pnpm gate` 229 项全绿；`pnpm verify:drag` 10 场景全 PASS（场景 6 升级为树形选择器断言：A 为根、展开后可见 B）；`pnpm verify:round16` 17/17；`pnpm build` 产物更新。

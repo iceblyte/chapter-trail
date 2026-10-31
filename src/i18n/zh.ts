@@ -170,6 +170,7 @@ export const zh: Dict = {
   "· Step 1 of 2": "· 第 1 步 / 共 2 步",
   "· Step 2 of 2": "· 第 2 步 / 共 2 步",
   "Filter folders…": "筛选文件夹…",
+  "No folders match the filter": "没有符合筛选条件的文件夹",
   "{n} notes · {n2} subfolder · no index page yet": "{n} 篇笔记 · {n2} 个子文件夹 · 尚无索引页",
   "{n} notes this month": "本月 {n} 篇",
   "{n} notes · carries legacy order fields": "{n} 篇笔记 · 含遗留 order 字段",

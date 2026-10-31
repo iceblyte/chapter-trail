@@ -116,43 +116,7 @@ async function main(): Promise<void> {
     setLegacyDomainIgnored: () => Promise.resolve(),
     startManagingFlow: (folder: DomainId, mode: DomainMode) => services.startManaging(folder, mode),
     previewStartManaging: (folder) => services.previewStartManaging(folder),
-    listFolderCandidates: () => {
-      const registry = store.getSnapshot();
-      const managedRoots = new Set(registry.domains.keys());
-      const files = vault.listMarkdownFiles();
-      const folders = vault.listFolders();
-      const insideSeries = (folder: string): boolean => {
-        for (const [root, domain] of registry.domains) {
-          if (domain.mode !== "series") continue;
-          if (folder !== root && folder.startsWith(`${root}/`)) return true;
-        }
-        return false;
-      };
-      return folders
-        .map((folder) => {
-          const prefix = folder === "" ? "" : `${folder}/`;
-          const directFiles = files.filter(
-            (path) => path.startsWith(prefix) && !path.slice(prefix.length).includes("/"),
-          );
-          return {
-            path: folder,
-            noteCount: directFiles.length,
-            subfolderCount: folders.filter(
-              (other) => other.startsWith(prefix) && !other.slice(prefix.length).includes("/"),
-            ).length,
-            orderlessCount: directFiles.filter(
-              (path) => vault.getFrontmatter(path)?.order === undefined,
-            ).length,
-            managed: managedRoots.has(folder),
-          };
-        })
-        .filter(
-          (candidate) =>
-            !insideSeries(candidate.path) &&
-            (candidate.managed || candidate.noteCount > 0 || candidate.subfolderCount > 0),
-        )
-        .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
-    },
+    listFolderTree: () => services.listFolderTree(),
   };
 
   await services.scan();

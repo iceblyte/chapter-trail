@@ -2,6 +2,7 @@
  * Panel actions — the seam between React components and the plugin.
  * Implemented by ChapterTrailPlugin; components stay pure/presentational.
  */
+import type { FolderTreeNode } from "../services";
 import type { DomainId, DomainMode, VaultPath } from "../types";
 
 export interface StartManagingPreview {
@@ -50,14 +51,7 @@ export interface PanelActions {
   setLegacyDomainIgnored(domain: DomainId, ignored: boolean): Promise<void>;
   /** pre-check for the flow's confirmation copy (write counts etc.) */
   previewStartManaging(folder: DomainId): StartManagingPreview;
-  /** candidate folders for the flow, with metadata for the picker */
-  listFolderCandidates(): FolderCandidate[];
-}
-
-export interface FolderCandidate {
-  path: DomainId;
-  noteCount: number;
-  subfolderCount: number;
-  orderlessCount: number;
-  managed: boolean;
+  /** the start-managing folder picker as a tree (round 20): vault
+   *  top-level folders are multiple roots, expandable one by one */
+  listFolderTree(): FolderTreeNode[];
 }

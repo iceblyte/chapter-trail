@@ -4,7 +4,7 @@
  * ports, settings hooks, commands and the M1–M6 confirmation dialogs
  * from prototype 05.
  */
-import { parseYaml as obsidianParseYaml, Plugin } from "obsidian";
+import { MarkdownView, parseYaml as obsidianParseYaml, Plugin } from "obsidian";
 import { ChunkedWriter } from "./adapter/chunked-writer";
 import { DynamicNav, type NavDeps } from "./adapter/dynamic-nav";
 import { editorNavExtension } from "./adapter/editor-nav";
@@ -96,8 +96,8 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     rebuildInjection: async (root) => {
       await this.services.rebuildInjection(root);
     },
-    openIndexPage: (path) => this.openFileInEditor(path),
-    openFile: (path) => this.openFileInEditor(path),
+    openIndexPage: (path) => this.openFileInNewTab(path),
+    openFile: (path) => this.openFileInNewTab(path),
     copyDomainPath: (root) => {
       void navigator.clipboard?.writeText(root);
       this.notifierPort.notice(`${this.i18n.t("Domain path copied")} — ${root}`);
@@ -126,48 +126,7 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
     },
     startManagingFlow: (folder, mode) => this.services.startManaging(folder, mode),
     previewStartManaging: (folder) => this.services.previewStartManaging(folder),
-    listFolderCandidates: () => {
-      const registry = this.store.getSnapshot();
-      const managedRoots = new Set(registry.domains.keys());
-      const files = this.vaultPort.listMarkdownFiles();
-      const folders = this.vaultPort.listFolders();
-      const insideSeries = (folder: string): boolean => {
-        for (const [root, domain] of registry.domains) {
-          if (domain.mode !== "series") continue;
-          if (folder !== root && folder.startsWith(`${root}/`)) return true;
-        }
-        return false;
-      };
-      return folders
-        .map((folder) => {
-          const directPrefix = folder === "" ? "" : `${folder}/`;
-          const directFiles = files.filter(
-            (path) =>
-              path.startsWith(directPrefix) && !path.slice(directPrefix.length).includes("/"),
-          );
-          const subfolderCount = folders.filter(
-            (other) =>
-              other.startsWith(directPrefix) && !other.slice(directPrefix.length).includes("/"),
-          ).length;
-          const orderlessCount = directFiles.filter((path) => {
-            const fm = this.vaultPort.getFrontmatter(path);
-            return fm?.order === undefined && fm?.["is-index"] !== true;
-          }).length;
-          return {
-            path: folder,
-            noteCount: directFiles.length,
-            subfolderCount,
-            orderlessCount,
-            managed: managedRoots.has(folder),
-          };
-        })
-        .filter(
-          (candidate) =>
-            !insideSeries(candidate.path) &&
-            (candidate.managed || candidate.noteCount > 0 || candidate.subfolderCount > 0),
-        )
-        .sort((a, b) => a.path.localeCompare(b.path, "zh", { numeric: true }));
-    },
+    listFolderTree: () => this.services.listFolderTree(),
   };
 
   async onload(): Promise<void> {
@@ -297,6 +256,26 @@ export default class ChapterTrailPlugin extends Plugin implements SettingsTabHos
   private openFileInEditor(path: VaultPath): void {
     const file = this.app.vault.getFileByPath(path);
     if (file) void this.app.workspace.getLeaf(false).openFile(file);
+  }
+
+  /**
+   * Panel clicks (entry rows, index page, managed-subfolder jumps):
+   * jump to the tab already showing the file, otherwise open a NEW tab —
+   * the user's current tab is never replaced (round 20). The jump
+   * commands keep the old replace-in-place behavior on purpose.
+   */
+  private openFileInNewTab(path: VaultPath): void {
+    const file = this.app.vault.getFileByPath(path);
+    if (!file) return;
+    const { workspace } = this.app;
+    for (const leaf of workspace.getLeavesOfType("markdown")) {
+      const view = leaf.view;
+      if (view instanceof MarkdownView && view.file?.path === file.path) {
+        void workspace.revealLeaf(leaf);
+        return;
+      }
+    }
+    void workspace.getLeaf("tab").openFile(file);
   }
 
   async activatePanel(): Promise<void> {

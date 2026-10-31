@@ -792,6 +792,63 @@ body.theme-dark {
   max-height: 240px;
   overflow-y: auto;
 }
+
+/* folder picker tree (round 20): multiple roots, expand one by one */
+.ct-tree {
+  gap: 2px;
+}
+.ct-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-s);
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+}
+.ct-tree-row:hover {
+  background: var(--background-modifier-hover);
+}
+.ct-tree-row.is-selected {
+  border-color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 7%, transparent);
+}
+.ct-tree-row.is-disabled {
+  opacity: 0.5;
+}
+.ct-tree-caret {
+  width: 14px;
+  flex: none;
+  color: var(--text-faint);
+  font-size: 10px;
+  text-align: center;
+  transition: transform 120ms ease;
+}
+.ct-tree-caret.is-open {
+  transform: rotate(90deg);
+}
+.ct-tree-caret.is-empty {
+  visibility: hidden;
+}
+.ct-tree-name {
+  font-weight: var(--font-medium);
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ct-tree-meta {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.ct-tree-empty {
+  color: var(--text-faint);
+  text-align: center;
+  padding: 12px 0;
+}
 .ct-ob-icon {
   display: inline-flex;
   align-items: center;
